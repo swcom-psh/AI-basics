@@ -108,6 +108,8 @@ input,textarea{font-family:inherit;font-size:15px;color:var(--text)}
 .grade.gC{background:#8a5406}
 .src{display:inline-block;font-size:10.5px;background:#eaf1fa;color:#1f5fa9;
   padding:0 5px;border-radius:3px;font-weight:600;vertical-align:1px}
+.adwarn{margin:12px 18px;padding:10px 13px;border-radius:6px;font-size:13px;
+  background:#fdf3e0;color:#7a4b06;border:1px solid #f0dcb4}
 
 #inputbar{flex:none;border-top:1px solid var(--line);padding:12px 18px 16px}
 #inputwrap{max-width:1200px;margin:0;display:flex;gap:9px;align-items:flex-end}
@@ -717,6 +719,8 @@ async function loadAdmin(){
     '<div style="padding:24px;color:var(--bad)">'+esc(r.오류)+'</div>'; return; }
   document.getElementById('adsheet').href = r.시트주소 || '#';
   const 행 = r.행 || [];
+  const 경고HTML = r.경고
+    ? '<div class="adwarn">'+esc(r.경고)+'</div>' : '';
   const 예측 = 행.filter(x=>x.트랙==='예측').length;
   const 도움 = 행.filter(x=>Number(x.도움요청)>0).length;
   const 등 = g => 행.filter(x=>String(x.자료등급||'').toUpperCase()===g).length;
@@ -726,9 +730,15 @@ async function loadAdmin(){
     '<div>분류 <b>'+(행.length-예측)+'</b></div>'+
     '<div>자료 A <b>'+등('A')+'</b> · B <b>'+등('B')+'</b> · C <b>'+등('C')+'</b></div>'+
     '<div>도움 필요했던 학생 <b>'+도움+'</b></div>';
-  if(!행.length){ document.getElementById('adbody').innerHTML =
-    '<div style="padding:24px;color:var(--muted)">확정된 주제가 아직 없습니다.</div>'; return; }
-  document.getElementById('adbody').innerHTML =
+  if(!행.length){
+    document.getElementById('adbody').innerHTML = 경고HTML +
+      '<div style="padding:24px;color:var(--muted)">확정된 주제가 아직 없습니다.'+
+      (r.시트행수 ? '<br><span class="mini">시트1에는 '+r.시트행수+'줄이 있습니다. '+
+        '줄이 있는데 여기가 비어 있다면 머리글 문제입니다 — Apps Script 에서 시트점검() 을 실행해 보세요.</span>' : '')+
+      '</div>';
+    return;
+  }
+  document.getElementById('adbody').innerHTML = 경고HTML +
     '<table class="ad"><thead><tr>'+
     '<th style="width:110px">학생</th><th style="width:54px">유형</th><th>주제</th>'+
     '<th style="width:180px">맞히려는 것</th><th>쓸 정보</th>'+

@@ -678,7 +678,7 @@ function 확정_(req) {
 
   try {
     const ss = 스프레드시트_();
-    const sh = ss.getSheetByName(시트이름);
+    const sh = 머리글_(ss);            // 머리글이 없으면 여기서 만들어 둔다
     const f = 정리.특성 || [];
     const 칸 = i => {
       const x = f[i] || {};
@@ -715,7 +715,8 @@ function 확정_(req) {
 
 function 지우기_(sh, 메일) {
   const v = sh.getDataRange().getValues();
-  for (let r = v.length - 1; r >= 1; r--) {
+  const 시작 = 시작줄_(sh);
+  for (let r = v.length - 1; r >= 시작; r--) {
     if (String(v[r][1]).toLowerCase() === String(메일).toLowerCase()) sh.deleteRow(r + 1);
   }
 }
@@ -724,7 +725,8 @@ function 내기록_(메일) {
   try {
     const sh = 스프레드시트_().getSheetByName(시트이름);
     const v = sh.getDataRange().getValues();
-    for (let r = v.length - 1; r >= 1; r--) {
+    const 시작 = 시작줄_(sh);
+    for (let r = v.length - 1; r >= 시작; r--) {
       if (String(v[r][1]).toLowerCase() === String(메일).toLowerCase())
         return { 있음: true, 트랙: v[r][7], 주제: v[r][8], 시각: String(v[r][0]) };
     }
@@ -742,9 +744,17 @@ function 관리_(req) {
   const sh = ss.getSheetByName(시트이름);
 
   if (req.일 === '목록') {
+    const 버전 = 머리버전_(sh);
     const v = sh.getDataRange().getValues();
     const 행 = [];
-    for (let r = 1; r < v.length; r++) {
+    let 경고 = '';
+    if (버전 === 0)
+      경고 = '시트1에 머리글이 없습니다. 첫 줄부터 학생 기록으로 읽고 있습니다. ' +
+             'Apps Script 에서 최초설정() 을 한 번 실행하면 머리글이 다시 만들어집니다.';
+    else if (버전 === 1)
+      경고 = '시트1 머리글이 예전 형식입니다. 열 위치가 달라 내용이 어긋나 보일 수 있습니다. ' +
+             '쌓인 기록을 다른 시트로 옮긴 뒤 1행을 지우고 최초설정() 을 다시 실행하세요.';
+    for (let r = 시작줄_(sh); r < v.length; r++) {
       const f = [];
       for (let k = 0; k < 4; k++) {
         const b = 20 + k * 9;
@@ -767,7 +777,7 @@ function 관리_(req) {
         주고받은수: v[r][66]
       });
     }
-    return { ok: true, 시트주소: ss.getUrl(), 행: 행 };
+    return { ok: true, 시트주소: ss.getUrl(), 행: 행, 경고: 경고, 시트행수: v.length };
   }
 
   if (req.일 === '삭제') {
@@ -794,43 +804,68 @@ function 스프레드시트_() {
   return ss;
 }
 
+function 머리목록_() {
+  const 특성머리 = n => ['정보'+n+'_이름','정보'+n+'_단위','정보'+n+'_최소',
+                        '정보'+n+'_최대','정보'+n+'_근거','정보'+n+'_학생예상',
+                        '정보'+n+'_실제영향','정보'+n+'_실제큰쪽','정보'+n+'_실자료'];
+  return [].concat(
+    ['시각','메일','학번','이름','학년','반','번호'],
+    ['트랙','주제','대상','예측시점','자료등급'],
+    ['타깃_이름','타깃_단위','타깃_최소','타깃_최대','타깃_근거','타깃_실자료'],
+    ['범주A','범주B'],
+    특성머리(1), 특성머리(2), 특성머리(3), 특성머리(4),
+    ['무관_이름','무관_단위','무관_최소','무관_최대'],
+    ['고른이유','기대효과'],
+    ['주제점검','점검메모'],
+    ['대신요청수','도움요청수'],
+    ['주고받은수','대화내용(JSON)']
+  );
+}
+
+/* 0 = 머리글 없음, 1 = 예전 형식, 2 = 지금 형식
+   머리글이 없으면 기록을 읽는 쪽이 첫 학생을 건너뛰어 버리므로 반드시 확인한다. */
+function 머리버전_(sh) {
+  if (!sh || sh.getLastRow() === 0) return 0;
+  if (String(sh.getRange(1, 1).getValue()).trim() !== '시각') return 0;
+  const w = Math.max(sh.getLastColumn(), 1);
+  const h = sh.getRange(1, 1, 1, w).getValues()[0];
+  return (h[11] === '자료등급' && h[25] === '정보1_학생예상') ? 2 : 1;
+}
+
+/* 머리글이 없으면 만든다. 이미 학생 기록이 있으면 맨 위에 끼워 넣는다. */
 function 머리글_(ss) {
   const sh = ss.getSheetByName(시트이름) || ss.insertSheet(시트이름);
-  if (sh.getLastRow() === 0) {
-    const 특성머리 = n => ['정보'+n+'_이름','정보'+n+'_단위','정보'+n+'_최소',
-                          '정보'+n+'_최대','정보'+n+'_근거','정보'+n+'_학생예상',
-                          '정보'+n+'_실제영향','정보'+n+'_실제큰쪽','정보'+n+'_실자료'];
-    sh.appendRow([].concat(
-      ['시각','메일','학번','이름','학년','반','번호'],
-      ['트랙','주제','대상','예측시점','자료등급'],
-      ['타깃_이름','타깃_단위','타깃_최소','타깃_최대','타깃_근거','타깃_실자료'],
-      ['범주A','범주B'],
-      특성머리(1), 특성머리(2), 특성머리(3), 특성머리(4),
-      ['무관_이름','무관_단위','무관_최소','무관_최대'],
-      ['고른이유','기대효과'],
-      ['주제점검','점검메모'],
-      ['대신요청수','도움요청수'],
-      ['주고받은수','대화내용(JSON)']
-    ));
-    sh.setFrozenRows(1);
-    sh.getRange(1, 1, 1, sh.getLastColumn()).setFontWeight('bold');
-    sh.setColumnWidth(68, 120);          // 대화 열은 좁게 — 눈에 걸리지 않게
+  if (머리버전_(sh) !== 0) return sh;
+
+  const 머리 = 머리목록_();
+  if (sh.getLastRow() === 0) sh.appendRow(머리);
+  else {
+    sh.insertRowBefore(1);
+    sh.getRange(1, 1, 1, 머리.length).setValues([머리]);
   }
+  sh.setFrozenRows(1);
+  sh.getRange(1, 1, 1, 머리.length).setFontWeight('bold');
+  sh.setColumnWidth(머리.length, 120);   // 대화 열은 좁게 — 눈에 걸리지 않게
+  return sh;
 }
+
+/* 데이터가 시작되는 줄 번호 (머리글이 없으면 0) */
+function 시작줄_(sh) { return 머리버전_(sh) === 0 ? 0 : 1; }
 
 function 최초설정() {
   const ss = 스프레드시트_();
   머리글_(ss);
   const sh = ss.getSheetByName(시트이름);
-  const 머리 = sh.getRange(1, 1, 1, Math.max(sh.getLastColumn(), 1)).getValues()[0];
-  if (머리[10] !== '예측시점') {
-    Logger.log('⚠ 시트1 첫 줄이 예전 형식입니다. 시트1의 1행을 지우고 최초설정을 다시 실행하세요.');
-    Logger.log('  (이미 쌓인 기록이 있다면 다른 시트로 옮겨 둔 뒤 지우세요. 열이 68개로 늘었습니다.)');
-  } else if (머리[11] !== '자료등급' || 머리[25] !== '정보1_학생예상') {
-    Logger.log('⚠ 시트1 첫 줄이 예전 형식입니다(학생예상 열 없음). 시트1의 1행을 지우고 최초설정을 다시 실행하세요.');
-  } else {
-    Logger.log('시트 머리글 확인됨 (68열)');
-  }
+  const 버전 = 머리버전_(sh);
+  const 학생수 = Math.max(sh.getLastRow() - 시작줄_(sh), 0);
+
+  if (버전 === 2) Logger.log('머리글 정상 (68열)');
+  else if (버전 === 1) {
+    Logger.log('⚠ 머리글이 예전 형식입니다. 열 위치가 달라 관리자 화면 내용이 어긋납니다.');
+    Logger.log('  쌓인 기록을 다른 시트로 복사해 둔 뒤, 시트1의 1행과 기존 기록을 지우고 다시 실행하세요.');
+  } else Logger.log('⚠ 머리글을 만들지 못했습니다. 시트1 이름을 확인하세요.');
+
+  Logger.log('쌓인 학생 기록 : ' + 학생수 + '명');
   Logger.log('기록 시트 : ' + ss.getUrl());
   const k = API키_();
   Logger.log(k ? 'OpenAI 키 확인됨 (' + k.slice(0, 7) + '…' + k.slice(-4) + ')'
@@ -838,6 +873,22 @@ function 최초설정() {
   Logger.log('대화 모델 : ' + MODEL + ' / 자료 찾기 모델 : ' + SEARCH_MODEL);
   Logger.log('CLIENT_ID : ' + CLIENT_ID);
   Logger.log('이제 배포 → 배포 관리 → 새 버전으로 다시 배포하세요 (주소는 그대로).');
+}
+
+/* 시트가 지금 어떤 상태인지만 확인한다 — 아무것도 고치지 않는다 */
+function 시트점검() {
+  const ss = 스프레드시트_();
+  const sh = ss.getSheetByName(시트이름);
+  if (!sh) { Logger.log('⚠ "' + 시트이름 + '" 시트가 없습니다.'); return; }
+  const 버전 = 머리버전_(sh);
+  Logger.log('시트 : ' + ss.getUrl());
+  Logger.log('머리글 : ' + (버전 === 2 ? '정상(68열)' : 버전 === 1 ? '예전 형식' : '없음'));
+  Logger.log('전체 줄 수 : ' + sh.getLastRow() + ' / 열 수 : ' + sh.getLastColumn());
+  Logger.log('학생 기록 : ' + Math.max(sh.getLastRow() - 시작줄_(sh), 0) + '명');
+  if (sh.getLastRow() > 0) {
+    const 첫 = sh.getRange(1, 1, 1, Math.min(9, Math.max(sh.getLastColumn(), 1))).getValues()[0];
+    Logger.log('1행 앞부분 : ' + JSON.stringify(첫));
+  }
 }
 
 /* ════════ 점검용 — 스크립트 편집기에서 직접 돌려 볼 수 있다 ════════ */
