@@ -78,6 +78,28 @@ input,textarea{font-family:inherit;font-size:15px;color:var(--text)}
 .sysmsg.bad{background:#fdece9;color:#8e211b;border-color:#f3cdc8}
 .sysmsg ul{margin:6px 0 0;padding-left:20px}
 
+/* ── 찾아 온 자료 카드 ── */
+.found{max-width:1160px;margin:0 28px 16px;border:1px solid #cfe0f2;background:#f6faff;
+  border-radius:8px;padding:12px 14px}
+.found .fh{font-size:12.5px;color:#1f5fa9;font-weight:700;margin-bottom:8px}
+.found .fi{border-top:1px solid #e2ecf7;padding:9px 0 6px}
+.found .fi:first-of-type{border-top:0;padding-top:0}
+.found .fn{font-weight:700;font-size:13.5px;margin-bottom:3px}
+.found .fs{font-size:13px;white-space:pre-wrap;color:#2b3138}
+.found .fs.none{color:var(--muted)}
+.found .fl{margin-top:5px;display:flex;flex-direction:column;gap:2px}
+.found .fl a{font-size:12.5px;color:var(--accent);text-decoration:none;word-break:break-all}
+.found .fl a:hover{text-decoration:underline}
+.found .fq{margin-top:5px;font-size:11.5px;color:var(--muted)}
+.found .fq a{color:var(--muted)}
+
+/* ── 정리 패널 보조 ── */
+.chk{margin-top:7px;font-size:12px;padding:5px 8px;border-radius:4px;line-height:1.5}
+.chk.ok{background:#e8f2ea;color:#2b6b41}
+.chk.no{background:#fdf3e0;color:#7a4b06}
+.helpbar{background:#fdf3e0;border:1px solid #f0dcb4;color:#7a4b06;border-radius:6px;
+  padding:9px 11px;font-size:12.5px;margin-bottom:10px}
+
 #inputbar{flex:none;border-top:1px solid var(--line);padding:12px 18px 16px}
 #inputwrap{max-width:1200px;margin:0;display:flex;gap:9px;align-items:flex-end}
 #q{flex:1;resize:none;border:1px solid var(--line);border-radius:7px;padding:10px 12px;
@@ -177,7 +199,7 @@ table.ad tr:hover td{background:#fafbfc}
         <textarea id="q" rows="1" placeholder="여기에 답을 쓰고 Enter를 누르세요  (줄바꿈은 Shift+Enter)"></textarea>
         <button class="btn primary" id="send" onclick="send()">보내기</button>
       </div>
-      <div class="hint">값의 범위는 인터넷에서 직접 찾아보고 어디서 봤는지 알려 주세요. 기계학습 방법이나 파이썬 코드는 알려주지 않습니다.</div>
+      <div class="hint">값의 범위는 화면이 실제 자료를 찾아 보여 줍니다. 링크를 열어 확인하고 맞는지 알려 주세요. 기계학습 방법이나 파이썬 코드는 알려주지 않습니다.</div>
     </div>
   </div>
   <div id="right">
@@ -221,13 +243,14 @@ const API_URL   = 'https://script.google.com/macros/s/AKfycbwLlLefL8g-DTDgX9ab3q
 const DOMAIN    = 'sdhs.gwe.hs.kr';
 
 /* ══════════════════════════════════════════════════════ */
-const 단계목록 = ['주제탐색','유형정하기','타깃확정','특성확정','방향확정','이유작성','요약확인','완료'];
-const 단계이름 = {주제탐색:'주제', 유형정하기:'유형', 타깃확정:'맞힐 값', 특성확정:'쓸 정보',
-  방향확정:'영향', 이유작성:'이유', 요약확인:'확인', 완료:'완료'};
-const KEY = 'aitopic_v2';
+const 단계목록 = ['관심분야','주제고르기','구성정하기','방향정하기','범위찾기','이유작성','요약확인'];
+const 단계이름 = {관심분야:'관심', 주제고르기:'주제', 구성정하기:'구성', 방향정하기:'영향',
+  범위찾기:'범위', 이유작성:'이유', 요약확인:'확인'};
+const KEY = 'aitopic_v3';
 
 let 토큰 = '', 나 = null, 반정보 = null;
-let 히스토리 = [], 정리 = null, 확정가능 = false, 보내는중 = false;
+let 히스토리 = [], 정리 = null, 주제점검 = null;
+let 확정가능 = false, 도움요청 = false, 보내는중 = false;
 
 function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g,
   c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
@@ -315,7 +338,7 @@ function openWho(){
 function load(){ try{ return JSON.parse(localStorage.getItem(KEY)||'null'); }catch(e){ return null; } }
 function save(){
   try{ localStorage.setItem(KEY, JSON.stringify(
-    {메일:나.메일, 반정보, 히스토리, 정리, 확정가능})); }catch(e){}
+    {메일:나.메일, 반정보, 히스토리, 정리, 주제점검, 확정가능, 도움요청})); }catch(e){}
 }
 
 function startChat(){
@@ -326,8 +349,12 @@ function startChat(){
   반정보 = {학년:v('g'), 반:v('c'), 번호:v('n'), 이름:나.이름};
   const saved = load();
   const 이어감 = saved && saved.메일 === 나.메일 && (saved.히스토리||[]).length > 0;
-  if(이어감){ 히스토리 = saved.히스토리; 정리 = saved.정리; 확정가능 = !!saved.확정가능; }
-  else { 히스토리 = []; 정리 = null; 확정가능 = false; }
+  if(이어감){
+    히스토리 = saved.히스토리; 정리 = saved.정리; 주제점검 = saved.주제점검 || null;
+    확정가능 = !!saved.확정가능; 도움요청 = !!saved.도움요청;
+  } else {
+    히스토리 = []; 정리 = null; 주제점검 = null; 확정가능 = false; 도움요청 = false;
+  }
   save();
   document.getElementById('who').classList.add('hide');
   document.getElementById('app').classList.remove('hide');
@@ -345,16 +372,32 @@ function again(){
 /* ── 대화 ── */
 function draw(){
   const log = document.getElementById('log');
-  log.innerHTML = 히스토리.filter(m=>!m.숨김).map(m =>
-    '<div class="msg '+(m.role==='user'?'me':'bot')+'">'+
+  log.innerHTML = 히스토리.map(m => {
+    if(m.카드) return 자료카드(m.카드);
+    if(m.숨김) return '';
+    return '<div class="msg '+(m.role==='user'?'me':'bot')+'">'+
       '<div class="av">'+(m.role==='user'? esc((나.이름||'나').slice(0,1)) : 'AI')+'</div>'+
-      '<div class="body">'+esc(m.보일말 || m.content)+'</div></div>').join('');
+      '<div class="body">'+esc(m.보일말 || m.content)+'</div></div>';
+  }).join('');
   log.scrollTop = log.scrollHeight;
+}
+function 자료카드(list){
+  return '<div class="found"><div class="fh">찾아 온 자료입니다. 링크를 열어 맞는지 확인하고 대화로 알려 주세요.</div>'+
+    (list||[]).map(d =>
+      '<div class="fi"><div class="fn">'+esc(d.항목 || d.검색어)+'</div>'+
+      (d.요약 ? '<div class="fs">'+esc(d.요약)+'</div>'
+              : '<div class="fs none">자료를 찾지 못했습니다. 아래 검색 링크로 직접 찾아보세요.</div>')+
+      ((d.링크||[]).length
+        ? '<div class="fl">'+d.링크.map(l=>'<a href="'+esc(l.주소)+'" target="_blank" rel="noopener">'+
+            esc(l.제목)+'</a>').join('')+'</div>' : '')+
+      '<div class="fq">직접 찾기 · '+(d.검색링크||[]).map(l=>
+        '<a href="'+esc(l.주소)+'" target="_blank" rel="noopener">'+esc(l.이름)+'</a>').join(' · ')+'</div>'+
+      '</div>').join('')+'</div>';
 }
 function 단계표시(cur){
   const i = 단계목록.indexOf(cur);
   document.getElementById('steps').innerHTML = 단계목록.map((s,k)=>
-    '<span class="'+(k===i?'on':(k<i?'done':''))+'">'+단계이름[s]+'</span>').join('');
+    '<span class="'+(k===i?'on':(k<i&&i>=0?'done':''))+'">'+단계이름[s]+'</span>').join('');
 }
 function 알림(text, bad, list){
   const log = document.getElementById('log');
@@ -374,10 +417,15 @@ function send(){
   q.value=''; q.style.height='auto';
   물어보기(t, false);
 }
-async function 물어보기(text, 숨김){
+function 끝내기(){
+  보내는중 = false;
+  document.getElementById('send').disabled = false;
+  document.getElementById('q').focus();
+}
+async function 물어보기(text, 숨김, 카드){
   보내는중 = true;
   document.getElementById('send').disabled = true;
-  히스토리.push({role:'user', content:text, 보일말:text, 숨김:!!숨김});
+  히스토리.push({role:'user', content:text, 보일말:text, 숨김:!!숨김, 카드:카드||null});
   draw();
   const log = document.getElementById('log');
   const t = document.createElement('div');
@@ -390,16 +438,93 @@ async function 물어보기(text, 숨김){
 
   if(r.오류){
     히스토리.pop(); 알림(r.오류, true);
-    보내는중 = false; document.getElementById('send').disabled = false;
-    draw(); return;
+    draw(); 끝내기(); return;
   }
   히스토리.push({role:'assistant', content:JSON.stringify(r), 보일말:r.답변});
-  정리 = r.정리; 확정가능 = !!r.확정가능;
+  정리 = r.정리; 주제점검 = r.주제점검 || null;
+  확정가능 = !!r.확정가능; 도움요청 = !!r.도움요청;
   단계표시(r.단계);
   draw(); paintSpec(); save();
-  보내는중 = false;
-  document.getElementById('send').disabled = false;
-  document.getElementById('q').focus();
+
+  if(r.검색요청 && r.검색요청.length){
+    const g = await 자료가져오기(r.검색요청);
+    if(g){ return 물어보기(g.붙임, true, g.자료); }
+  }
+  끝내기();
+}
+
+/* ── 자료 찾기 : 서버가 웹 검색으로 실제 범위와 링크를 가져온다 ── */
+async function 자료가져오기(요청){
+  const log = document.getElementById('log');
+  const t = document.createElement('div');
+  t.className = 'sysmsg'; t.id = 'searching';
+  t.textContent = '실제 자료를 찾고 있습니다… 10~20초쯤 걸립니다.';
+  log.appendChild(t); log.scrollTop = log.scrollHeight;
+
+  const r = await api({action:'자료찾기', 요청: 요청.slice(0,4)});
+  const el = document.getElementById('searching'); if(el) el.remove();
+
+  const 자료 = (r && r.자료) || [];
+  if(!자료.length){
+    알림((r && r.오류) || '자료를 찾지 못했습니다. 아는 만큼 대략 얼마쯤일지 알려 주세요.', true);
+    return null;
+  }
+  const 붙임 = '[화면이 찾은 자료]\n' + 자료.map(d =>
+    '· ' + (d.항목 || d.검색어) + '\n' +
+    (d.요약 ? d.요약 : '자료를 찾지 못했습니다.') + '\n' +
+    ((d.링크||[]).length ? d.링크.map(l=>'  링크: '+l.제목+' ('+l.주소+')').join('\n')
+                         : '  링크 없음')
+  ).join('\n\n');
+  return {붙임: 붙임, 자료: 자료};
+}
+
+/* ── 확정 전 검사 (서버와 같은 규칙) ── */
+function 검사(s){
+  const 부족 = [];
+  if(!s) return ['아직 정해진 것이 없습니다'];
+  const 있 = v => v != null && String(v).trim().length > 0;
+  if(['예측','분류'].indexOf(s.트랙) < 0) 부족.push('문제 유형');
+  if(!있(s.주제) || String(s.주제).length < 5) 부족.push('주제 한 줄');
+  if(!있(s.대상)) 부족.push('어디의 자료인지');
+  if(!있(s.예측시점)) 부족.push('언제 예측하는지');
+  const t = s.타깃 || {};
+  if(!있(t.이름)) 부족.push('맞히려는 값의 이름');
+  if(s.트랙 === '예측'){
+    if(!있(t.단위)) 부족.push('맞히려는 값의 단위');
+    if(!(t.최대 > t.최소)) 부족.push('맞히려는 값의 범위');
+    if(!있(t.근거)) 부족.push('맞히려는 값 범위의 근거');
+  }
+  if(s.트랙 === '분류'){
+    if(!있(s.범주A) || !있(s.범주B)) 부족.push('맞히려는 두 가지');
+    else if(s.범주A === s.범주B) 부족.push('두 가지가 서로 달라야 함');
+  }
+  const f = s.특성 || [];
+  if(f.length < 3) 부족.push('쓸 정보 3개 이상 (지금 '+f.length+'개)');
+  if(f.length > 4) 부족.push('쓸 정보는 4개까지');
+  const 본것 = {};
+  f.forEach((x,i)=>{
+    const n = x.이름 || (i+1)+'번째 정보';
+    if(!있(x.이름)) 부족.push((i+1)+'번째 정보의 이름');
+    else if(본것[x.이름]) 부족.push('정보 이름이 겹침: '+x.이름);
+    else 본것[x.이름] = 1;
+    if(!있(x.단위)) 부족.push(n+'의 단위');
+    if(!(x.최대 > x.최소)) 부족.push(n+'의 값 범위');
+    if(!있(x.근거)) 부족.push(n+' 범위의 근거');
+    if(s.트랙==='예측' && ['강한양','중간양','약한양','약한음','중간음','강한음'].indexOf(x.영향)<0)
+      부족.push(n+'의 영향');
+    if(s.트랙==='분류' && !있(x.높은쪽)) 부족.push(n+'이(가) 큰 쪽');
+    if(s.트랙==='분류' && 있(x.높은쪽) && x.높은쪽!==s.범주A && x.높은쪽!==s.범주B)
+      부족.push(n+'의 큰 쪽이 두 범주 중 하나가 아님');
+  });
+  if(s.트랙 === '예측'){
+    const m = s.무관변수 || {};
+    if(!있(m.이름)) 부족.push('도움 안 될 것 같은 값');
+    else if(!(m.최대 > m.최소)) 부족.push('도움 안 될 것 같은 값의 범위');
+  }
+  const 글자 = v => String(v||'').replace(/\s/g,'').length;
+  if(글자(s.이유) < 6) 부족.push('주제를 고른 이유');
+  if(글자(s.기대효과) < 6) 부족.push('무엇이 달라지는지');
+  return 부족;
 }
 
 /* ── 정리 패널 ── */
@@ -409,9 +534,18 @@ function paintSpec(){
   const 범 = (a,b,u) => (a==null||b==null||!(b>a)) ? '<span class="v no">아직</span>'
                         : '<span class="v">'+a+' ~ '+b+(u?(' '+esc(u)):'')+'</span>';
   let h = '';
+  if(도움요청) h += '<div class="helpbar">선생님께 이 화면을 보여 주세요. 같이 골라 보면 됩니다.</div>';
   h += '<div class="sec"><h4>주제</h4><div class="in">'+
        '<div class="kv"><span class="k">유형</span>'+값(s.트랙)+'</div>'+
-       '<div class="kv"><span class="k">한 줄</span>'+값(s.주제)+'</div></div></div>';
+       '<div class="kv"><span class="k">한 줄</span>'+값(s.주제)+'</div>'+
+       '<div class="kv"><span class="k">대상</span>'+값(s.대상)+'</div>'+
+       '<div class="kv"><span class="k">예측 시점</span>'+값(s.예측시점)+'</div>'+
+       (주제점검 && (주제점검.메모 || (주제점검.걸린기준||[]).length)
+         ? '<div class="chk '+(주제점검.통과?'ok':'no')+'">'+
+           (주제점검.통과 ? '쓸모 확인 · '+esc(주제점검.메모||'')
+                          : '더 다듬을 것 · '+esc((주제점검.걸린기준||[]).join(', ')))+'</div>'
+         : '')+
+       '</div></div>';
   h += '<div class="sec"><h4>맞히려는 것</h4><div class="in">';
   if(s.트랙 === '분류'){
     h += '<div class="kv"><span class="k">이름</span>'+값(t.이름)+'</div>'+
@@ -448,16 +582,21 @@ function paintSpec(){
        '<div class="kv"><span class="k">고른 이유</span>'+값(s.이유)+'</div>'+
        '<div class="kv"><span class="k">기대</span>'+값(s.기대효과)+'</div></div></div>';
   document.getElementById('spec').innerHTML = h;
-  document.getElementById('finbtn').disabled = !확정가능;
-  document.getElementById('finmsg').textContent = 확정가능
-    ? '확정하면 선생님께 전달됩니다.' : '아직 정해지지 않은 것이 남아 있습니다.';
+
+  const 부족 = 검사(정리);
+  const 열림 = 확정가능 && 부족.length === 0;
+  document.getElementById('finbtn').disabled = !열림;
+  document.getElementById('finmsg').textContent = 열림
+    ? '확정하면 선생님께 전달됩니다.'
+    : (부족.length ? '남은 것 : ' + 부족[0] + (부족.length>1 ? ' 외 '+(부족.length-1)+'개' : '')
+                   : '요약을 확인하면 열립니다.');
 }
 
 /* ── 확정 ── */
 async function finish(){
   const b = document.getElementById('finbtn');
   b.disabled = true; b.textContent = '보내는 중…';
-  const r = await api({action:'finalize', 정리, 반정보,
+  const r = await api({action:'finalize', 정리, 반정보, 주제점검,
                        history: 히스토리.map(m=>({role:m.role, content:m.content}))});
   b.textContent = '주제 확정하기';
   if(r.오류){ b.disabled = false; 알림(r.오류, true); return; }
@@ -489,16 +628,19 @@ async function loadAdmin(){
   document.getElementById('adsheet').href = r.시트주소 || '#';
   const 행 = r.행 || [];
   const 예측 = 행.filter(x=>x.트랙==='예측').length;
+  const 도움 = 행.filter(x=>Number(x.도움요청)>0).length;
   document.getElementById('adstat').innerHTML =
     '<div>확정 <b>'+행.length+'</b>명</div>'+
     '<div>예측 <b>'+예측+'</b></div>'+
-    '<div>분류 <b>'+(행.length-예측)+'</b></div>';
+    '<div>분류 <b>'+(행.length-예측)+'</b></div>'+
+    '<div>도움 필요했던 학생 <b>'+도움+'</b></div>';
   if(!행.length){ document.getElementById('adbody').innerHTML =
     '<div style="padding:24px;color:var(--muted)">확정된 주제가 아직 없습니다.</div>'; return; }
   document.getElementById('adbody').innerHTML =
     '<table class="ad"><thead><tr>'+
-    '<th style="width:110px">학생</th><th style="width:60px">유형</th><th>주제</th>'+
-    '<th style="width:190px">맞히려는 것</th><th>쓸 정보</th><th style="width:70px"></th>'+
+    '<th style="width:110px">학생</th><th style="width:54px">유형</th><th>주제</th>'+
+    '<th style="width:180px">맞히려는 것</th><th>쓸 정보</th>'+
+    '<th style="width:96px">점검·태도</th><th style="width:70px"></th>'+
     '</tr></thead><tbody>'+
     행.map(x=>{
       const 특 = (x.특성||[]).map(f=>
@@ -511,8 +653,13 @@ async function loadAdmin(){
           x.타깃.최소+'~'+x.타깃.최대+(x.타깃.근거? '<br>└ '+esc(x.타깃.근거) : '')+'</span>';
       return '<tr><td>'+esc(x.학년)+'-'+esc(x.반)+'-'+esc(x.번호)+' '+esc(x.이름)+
              '<div class="mini">'+esc(x.학번)+'</div></td>'+
-             '<td>'+esc(x.트랙)+'</td><td>'+esc(x.주제)+'</td>'+
+             '<td>'+esc(x.트랙)+'</td>'+
+             '<td>'+esc(x.주제)+
+               '<div class="mini">'+esc(x.대상||'')+(x.예측시점? ' · '+esc(x.예측시점):'')+'</div>'+
+               (x.점검메모? '<div class="mini">'+esc(x.점검메모)+'</div>':'')+'</td>'+
              '<td>'+타+'</td><td>'+특+'</td>'+
+             '<td><span class="mini">점검 '+esc(x.점검||'')+'<br>대신요청 '+esc(x.대신요청||0)+
+               '<br>도움 '+esc(x.도움요청||0)+'<br>주고받기 '+esc(x.주고받은수||0)+'</span></td>'+
              '<td><button class="btn sm" onclick="delOne(\''+esc(x.메일)+'\')">삭제</button></td></tr>';
     }).join('')+'</tbody></table>';
 }
