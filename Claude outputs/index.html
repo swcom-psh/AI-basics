@@ -136,6 +136,8 @@ input,textarea{font-family:inherit;font-size:15px;color:var(--text)}
 .tag.up{background:#eaf1fa;color:#1f5fa9}
 .tag.down{background:#fdece9;color:#b3261e}
 #finmsg{font-size:12.5px;color:var(--muted);margin-top:8px;text-align:center}
+#finmsg ul.left{text-align:left;margin:5px 0 8px;padding-left:18px}
+#finmsg ul.left li{margin:1px 0}
 
 /* ── 완료 ── */
 #done{position:fixed;inset:0;background:#fff;z-index:58;display:flex;flex-direction:column;
@@ -186,7 +188,8 @@ table.ad tr:hover td{background:#fafbfc}
     <button class="btn primary big" onclick="startChat()">시작하기</button>
     <div id="whoErr"></div>
     <div class="prev hide" id="prev"></div>
-    <div style="margin-top:12px;text-align:center">
+    <div style="margin-top:12px;text-align:center;display:flex;gap:8px;justify-content:center">
+      <button class="btn sm hide" id="resetEnter" onclick="restart()">저장된 대화 지우고 처음부터</button>
       <button class="btn sm hide" id="adminEnter" onclick="openAdmin()">관리자 화면 열기</button>
     </div>
   </div>
@@ -200,6 +203,7 @@ table.ad tr:hover td{background:#fafbfc}
       <span class="u" id="ubar"></span>
       <span class="sp"></span>
       <div id="steps"></div>
+      <button class="btn sm" id="resetBtn" onclick="restart()">처음부터 다시</button>
       <button class="btn sm hide" id="adminBtn" onclick="openAdmin()">관리</button>
     </div>
     <div id="log"></div>
@@ -226,7 +230,7 @@ table.ad tr:hover td{background:#fafbfc}
   <h2>주제가 확정되었습니다</h2>
   <p id="donemsg"></p>
   <div style="margin-top:22px;display:flex;gap:8px">
-    <button class="btn" onclick="again()">다시 정하기</button>
+    <button class="btn" onclick="restart()">주제 다시 정하기</button>
     <button class="btn hide" id="doneAdmin" onclick="openAdmin()">관리자 화면</button>
   </div>
 </div>
@@ -261,6 +265,7 @@ const KEY = 'aitopic_v3';
 let 토큰 = '', 나 = null, 반정보 = null;
 let 히스토리 = [], 정리 = null, 주제점검 = null;
 let 확정가능 = false, 도움요청 = false, 보내는중 = false;
+let 마지막알림 = null, 점검보냄 = false;
 
 function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g,
   c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
@@ -344,6 +349,8 @@ function openWho(){
     document.getElementById('c').value = saved.반정보.반 || '';
     document.getElementById('n').value = saved.반정보.번호 || '';
   }
+  if(saved && saved.메일 === 나.메일 && (saved.히스토리||[]).length > 0)
+    document.getElementById('resetEnter').classList.remove('hide');
 }
 function load(){ try{ return JSON.parse(localStorage.getItem(KEY)||'null'); }catch(e){ return null; } }
 function save(){
@@ -374,10 +381,16 @@ function startChat(){
   draw(); paintSpec();
   if(!이어감) 첫말();
 }
-function again(){
-  localStorage.removeItem(KEY);
+function restart(){
+  const 쌓인것 = (히스토리 || []).filter(m => !m.숨김).length;
+  const 물음 = 쌓인것
+    ? '지금까지 나눈 대화를 모두 지우고 처음부터 다시 시작할까요?\n(확정해서 선생님께 보낸 내용은 지워지지 않습니다.)'
+    : '처음부터 다시 시작할까요?';
+  if(!confirm(물음)) return;
+  try{ localStorage.removeItem(KEY); }catch(e){}
   location.reload();
 }
+function again(){ restart(); }
 
 /* ── 대화 ── */
 function draw(){
@@ -389,6 +402,7 @@ function draw(){
       '<div class="av">'+(m.role==='user'? esc((나.이름||'나').slice(0,1)) : 'AI')+'</div>'+
       '<div class="body">'+esc(m.보일말 || m.content)+'</div></div>';
   }).join('');
+  알림그리기();
   log.scrollTop = log.scrollHeight;
 }
 function 자료카드(list){
@@ -409,46 +423,80 @@ function 단계표시(cur){
   document.getElementById('steps').innerHTML = 단계목록.map((s,k)=>
     '<span class="'+(k===i?'on':(k<i&&i>=0?'done':''))+'">'+단계이름[s]+'</span>').join('');
 }
-function 알림(text, bad, list){
+function 알림(text, bad, list, 버튼){
+  마지막알림 = {text:text, bad:!!bad, list:list||null, 버튼:버튼||null};
+  알림그리기();
+}
+function 알림지움(){ 마지막알림 = null; }
+function 알림그리기(){
   const log = document.getElementById('log');
+  const 옛 = document.getElementById('sysnow'); if(옛) 옛.remove();
+  if(!마지막알림) return;
+  const a = 마지막알림;
   const d = document.createElement('div');
-  d.className = 'sysmsg' + (bad?' bad':'');
-  d.innerHTML = esc(text) + (list && list.length
-    ? '<ul>'+list.map(x=>'<li>'+esc(x)+'</li>').join('')+'</ul>' : '');
+  d.id = 'sysnow';
+  d.className = 'sysmsg' + (a.bad ? ' bad' : '');
+  d.innerHTML = esc(a.text) +
+    (a.list && a.list.length ? '<ul>'+a.list.map(x=>'<li>'+esc(x)+'</li>').join('')+'</ul>' : '') +
+    (a.버튼 ? '<div style="margin-top:8px"><button class="btn sm" onclick="'+a.버튼.동작+'">'+
+              esc(a.버튼.글)+'</button></div>' : '');
   log.appendChild(d); log.scrollTop = log.scrollHeight;
 }
+
 function 첫말(){
-  물어보기('안녕하세요. 수행평가 주제를 정하고 싶습니다. 무엇부터 하면 될까요?', true);
+  보내기('안녕하세요. 수행평가 주제를 정하고 싶습니다. 무엇부터 하면 될까요?', {숨김:true});
 }
 function send(){
   const q = document.getElementById('q');
   const t = q.value.trim();
   if(!t || 보내는중) return;
   q.value=''; q.style.height='auto';
-  물어보기(t, false);
+  보내기(t, {});
 }
 function 끝내기(){
   보내는중 = false;
   document.getElementById('send').disabled = false;
   document.getElementById('q').focus();
 }
-async function 물어보기(text, 숨김, 카드){
+
+/* 대화 기록을 서버로 보낼 때 — 마지막 AI 답만 JSON 통째로, 나머지는 보인 말만.
+   (정리는 늘 누적된 전체이므로 마지막 하나면 충분하다. 토큰과 비용이 크게 줄어든다.) */
+function 대화기록(){
+  let 끝 = -1;
+  for(let i = 히스토리.length - 1; i >= 0; i--)
+    if(히스토리[i].role === 'assistant'){ 끝 = i; break; }
+  return 히스토리.map((m, i) => ({
+    role: m.role,
+    content: (m.role === 'assistant' && i !== 끝) ? (m.보일말 || m.content) : m.content
+  }));
+}
+
+/* 보내기 — text 가 있으면 먼저 히스토리에 넣고, 없으면 지금 기록 그대로 다시 보낸다 */
+async function 보내기(text, 옵션){
+  옵션 = 옵션 || {};
+  if(보내는중 && !옵션.이어서) return;
   보내는중 = true;
   document.getElementById('send').disabled = true;
-  히스토리.push({role:'user', content:text, 보일말:text, 숨김:!!숨김, 카드:카드||null});
+  알림지움();
+  if(text != null)
+    히스토리.push({role:'user', content:text, 보일말:text,
+                  숨김:!!옵션.숨김, 카드:옵션.카드||null});
   draw();
+
   const log = document.getElementById('log');
   const t = document.createElement('div');
   t.className='msg bot'; t.id='typing';
   t.innerHTML = '<div class="av">AI</div><div class="body typing">생각하고 있습니다…</div>';
   log.appendChild(t); log.scrollTop = log.scrollHeight;
 
-  const r = await api({action:'chat', history: 히스토리.map(m=>({role:m.role, content:m.content}))});
+  const r = await api({action:'chat', history: 대화기록()});
   const el = document.getElementById('typing'); if(el) el.remove();
 
   if(r.오류){
-    히스토리.pop(); 알림(r.오류, true);
-    draw(); 끝내기(); return;
+    // 보낸 말은 지우지 않는다. 지우면 찾아 온 자료 카드까지 날아간다.
+    draw();
+    알림(r.오류, true, null, {글:'다시 보내기', 동작:'다시보내기()'});
+    끝내기(); return;
   }
   히스토리.push({role:'assistant', content:JSON.stringify(r), 보일말:r.답변});
   정리 = r.정리; 주제점검 = r.주제점검 || null;
@@ -456,11 +504,29 @@ async function 물어보기(text, 숨김, 카드){
   단계표시(r.단계);
   draw(); paintSpec(); save();
 
+  // 자료 검색이 필요하면 바로 찾아서 이어 보낸다
   if(r.검색요청 && r.검색요청.length){
     const g = await 자료가져오기(r.검색요청);
-    if(g){ return 물어보기(g.붙임, true, g.자료); }
+    return 보내기(g.붙임, {숨김:true, 카드:g.자료, 이어서:true});
   }
+
+  // 챗봇은 다 됐다는데 빈 칸이 남아 있으면, 학생 대신 화면이 알려 준다
+  const 부족 = 검사(정리);
+  if(확정가능 && 부족.length && !점검보냄){
+    점검보냄 = true;
+    return 보내기('[화면 점검] 아직 빈 칸이 있습니다: ' + 부족.join(', ') +
+                 '. 이 칸부터 채워 주세요.', {숨김:true, 이어서:true});
+  }
+  if(!부족.length) 점검보냄 = false;
   끝내기();
+}
+function 다시보내기(){ 알림지움(); 보내기(null, {이어서:true}); }
+function 점검요청(){
+  const 부족 = 검사(정리);
+  if(!부족.length || 보내는중) return;
+  점검보냄 = true;
+  보내기('[화면 점검] 아직 빈 칸이 있습니다: ' + 부족.join(', ') + '. 이 칸부터 채워 주세요.',
+        {숨김:true});
 }
 
 /* ── 자료 찾기 : 서버가 웹 검색으로 실제 범위와 링크를 가져온다 ── */
@@ -468,16 +534,22 @@ async function 자료가져오기(요청){
   const log = document.getElementById('log');
   const t = document.createElement('div');
   t.className = 'sysmsg'; t.id = 'searching';
-  t.textContent = '실제 자료를 찾고 있습니다… 10~20초쯤 걸립니다.';
+  t.textContent = '실제 자료를 찾고 있습니다… 20초쯤 걸립니다.';
   log.appendChild(t); log.scrollTop = log.scrollHeight;
 
-  const r = await api({action:'자료찾기', 요청: 요청.slice(0,4)});
+  let r = await api({action:'자료찾기', 요청: 요청.slice(0,3)});
+  if(!(r && (r.자료||[]).length)){           // 한 번은 조용히 다시 시도한다
+    t.textContent = '자료를 다시 찾는 중입니다…';
+    r = await api({action:'자료찾기', 요청: 요청.slice(0,3)});
+  }
   const el = document.getElementById('searching'); if(el) el.remove();
 
   const 자료 = (r && r.자료) || [];
   if(!자료.length){
-    알림((r && r.오류) || '자료를 찾지 못했습니다. 아는 만큼 대략 얼마쯤일지 알려 주세요.', true);
-    return null;
+    // 못 찾았다는 사실을 챗봇에게도 알려야 대화가 엉키지 않는다
+    return {붙임: '[화면이 찾은 자료]\n자료를 찾지 못했습니다. ' +
+                  '학생에게 각 항목이 대략 얼마쯤일지 물어보고, 근거는 "학생 추정 — 자료 없음"으로 적어 주세요.',
+            자료: null};
   }
   const 붙임 = '[화면이 찾은 자료]\n' + 자료.map(d =>
     '· ' + (d.항목 || d.검색어) + '\n' +
@@ -522,10 +594,10 @@ function 검사(s){
     if(!있(x.근거)) 부족.push(n+' 범위의 근거');
     if(!있(x.학생예상)) 부족.push(n+'에 대한 내 예상');
     if(s.트랙==='예측' && ['강한양','중간양','약한양','약한음','중간음','강한음'].indexOf(x.영향)<0)
-      부족.push(n+'의 정리가 덜 됨');
-    if(s.트랙==='분류' && !있(x.높은쪽)) 부족.push(n+'의 정리가 덜 됨');
+      부족.push(n+' 정리 마무리 (챗봇이 채웁니다)');
+    if(s.트랙==='분류' && !있(x.높은쪽)) 부족.push(n+' 정리 마무리 (챗봇이 채웁니다)');
     if(s.트랙==='분류' && 있(x.높은쪽) && x.높은쪽!==s.범주A && x.높은쪽!==s.범주B)
-      부족.push(n+'의 정리가 덜 됨');
+      부족.push(n+' 정리 마무리 (챗봇이 채웁니다)');
   });
   if(s.트랙 === '예측'){
     const m = s.무관변수 || {};
@@ -600,10 +672,14 @@ function paintSpec(){
   const 부족 = 검사(정리);
   const 열림 = 확정가능 && 부족.length === 0;
   document.getElementById('finbtn').disabled = !열림;
-  document.getElementById('finmsg').textContent = 열림
-    ? '확정하면 선생님께 전달됩니다.'
-    : (부족.length ? '남은 것 : ' + 부족[0] + (부족.length>1 ? ' 외 '+(부족.length-1)+'개' : '')
-                   : '요약을 확인하면 열립니다.');
+  const fm = document.getElementById('finmsg');
+  if(열림){ fm.innerHTML = '확정하면 선생님께 전달됩니다.'; }
+  else if(부족.length){
+    fm.innerHTML = '<b>남은 것</b><ul class="left">' +
+      부족.slice(0,5).map(x=>'<li>'+esc(x)+'</li>').join('') +
+      (부족.length>5 ? '<li>… 외 '+(부족.length-5)+'개</li>' : '') + '</ul>' +
+      '<button class="btn sm" onclick="점검요청()">이거 채우러 가기</button>';
+  } else { fm.innerHTML = '요약을 확인하면 열립니다.'; }
 }
 
 /* ── 확정 ── */
@@ -622,8 +698,8 @@ async function finish(){
     return;
   }
   b.disabled = false;
-  알림('아직 정해지지 않은 것이 있어 확정할 수 없습니다. 아래 내용을 대화로 더 정해 주세요.',
-       true, r.부족);
+  알림('아직 정해지지 않은 것이 있어 확정할 수 없습니다.', true, r.부족,
+       {글:'챗봇에게 알리기', 동작:'점검요청()'});
 }
 
 /* ── 관리자 ── */
