@@ -99,6 +99,8 @@ input,textarea{font-family:inherit;font-size:15px;color:var(--text)}
 .chk.no{background:#fdf3e0;color:#7a4b06}
 .helpbar{background:#fdf3e0;border:1px solid #f0dcb4;color:#7a4b06;border-radius:6px;
   padding:9px 11px;font-size:12.5px;margin-bottom:10px}
+.prevbar{background:#fdf8ee;border:1px solid #f0dcb4;color:#7a4b06;border-radius:6px;
+  padding:9px 11px;font-size:12.5px;margin-bottom:10px;line-height:1.55}
 
 /* ── 관리자 : 자료 등급 ── */
 .grade{display:inline-block;width:19px;height:19px;line-height:19px;text-align:center;
@@ -181,7 +183,9 @@ table.ad tr:hover td{background:#fafbfc}
       <b id="whoName"></b> <span class="adminchip hide" id="whoAdmin">관리자</span>
       <div class="m" id="whoMail"></div>
     </div>
-    <div style="font-size:13.5px;color:var(--muted);margin-bottom:9px">학년·반·번호를 입력하세요.</div>
+    <div style="font-size:13.5px;color:var(--muted);margin-bottom:9px">
+      학번 형식이 아닌 계정입니다. 시험용으로 학년·반·번호를 입력하세요.<br>
+      <span style="font-size:12px">(학생 계정은 이 화면 없이 바로 들어갑니다.)</span></div>
     <div class="rowf">
       <input id="g" placeholder="학년" maxlength="1" style="max-width:74px">
       <input id="c" placeholder="반" maxlength="2" style="max-width:74px">
@@ -327,7 +331,12 @@ async function onCredential(res){
   나 = r;
   document.getElementById('login').classList.add('hide');
   document.getElementById('loginmsg').textContent = '';
-  openWho();
+  if(나.반정보){
+    // 학생 계정 — 학년·반·번호를 학번에서 읽었으므로 입력 없이 바로 들어간다
+    들어가기({학년:나.반정보.학년, 반:나.반정보.반, 번호:나.반정보.번호, 이름:나.이름});
+  } else {
+    openWho();   // 학번 형식이 아닌 계정(교사 시험용 등)만 직접 입력
+  }
 }
 
 /* ── 반 정보 ── */
@@ -365,7 +374,10 @@ function startChat(){
   if(!v('g') || !v('c') || !v('n')){
     document.getElementById('whoErr').textContent = '학년·반·번호를 모두 입력하세요.'; return;
   }
-  반정보 = {학년:v('g'), 반:v('c'), 번호:v('n'), 이름:나.이름};
+  들어가기({학년:v('g'), 반:v('c'), 번호:v('n'), 이름:나.이름});
+}
+function 들어가기(정보){
+  반정보 = 정보;
   const saved = load();
   const 이어감 = saved && saved.메일 === 나.메일 && (saved.히스토리||[]).length > 0;
   if(이어감){
@@ -619,6 +631,9 @@ function paintSpec(){
   const 범 = (a,b,u) => (a==null||b==null||!(b>a)) ? '<span class="v no">아직</span>'
                         : '<span class="v">'+a+' ~ '+b+(u?(' '+esc(u)):'')+'</span>';
   let h = '';
+  if(나 && 나.이전확정 && 나.이전확정.있음)
+    h += '<div class="prevbar">이미 확정한 주제가 있습니다 — <b>'+esc(나.이전확정.주제||'')+'</b><br>'+
+         '다시 확정하면 이전 것은 지워지고 새 내용으로 바뀝니다.</div>';
   if(도움요청) h += '<div class="helpbar">선생님께 이 화면을 보여 주세요. 같이 골라 보면 됩니다.</div>';
   h += '<div class="sec"><h4>주제</h4><div class="in">'+
        '<div class="kv"><span class="k">유형</span>'+값(s.트랙)+'</div>'+

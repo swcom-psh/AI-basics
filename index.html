@@ -3,194 +3,301 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>수행평가 주제 정하기 · 인공지능 기초</title>
+<title>수행평가 계획서 · 인공지능 기초</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+KR:wght@400;500;600;700&family=Noto+Serif+KR:wght@600;700;900&display=swap">
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 <style>
+/* ════════ 토큰 ════════ */
 :root{
-  --bg:#fff; --panel:#f5f6f7; --line:#dcdfe3; --line2:#eaecef;
-  --text:#1c1f23; --muted:#6a7079; --accent:#1f5fa9; --accent-soft:#eaf1fa;
-  --bad:#b3261e; --ok:#2b6b41; --warn:#8a5406;
+  --desk:#E6EAEF;        /* 계획서가 놓인 책상 */
+  --ground:#F6F7F9;      /* 대화 쪽 바탕 */
+  --paper:#FFFFFF;
+  --ink:#17202B;
+  --ink-2:#45515F;
+  --muted:#7B8593;
+  --rule:#C9D0D9;        /* 서식 괘선 */
+  --rule-2:#E3E7EC;
+  --frame:#344150;       /* 서식 바깥 굵은 테 */
+  --accent:#1F3E8C;      /* 남색 */
+  --accent-2:#2F55B5;
+  --accent-soft:#E7ECF8;
+  --hl:#FFF0A3;          /* 형광펜 — 학생이 직접 쓴 칸 */
+  --stamp:#C4382A;       /* 인주 */
+  --ok:#2C6A45;   --ok-soft:#E5F1E9;
+  --warn:#8A5A0A; --warn-soft:#FBF2DF; --warn-line:#EED9AE;
+  --bad:#A5312A;  --bad-soft:#FBE9E6;  --bad-line:#F1C9C3;
+  --sans:"IBM Plex Sans KR","Pretendard","Malgun Gothic","Apple SD Gothic Neo",system-ui,sans-serif;
+  --serif:"Noto Serif KR","Nanum Myeongjo","Batang",serif;
+  --mono:"IBM Plex Mono",ui-monospace,"Consolas",monospace;
 }
 *{box-sizing:border-box}
 html,body{height:100%;margin:0}
-body{background:var(--bg);color:var(--text);
-  font-family:"Pretendard","Malgun Gothic","Apple SD Gothic Neo",system-ui,sans-serif;
-  font-size:15px;line-height:1.65;overflow:hidden}
+body{background:var(--ground);color:var(--ink);font-family:var(--sans);
+  font-size:15px;line-height:1.65;overflow:hidden;-webkit-font-smoothing:antialiased}
 button{font-family:inherit;cursor:pointer}
-input,textarea{font-family:inherit;font-size:15px;color:var(--text)}
+input,textarea{font-family:inherit;font-size:15px;color:var(--ink)}
+a{color:var(--accent)}
+:focus-visible{outline:2px solid var(--accent-2);outline-offset:2px}
 .hide{display:none !important}
-.btn{border:1px solid var(--line);background:#fff;color:var(--text);
-  padding:8px 14px;border-radius:5px;font-size:14px}
-.btn:hover{background:#f2f3f5}
+.num{font-family:var(--mono);font-variant-numeric:tabular-nums}
+
+/* ── 버튼 ── */
+.btn{border:1px solid var(--rule);background:var(--paper);color:var(--ink);
+  padding:8px 14px;border-radius:4px;font-size:14px;font-weight:500;line-height:1.3}
+.btn:hover{border-color:var(--ink-2)}
 .btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
-.btn.primary:hover{background:#18497f}
-.btn:disabled{opacity:.4;cursor:default}
-.btn.big{width:100%;padding:11px;font-size:15px;font-weight:600}
-.btn.sm{padding:4px 9px;font-size:12.5px}
+.btn.primary:hover{background:var(--accent-2);border-color:var(--accent-2)}
+.btn:disabled{opacity:.38;cursor:default}
+.btn.sm{padding:5px 10px;font-size:13px}
+.btn.ghost{border-color:transparent;background:transparent;color:var(--ink-2)}
+.btn.ghost:hover{background:var(--rule-2);border-color:transparent}
 
-/* ── 로그인 ── */
-#login{position:fixed;inset:0;background:#fff;z-index:60;display:flex;
-  flex-direction:column;align-items:center;justify-content:center;padding:20px}
-#login h1{font-size:26px;margin:0 0 6px;letter-spacing:-.6px}
-#login .sub{color:var(--muted);margin-bottom:30px;text-align:center}
+/* ════════ 로그인 ════════ */
+#login{position:fixed;inset:0;z-index:60;display:grid;grid-template-columns:1.1fr 1fr;background:var(--paper)}
+#login .intro{background:var(--accent);color:#fff;padding:clamp(40px,7vw,120px);
+  display:flex;flex-direction:column;justify-content:center;gap:28px}
+#login .kicker{font-size:13px;letter-spacing:.14em;opacity:.8}
+#login h1{font-family:var(--serif);font-weight:900;font-size:clamp(40px,4.4vw,68px);
+  line-height:1.15;margin:0;letter-spacing:-.02em;text-wrap:balance}
+#login .lede{font-size:17px;max-width:30em;opacity:.92;margin:0}
+#login ol{list-style:none;margin:8px 0 0;padding:0;display:grid;grid-template-columns:repeat(7,auto);
+  gap:0;justify-content:start;font-size:13px}
+#login ol li{padding:7px 14px 7px 0;margin-right:14px;border-bottom:2px solid rgba(255,255,255,.35)}
+#login ol li b{font-family:var(--mono);font-weight:500;opacity:.7;margin-right:5px}
+#login .side{display:flex;flex-direction:column;justify-content:center;padding:clamp(40px,6vw,110px);gap:18px}
+#login .side h2{margin:0;font-size:22px;font-weight:700}
+#login .side p{margin:0;color:var(--ink-2)}
 #gbtn{min-height:44px}
-#loginmsg{margin-top:16px;font-size:13.5px;color:var(--bad);text-align:center;max-width:420px}
-.domain{margin-top:22px;font-size:12.5px;color:var(--muted);text-align:center}
+#loginmsg{font-size:14px;color:var(--bad);min-height:22px}
+.domain{font-size:13px;color:var(--muted)}
+.domain code{font-family:var(--mono);background:var(--rule-2);padding:1px 6px;border-radius:3px}
 
-/* ── 반 정보 ── */
-#who{position:fixed;inset:0;background:#fff;z-index:55;display:flex;
-  flex-direction:column;align-items:center;justify-content:center;padding:20px}
-.card{width:min(460px,94vw);border:1px solid var(--line);border-radius:8px;padding:22px}
-.me{background:var(--accent-soft);border-radius:6px;padding:10px 13px;margin-bottom:16px;font-size:14px}
-.me b{font-size:15px}
-.me .m{color:var(--muted);font-size:12.5px}
-.rowf{display:flex;gap:8px;margin-bottom:10px}
-.rowf input{flex:1;min-width:0;padding:9px 10px;border:1px solid var(--line);border-radius:5px}
+/* ════════ 시험용 계정 반 정보 ════════ */
+#who{position:fixed;inset:0;z-index:55;background:var(--desk);display:flex;align-items:center;
+  justify-content:center;padding:20px}
+.card{width:min(480px,100%);background:var(--paper);border:1px solid var(--rule);padding:26px}
+.whohead{border-bottom:1px solid var(--rule-2);padding-bottom:14px;margin-bottom:16px}
+.whohead b{font-size:17px}
+.whohead .m{color:var(--muted);font-size:13px;font-family:var(--mono)}
+.adminchip{font-size:11px;font-weight:700;background:var(--ok);color:#fff;padding:2px 7px;border-radius:3px;vertical-align:2px}
+.rowf{display:flex;gap:8px;margin:12px 0}
+.rowf input{flex:1;min-width:0;padding:9px 10px;border:1px solid var(--rule);border-radius:4px}
 #whoErr{color:var(--bad);font-size:13.5px;min-height:20px;margin-top:8px}
-.prev{margin-top:14px;padding:10px 12px;border:1px solid #f0dcb4;background:#fdf8ee;
-  border-radius:6px;font-size:13px;color:#7a4b06}
+.prev{margin-top:14px;padding:10px 12px;border:1px solid var(--warn-line);background:var(--warn-soft);
+  font-size:13px;color:var(--warn);white-space:pre-wrap}
 
-/* ── 본 화면 ── */
-#app{display:flex;height:100vh}
-#left{flex:1;min-width:0;display:flex;flex-direction:column;border-right:1px solid var(--line)}
-#right{width:380px;flex:none;background:var(--panel);overflow-y:auto;padding:16px 16px 40px}
-#bar{height:48px;flex:none;border-bottom:1px solid var(--line);display:flex;align-items:center;
-  gap:12px;padding:0 18px}
-#bar b{letter-spacing:-.3px}
-#bar .u{color:var(--muted);font-size:13px}
-#bar .sp{flex:1}
-.adminchip{font-size:11px;font-weight:700;background:#2b6b41;color:#fff;padding:2px 7px;border-radius:3px}
-#steps{display:flex;gap:4px;align-items:center;font-size:11.5px;color:var(--muted);flex-wrap:wrap}
-#steps span{padding:2px 7px;border-radius:10px;background:#eef0f3;white-space:nowrap}
-#steps span.on{background:var(--accent);color:#fff;font-weight:700}
-#steps span.done{background:#dbe7d9;color:#2b6b41}
+/* ════════ 본 화면 ════════ */
+#app{display:grid;grid-template-rows:auto 1fr;height:100vh}
+#bar{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:24px;
+  padding:0 24px;height:60px;background:var(--paper);border-bottom:1px solid var(--rule)}
+#bar .brand{display:flex;align-items:baseline;gap:10px;white-space:nowrap}
+#bar .brand b{font-family:var(--serif);font-size:18px;font-weight:700;letter-spacing:-.01em}
+#bar .brand span{font-size:12.5px;color:var(--muted)}
+#bar .right{display:flex;align-items:center;gap:8px}
+#ubar{font-size:13.5px;color:var(--ink-2);padding:4px 10px;border:1px solid var(--rule-2);border-radius:3px;white-space:nowrap}
+#ubar .num{color:var(--ink)}
 
-#log{flex:1;overflow-y:auto;padding:22px 0 10px}
-.msg{max-width:1200px;margin:0 0 16px;display:flex;gap:11px;padding:0 28px}
-.msg .av{width:29px;height:29px;border-radius:50%;flex:none;display:flex;align-items:center;
-  justify-content:center;font-size:12.5px;font-weight:700;margin-top:2px}
-.msg.bot .av{background:var(--accent-soft);color:var(--accent)}
-.msg.me .av{background:#e6e8eb;color:#4c545e}
-.msg .body{flex:1;min-width:0;white-space:pre-wrap;word-break:break-word;padding-top:2px}
-.typing{color:var(--muted);font-style:italic}
-.sysmsg{max-width:1160px;margin:0 28px 14px;padding:10px 14px;border-radius:6px;
-  font-size:13.5px;background:#fdf3e0;color:#7a4b06;border:1px solid #f0dcb4}
-.sysmsg.bad{background:#fdece9;color:#8e211b;border-color:#f3cdc8}
+/* 단계 — 서식의 칸처럼 나란히 */
+#steps{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));max-width:760px;justify-self:center;width:100%;
+  border:1px solid var(--rule);border-radius:3px;overflow:hidden}
+#steps .st{display:flex;align-items:center;justify-content:center;gap:6px;padding:6px 4px;
+  font-size:12.5px;color:var(--muted);border-left:1px solid var(--rule);white-space:nowrap;background:var(--paper)}
+#steps .st:first-child{border-left:0}
+#steps .st i{font-style:normal;font-family:var(--mono);font-size:11px}
+#steps .st.done{color:var(--accent);background:var(--accent-soft)}
+#steps .st.done i::before{content:"✓ "}
+#steps .st.on{color:#fff;background:var(--accent);font-weight:600}
+
+#main{display:grid;grid-template-columns:minmax(0,1fr) minmax(560px,1fr);min-height:0}
+
+/* ── 대화 ── */
+#left{display:flex;flex-direction:column;min-height:0;border-right:1px solid var(--rule)}
+#log{flex:1;overflow-y:auto;padding:28px 32px 12px;display:flex;flex-direction:column;gap:18px}
+.msg{display:flex;flex-direction:column;gap:4px;max-width:78ch}
+.msg .who{font-size:12px;color:var(--muted);font-weight:600;letter-spacing:.02em}
+.msg .body{white-space:pre-wrap;word-break:break-word}
+.msg.bot .body{color:var(--ink)}
+.msg.me{align-self:flex-end;align-items:flex-end;max-width:62ch}
+.msg.me .body{background:var(--accent-soft);color:var(--ink);padding:9px 14px;border-radius:12px 12px 2px 12px}
+.typing{color:var(--muted)}
+.typing::after{content:"";display:inline-block;width:1.2em;text-align:left;animation:dots 1.2s steps(4) infinite}
+@keyframes dots{0%{content:""}25%{content:"."}50%{content:".."}75%{content:"..."}}
+@media (prefers-reduced-motion:reduce){.typing::after{animation:none;content:"…"}}
+
+.sysmsg{max-width:78ch;padding:11px 14px;font-size:14px;background:var(--warn-soft);color:var(--warn);
+  border:1px solid var(--warn-line);border-radius:4px}
+.sysmsg.bad{background:var(--bad-soft);color:var(--bad);border-color:var(--bad-line)}
 .sysmsg ul{margin:6px 0 0;padding-left:20px}
 
-/* ── 찾아 온 자료 카드 ── */
-.found{max-width:1160px;margin:0 28px 16px;border:1px solid #cfe0f2;background:#f6faff;
-  border-radius:8px;padding:12px 14px}
-.found .fh{font-size:12.5px;color:#1f5fa9;font-weight:700;margin-bottom:8px}
-.found .fi{border-top:1px solid #e2ecf7;padding:9px 0 6px}
+/* 찾아 온 자료 — 계획서에 끼워 둔 참고 쪽지 */
+.found{max-width:78ch;background:var(--paper);border:1px solid var(--rule);border-top:3px solid var(--accent);
+  padding:14px 16px 12px}
+.found .fh{font-size:12.5px;color:var(--accent);font-weight:600;margin-bottom:10px;letter-spacing:.01em}
+.found .fi{padding:10px 0;border-top:1px dashed var(--rule)}
 .found .fi:first-of-type{border-top:0;padding-top:0}
-.found .fn{font-weight:700;font-size:13.5px;margin-bottom:3px}
-.found .fs{font-size:13px;white-space:pre-wrap;color:#2b3138}
+.found .fn{font-weight:600;font-size:14px;margin-bottom:4px}
+.found .fs{font-size:13.5px;white-space:pre-wrap;color:var(--ink-2)}
 .found .fs.none{color:var(--muted)}
-.found .fl{margin-top:5px;display:flex;flex-direction:column;gap:2px}
-.found .fl a{font-size:12.5px;color:var(--accent);text-decoration:none;word-break:break-all}
+.found .fl{margin-top:6px;display:flex;flex-direction:column;gap:3px}
+.found .fl a{font-size:13px;text-decoration:none;word-break:break-all}
+.found .fl a::before{content:"↗ ";color:var(--muted)}
 .found .fl a:hover{text-decoration:underline}
-.found .fq{margin-top:5px;font-size:11.5px;color:var(--muted)}
+.found .fq{margin-top:7px;font-size:12px;color:var(--muted)}
 .found .fq a{color:var(--muted)}
 
-/* ── 정리 패널 보조 ── */
-.chk{margin-top:7px;font-size:12px;padding:5px 8px;border-radius:4px;line-height:1.5}
-.chk.ok{background:#e8f2ea;color:#2b6b41}
-.chk.no{background:#fdf3e0;color:#7a4b06}
-.helpbar{background:#fdf3e0;border:1px solid #f0dcb4;color:#7a4b06;border-radius:6px;
-  padding:9px 11px;font-size:12.5px;margin-bottom:10px}
-
-/* ── 관리자 : 자료 등급 ── */
-.grade{display:inline-block;width:19px;height:19px;line-height:19px;text-align:center;
-  border-radius:4px;font-size:11.5px;font-weight:700;color:#fff;margin-right:6px}
-.grade.gA{background:#2b6b41}
-.grade.gB{background:#1f5fa9}
-.grade.gC{background:#8a5406}
-.src{display:inline-block;font-size:10.5px;background:#eaf1fa;color:#1f5fa9;
-  padding:0 5px;border-radius:3px;font-weight:600;vertical-align:1px}
-.adwarn{margin:12px 18px;padding:10px 13px;border-radius:6px;font-size:13px;
-  background:#fdf3e0;color:#7a4b06;border:1px solid #f0dcb4}
-
-#inputbar{flex:none;border-top:1px solid var(--line);padding:12px 18px 16px}
-#inputwrap{max-width:1200px;margin:0;display:flex;gap:9px;align-items:flex-end}
-#q{flex:1;resize:none;border:1px solid var(--line);border-radius:7px;padding:10px 12px;
-  max-height:140px;line-height:1.5}
+#inputbar{border-top:1px solid var(--rule);padding:14px 32px 18px;background:var(--paper)}
+#inputwrap{display:flex;gap:10px;align-items:flex-end}
+#q{flex:1;resize:none;border:1px solid var(--rule);border-radius:6px;padding:11px 14px;
+  max-height:160px;line-height:1.5;background:var(--paper)}
 #q:focus{outline:0;border-color:var(--accent)}
-.hint{max-width:1200px;margin:7px 0 0;font-size:12px;color:var(--muted)}
+#send{padding:11px 20px}
+.hint{margin-top:8px;font-size:12.5px;color:var(--muted)}
 
-/* ── 정리 패널 ── */
-#right h3{margin:0 0 4px;font-size:14px}
-#right .note{font-size:12.5px;color:var(--muted);margin-bottom:14px}
-.sec{background:#fff;border:1px solid var(--line);border-radius:6px;margin-bottom:10px}
-.sec h4{margin:0;padding:8px 11px;font-size:12.5px;background:#f7f8f9;color:#4c545e;
-  border-bottom:1px solid var(--line2);border-radius:6px 6px 0 0;font-weight:700}
-.sec .in{padding:9px 11px}
-.kv{display:flex;gap:8px;font-size:13px;padding:2px 0}
-.kv .k{color:var(--muted);flex:none;min-width:62px}
-.kv .v{flex:1;word-break:break-word}
-.kv .v.no{color:#b9bec4}
-.feat{border-top:1px dashed var(--line2);padding:7px 0 3px}
-.feat:first-child{border-top:0;padding-top:0}
-.feat .nm{font-weight:600;font-size:13.5px}
-.feat .dt{font-size:12px;color:var(--muted)}
-.tag{display:inline-block;font-size:11px;padding:1px 6px;border-radius:3px;margin-top:3px;
-  background:#eef1f5;color:#4c545e;font-weight:600}
-.tag.up{background:#eaf1fa;color:#1f5fa9}
-.tag.down{background:#fdece9;color:#b3261e}
-#finmsg{font-size:12.5px;color:var(--muted);margin-top:8px;text-align:center}
-#finmsg ul.left{text-align:left;margin:5px 0 8px;padding-left:18px}
-#finmsg ul.left li{margin:1px 0}
+/* ── 계획서 ── */
+#right{background:var(--desk);display:flex;flex-direction:column;min-height:0}
+#specwrap{flex:1;overflow-y:auto;padding:28px 36px}
+#right .notes{display:flex;flex-direction:column;gap:8px;margin-bottom:14px}
+.helpbar,.prevbar{padding:10px 13px;font-size:13px;border-radius:3px;border:1px solid var(--warn-line);
+  background:var(--warn-soft);color:var(--warn);line-height:1.55}
 
-/* ── 완료 ── */
-#done{position:fixed;inset:0;background:#fff;z-index:58;display:flex;flex-direction:column;
-  align-items:center;justify-content:center;padding:24px;text-align:center}
-#done h2{font-size:23px;margin:0 0 10px}
-#done p{color:var(--muted);max-width:540px;white-space:pre-wrap}
+.sheet{position:relative;background:var(--paper);border:1px solid var(--rule);
+  box-shadow:0 1px 0 var(--rule-2),0 10px 26px -18px rgba(23,32,43,.35);padding:34px 38px 30px}
+.sheet .kick{font-size:12.5px;color:var(--muted);letter-spacing:.06em;text-align:center}
+.sheet h2{font-family:var(--serif);font-weight:900;font-size:28px;text-align:center;margin:4px 0 20px;
+  letter-spacing:.18em}
+table.form{width:100%;border-collapse:collapse;border:2px solid var(--frame);table-layout:fixed}
+table.form + table.form{border-top:0}
+table.form th,table.form td{border:1px solid var(--rule);padding:8px 10px;vertical-align:top;
+  font-size:14px;text-align:left;word-break:break-word}
+table.form th{background:#F3F5F8;color:var(--ink-2);font-weight:600;font-size:13px;white-space:nowrap}
+table.form td.c{text-align:center}
+table.form .sec th{background:var(--frame);color:#fff;font-size:13px;letter-spacing:.06em;text-align:left}
+table.form .sec th span{font-family:var(--serif);margin-right:8px}
+table.form tr.cols th{background:#F3F5F8;text-align:center;font-size:12.5px}
+.blank{display:inline-block;min-width:6em;border-bottom:1px dotted var(--muted);height:1.2em;vertical-align:-3px}
+.mine{background:linear-gradient(transparent 38%,var(--hl) 38%,var(--hl) 92%,transparent 92%);padding:0 2px}
+.src{font-size:12.5px;color:var(--ink-2)}
+.src a{font-size:12px;text-decoration:none;margin-left:4px;white-space:nowrap}
+.src a:hover{text-decoration:underline}
+.use{font-size:13.5px;color:var(--ink-2)}
+.chk{display:inline-block;font-size:11.5px;font-weight:600;padding:1px 7px;border-radius:3px;margin-left:6px;vertical-align:1px}
+.chk.ok{background:var(--ok-soft);color:var(--ok)}
+.chk.no{background:var(--warn-soft);color:var(--warn)}
+.sheet .sign{display:flex;justify-content:flex-end;align-items:center;gap:14px;margin-top:18px;
+  font-size:13.5px;color:var(--ink-2)}
+.sheet .sign .num{color:var(--ink)}
 
-/* ── 관리자 ── */
-#admin{position:fixed;inset:0;background:#fff;z-index:62;overflow:auto;padding:0 0 60px}
-#adtop{height:48px;border-bottom:1px solid var(--line);display:flex;align-items:center;
-  gap:12px;padding:0 18px;position:sticky;top:0;background:#fff}
+/* 확정 도장 */
+.stamp{position:absolute;right:46px;top:22px;width:96px;height:96px;border:4px solid var(--stamp);
+  border-radius:50%;color:var(--stamp);display:flex;flex-direction:column;align-items:center;justify-content:center;
+  font-family:var(--serif);font-weight:900;transform:rotate(-12deg);opacity:.9;mix-blend-mode:multiply}
+.stamp b{font-size:26px;letter-spacing:.12em;line-height:1}
+.stamp small{font-family:var(--mono);font-size:10.5px;margin-top:4px;font-weight:500}
+
+/* 확정 줄 */
+#finbar{border-top:1px solid var(--rule);background:var(--paper);padding:14px 36px 18px;
+  display:grid;grid-template-columns:1fr auto;gap:16px;align-items:start}
+#finmsg{font-size:13px;color:var(--ink-2)}
+#finmsg b{color:var(--ink)}
+#finmsg ul{margin:4px 0 8px;padding-left:18px;columns:2;column-gap:24px}
+#finmsg li{break-inside:avoid}
+#finbtn{padding:12px 26px;font-size:15px;font-weight:600}
+
+/* ════════ 완료 ════════ */
+#done{position:fixed;inset:0;z-index:58;background:var(--desk);display:grid;
+  grid-template-columns:minmax(320px,.8fr) minmax(0,1.2fr);overflow:hidden}
+#done .left{background:var(--paper);border-right:1px solid var(--rule);padding:clamp(36px,5vw,90px);
+  display:flex;flex-direction:column;justify-content:center;gap:18px}
+#done h2{font-family:var(--serif);font-weight:900;font-size:34px;margin:0;letter-spacing:-.01em}
+#done p{color:var(--ink-2);margin:0;white-space:pre-wrap}
+#done .acts{display:flex;gap:8px;margin-top:8px}
+#done .right{overflow-y:auto;padding:40px 48px}
+
+/* ════════ 관리자 ════════ */
+#admin{position:fixed;inset:0;background:var(--paper);z-index:62;overflow:auto;padding:0 0 60px}
+#adtop{height:60px;border-bottom:1px solid var(--rule);display:flex;align-items:center;
+  gap:12px;padding:0 24px;position:sticky;top:0;background:var(--paper);z-index:2}
+#adtop b{font-family:var(--serif);font-size:18px}
+#adtop .u{color:var(--muted);font-size:13px;font-family:var(--mono)}
 #adtop .sp{flex:1}
-table.ad{width:100%;border-collapse:collapse;font-size:13px}
-table.ad th,table.ad td{border-bottom:1px solid var(--line2);padding:7px 10px;text-align:left;
-  vertical-align:top}
-table.ad th{background:#f5f6f7;position:sticky;top:48px;font-size:12px;color:#4c545e}
-table.ad tr:hover td{background:#fafbfc}
-.mini{font-size:11.5px;color:var(--muted)}
-.stat{display:flex;gap:18px;padding:12px 18px;font-size:13.5px}
-.stat b{font-size:17px}
-@media (max-width:900px){ #right{display:none} }
+.stat{display:flex;gap:28px;padding:16px 24px;border-bottom:1px solid var(--rule-2);font-size:13.5px;color:var(--ink-2);flex-wrap:wrap}
+.stat b{font-family:var(--mono);font-size:18px;color:var(--ink);margin-left:4px}
+table.ad{width:100%;border-collapse:collapse;font-size:13.5px}
+table.ad th,table.ad td{border-bottom:1px solid var(--rule-2);padding:10px 12px;text-align:left;vertical-align:top}
+table.ad th{background:#F3F5F8;position:sticky;top:60px;font-size:12.5px;color:var(--ink-2);z-index:1}
+table.ad tr:hover td{background:#FAFBFC}
+.mini{font-size:12px;color:var(--muted)}
+.adwarn{margin:12px 24px;padding:10px 13px;border-radius:3px;font-size:13px;
+  background:var(--warn-soft);color:var(--warn);border:1px solid var(--warn-line)}
+.grade{display:inline-block;width:20px;height:20px;line-height:20px;text-align:center;
+  border-radius:3px;font-size:11.5px;font-weight:700;color:#fff;margin-right:6px;font-family:var(--mono)}
+.grade.gA{background:var(--ok)}
+.grade.gB{background:var(--accent)}
+.grade.gC{background:var(--warn)}
+.srcchip{display:inline-block;font-size:10.5px;background:var(--accent-soft);color:var(--accent);
+  padding:0 5px;border-radius:3px;font-weight:600;vertical-align:1px}
+
+/* 좁은 화면(노트북 이하) — 두 칸을 유지하되 폭만 줄인다 */
+@media (max-width:1280px){
+  #main{grid-template-columns:minmax(0,1fr) minmax(460px,.9fr)}
+  #specwrap{padding:22px 22px}
+  .sheet{padding:26px 24px 24px}
+  #steps .st span{display:none}
+}
+@media (max-width:900px){
+  body{overflow:auto}
+  #login{grid-template-columns:1fr}
+  #app{height:auto}
+  #main{grid-template-columns:1fr}
+  #log{max-height:none}
+  #done{grid-template-columns:1fr;overflow:auto}
+}
 </style>
 </head>
 <body>
 
 <!-- ════════ 로그인 ════════ -->
 <div id="login">
-  <h1>수행평가 주제 정하기</h1>
-  <div class="sub">인공지능 기초 · 데이터 기반 머신러닝 모델 제작</div>
-  <div id="gbtn"></div>
-  <div id="loginmsg"></div>
-  <div class="domain">학교 계정(@sdhs.gwe.hs.kr)으로 로그인하세요.</div>
+  <section class="intro">
+    <div class="kicker">인공지능 기초 · 수행평가</div>
+    <h1>데이터로 풀 문제를<br>내 손으로 정한다</h1>
+    <p class="lede">대화하면서 주제를 고르고, 쓸 정보와 값의 범위를 실제 자료로 채웁니다.
+      다 채우면 계획서 한 장이 완성되고, 선생님이 그 계획서에 맞는 데이터를 만들어 줍니다.</p>
+    <ol>
+      <li><b>1</b>관심</li><li><b>2</b>주제</li><li><b>3</b>구성</li><li><b>4</b>예상</li>
+      <li><b>5</b>범위</li><li><b>6</b>이유</li><li><b>7</b>확인</li>
+    </ol>
+  </section>
+  <section class="side">
+    <h2>학교 계정으로 로그인</h2>
+    <p>학년·반·번호는 계정에서 자동으로 읽습니다.</p>
+    <div id="gbtn"></div>
+    <div id="loginmsg"></div>
+    <div class="domain"><code>@sdhs.gwe.hs.kr</code> 계정만 들어올 수 있습니다.</div>
+  </section>
 </div>
 
-<!-- ════════ 반 정보 ════════ -->
+<!-- ════════ 시험용 계정 반 정보 ════════ -->
 <div id="who" class="hide">
   <div class="card">
-    <div class="me">
+    <div class="whohead">
       <b id="whoName"></b> <span class="adminchip hide" id="whoAdmin">관리자</span>
       <div class="m" id="whoMail"></div>
     </div>
-    <div style="font-size:13.5px;color:var(--muted);margin-bottom:9px">학년·반·번호를 입력하세요.</div>
+    <div style="font-size:14px;color:var(--ink-2)">
+      학번 형식이 아닌 계정입니다. 시험용으로 학년·반·번호를 입력하세요.<br>
+      <span style="font-size:12.5px;color:var(--muted)">학생 계정은 이 화면 없이 바로 들어갑니다.</span></div>
     <div class="rowf">
-      <input id="g" placeholder="학년" maxlength="1" style="max-width:74px">
-      <input id="c" placeholder="반" maxlength="2" style="max-width:74px">
-      <input id="n" placeholder="번호" maxlength="2" style="max-width:82px">
+      <input id="g" placeholder="학년" maxlength="1" style="max-width:80px">
+      <input id="c" placeholder="반" maxlength="2" style="max-width:80px">
+      <input id="n" placeholder="번호" maxlength="2" style="max-width:90px">
     </div>
-    <button class="btn primary big" onclick="startChat()">시작하기</button>
+    <button class="btn primary" style="width:100%;padding:11px" onclick="startChat()">시작하기</button>
     <div id="whoErr"></div>
     <div class="prev hide" id="prev"></div>
-    <div style="margin-top:12px;text-align:center;display:flex;gap:8px;justify-content:center">
+    <div style="margin-top:12px;display:flex;gap:8px;justify-content:center">
       <button class="btn sm hide" id="resetEnter" onclick="restart()">저장된 대화 지우고 처음부터</button>
       <button class="btn sm hide" id="adminEnter" onclick="openAdmin()">관리자 화면 열기</button>
     </div>
@@ -199,42 +306,51 @@ table.ad tr:hover td{background:#fafbfc}
 
 <!-- ════════ 본 화면 ════════ -->
 <div id="app" class="hide">
-  <div id="left">
-    <div id="bar">
-      <b>주제 정하기</b>
-      <span class="u" id="ubar"></span>
-      <span class="sp"></span>
-      <div id="steps"></div>
-      <button class="btn sm" id="resetBtn" onclick="restart()">처음부터 다시</button>
+  <header id="bar">
+    <div class="brand"><b>수행평가 계획서</b><span>인공지능 기초</span></div>
+    <div id="steps"></div>
+    <div class="right">
+      <span id="ubar"></span>
+      <button class="btn sm ghost" id="resetBtn" onclick="restart()">처음부터 다시</button>
       <button class="btn sm hide" id="adminBtn" onclick="openAdmin()">관리</button>
     </div>
-    <div id="log"></div>
-    <div id="inputbar">
-      <div id="inputwrap">
-        <textarea id="q" rows="1" placeholder="여기에 답을 쓰고 Enter를 누르세요  (줄바꿈은 Shift+Enter)"></textarea>
-        <button class="btn primary" id="send" onclick="send()">보내기</button>
+  </header>
+  <div id="main">
+    <section id="left">
+      <div id="log"></div>
+      <div id="inputbar">
+        <div id="inputwrap">
+          <textarea id="q" rows="1" placeholder="답을 쓰고 Enter  (줄바꿈은 Shift+Enter)"></textarea>
+          <button class="btn primary" id="send" onclick="send()">보내기</button>
+        </div>
+        <div class="hint">값의 범위는 화면이 실제 자료를 찾아 보여 줍니다. 링크를 열어 확인하고 맞는지 알려 주세요.
+          기계학습 방법이나 파이썬 코드는 알려주지 않습니다.</div>
       </div>
-      <div class="hint">값의 범위는 화면이 실제 자료를 찾아 보여 줍니다. 링크를 열어 확인하고 맞는지 알려 주세요. 기계학습 방법이나 파이썬 코드는 알려주지 않습니다.</div>
-    </div>
-  </div>
-  <div id="right">
-    <h3>지금까지 정해진 것</h3>
-    <div class="note">대화를 하면서 채워집니다. 다 채워지면 아래 버튼이 열립니다.<br>
-      「내 예상」은 <b>가설</b>입니다. 수행평가 때 직접 모델을 돌려서 맞았는지 확인하게 됩니다.</div>
-    <div id="spec"></div>
-    <button class="btn primary big" id="finbtn" onclick="finish()" disabled>주제 확정하기</button>
-    <div id="finmsg"></div>
+    </section>
+    <section id="right">
+      <div id="specwrap">
+        <div class="notes" id="notes"></div>
+        <div id="spec"></div>
+      </div>
+      <div id="finbar">
+        <div id="finmsg"></div>
+        <button class="btn primary" id="finbtn" onclick="finish()" disabled>주제 확정하기</button>
+      </div>
+    </section>
   </div>
 </div>
 
 <!-- ════════ 완료 ════════ -->
 <div id="done" class="hide">
-  <h2>주제가 확정되었습니다</h2>
-  <p id="donemsg"></p>
-  <div style="margin-top:22px;display:flex;gap:8px">
-    <button class="btn" onclick="restart()">주제 다시 정하기</button>
-    <button class="btn hide" id="doneAdmin" onclick="openAdmin()">관리자 화면</button>
-  </div>
+  <section class="left">
+    <h2>계획서를 냈습니다</h2>
+    <p id="donemsg"></p>
+    <div class="acts">
+      <button class="btn" onclick="restart()">주제 다시 정하기</button>
+      <button class="btn hide" id="doneAdmin" onclick="openAdmin()">관리자 화면</button>
+    </div>
+  </section>
+  <section class="right"><div id="donesheet"></div></section>
 </div>
 
 <!-- ════════ 관리자 ════════ -->
@@ -251,6 +367,7 @@ table.ad tr:hover td{background:#fafbfc}
 </div>
 
 <script>
+
 /* ══════════════════════════════════════════════════════
    설정 — 배포한 뒤 API_URL 만 채우면 된다
    ══════════════════════════════════════════════════════ */
@@ -267,7 +384,7 @@ const KEY = 'aitopic_v3';
 let 토큰 = '', 나 = null, 반정보 = null;
 let 히스토리 = [], 정리 = null, 주제점검 = null;
 let 확정가능 = false, 도움요청 = false, 보내는중 = false;
-let 마지막알림 = null, 점검보냄 = false;
+let 마지막알림 = null, 점검보냄 = false, 현재단계 = '';
 
 function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g,
   c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
@@ -327,7 +444,12 @@ async function onCredential(res){
   나 = r;
   document.getElementById('login').classList.add('hide');
   document.getElementById('loginmsg').textContent = '';
-  openWho();
+  if(나.반정보){
+    // 학생 계정 — 학년·반·번호를 학번에서 읽었으므로 입력 없이 바로 들어간다
+    들어가기({학년:나.반정보.학년, 반:나.반정보.반, 번호:나.반정보.번호, 이름:나.이름});
+  } else {
+    openWho();   // 학번 형식이 아닌 계정(교사 시험용 등)만 직접 입력
+  }
 }
 
 /* ── 반 정보 ── */
@@ -357,7 +479,7 @@ function openWho(){
 function load(){ try{ return JSON.parse(localStorage.getItem(KEY)||'null'); }catch(e){ return null; } }
 function save(){
   try{ localStorage.setItem(KEY, JSON.stringify(
-    {메일:나.메일, 반정보, 히스토리, 정리, 주제점검, 확정가능, 도움요청})); }catch(e){}
+    {메일:나.메일, 반정보, 히스토리, 정리, 주제점검, 확정가능, 도움요청, 현재단계})); }catch(e){}
 }
 
 function startChat(){
@@ -365,21 +487,25 @@ function startChat(){
   if(!v('g') || !v('c') || !v('n')){
     document.getElementById('whoErr').textContent = '학년·반·번호를 모두 입력하세요.'; return;
   }
-  반정보 = {학년:v('g'), 반:v('c'), 번호:v('n'), 이름:나.이름};
+  들어가기({학년:v('g'), 반:v('c'), 번호:v('n'), 이름:나.이름});
+}
+function 들어가기(정보){
+  반정보 = 정보;
   const saved = load();
   const 이어감 = saved && saved.메일 === 나.메일 && (saved.히스토리||[]).length > 0;
   if(이어감){
     히스토리 = saved.히스토리; 정리 = saved.정리; 주제점검 = saved.주제점검 || null;
-    확정가능 = !!saved.확정가능; 도움요청 = !!saved.도움요청;
+    확정가능 = !!saved.확정가능; 도움요청 = !!saved.도움요청; 현재단계 = saved.현재단계 || '';
   } else {
-    히스토리 = []; 정리 = null; 주제점검 = null; 확정가능 = false; 도움요청 = false;
+    히스토리 = []; 정리 = null; 주제점검 = null; 확정가능 = false; 도움요청 = false; 현재단계 = '';
   }
   save();
   document.getElementById('who').classList.add('hide');
   document.getElementById('app').classList.remove('hide');
-  document.getElementById('ubar').textContent =
-    반정보.학년+'학년 '+반정보.반+'반 '+반정보.번호+'번 '+(나.이름||'');
+  document.getElementById('ubar').innerHTML =
+    '<span class="num">'+esc(반정보.학년)+'-'+esc(반정보.반)+'-'+esc(반정보.번호)+'</span> '+esc(나.이름||'');
   if(나.관리자) document.getElementById('adminBtn').classList.remove('hide');
+  단계표시(현재단계);
   draw(); paintSpec();
   if(!이어감) 첫말();
 }
@@ -401,14 +527,14 @@ function draw(){
     if(m.카드) return 자료카드(m.카드);
     if(m.숨김) return '';
     return '<div class="msg '+(m.role==='user'?'me':'bot')+'">'+
-      '<div class="av">'+(m.role==='user'? esc((나.이름||'나').slice(0,1)) : 'AI')+'</div>'+
+      '<div class="who">'+(m.role==='user'? '나' : '도우미')+'</div>'+
       '<div class="body">'+esc(m.보일말 || m.content)+'</div></div>';
   }).join('');
   알림그리기();
   log.scrollTop = log.scrollHeight;
 }
 function 자료카드(list){
-  return '<div class="found"><div class="fh">찾아 온 자료입니다. 링크를 열어 맞는지 확인하고 대화로 알려 주세요.</div>'+
+  return '<div class="found"><div class="fh">화면이 찾아 온 자료 — 링크를 열어 맞는지 확인하고 대화로 알려 주세요</div>'+
     (list||[]).map(d =>
       '<div class="fi"><div class="fn">'+esc(d.항목 || d.검색어)+'</div>'+
       (d.요약 ? '<div class="fs">'+esc(d.요약)+'</div>'
@@ -421,9 +547,10 @@ function 자료카드(list){
       '</div>').join('')+'</div>';
 }
 function 단계표시(cur){
-  const i = 단계목록.indexOf(cur);
+  현재단계 = cur || 현재단계;
+  const i = 단계목록.indexOf(현재단계);
   document.getElementById('steps').innerHTML = 단계목록.map((s,k)=>
-    '<span class="'+(k===i?'on':(k<i&&i>=0?'done':''))+'">'+단계이름[s]+'</span>').join('');
+    '<div class="st '+(k===i?'on':(i>=0&&k<i?'done':''))+'"><i>'+(k+1)+'</i><span>'+단계이름[s]+'</span></div>').join('');
 }
 function 알림(text, bad, list, 버튼){
   마지막알림 = {text:text, bad:!!bad, list:list||null, 버튼:버튼||null};
@@ -488,7 +615,7 @@ async function 보내기(text, 옵션){
   const log = document.getElementById('log');
   const t = document.createElement('div');
   t.className='msg bot'; t.id='typing';
-  t.innerHTML = '<div class="av">AI</div><div class="body typing">생각하고 있습니다…</div>';
+  t.innerHTML = '<div class="who">도우미</div><div class="body typing">생각하고 있습니다</div>';
   log.appendChild(t); log.scrollTop = log.scrollHeight;
 
   const r = await api({action:'chat', history: 대화기록()});
@@ -612,76 +739,122 @@ function 검사(s){
   return 부족;
 }
 
-/* ── 정리 패널 ── */
-function paintSpec(){
-  const s = 정리 || {}, t = s.타깃 || {}, f = s.특성 || [], m = s.무관변수 || {};
-  const 값 = v => (v===''||v==null) ? '<span class="v no">아직</span>' : '<span class="v">'+esc(v)+'</span>';
-  const 범 = (a,b,u) => (a==null||b==null||!(b>a)) ? '<span class="v no">아직</span>'
-                        : '<span class="v">'+a+' ~ '+b+(u?(' '+esc(u)):'')+'</span>';
-  let h = '';
-  if(도움요청) h += '<div class="helpbar">선생님께 이 화면을 보여 주세요. 같이 골라 보면 됩니다.</div>';
-  h += '<div class="sec"><h4>주제</h4><div class="in">'+
-       '<div class="kv"><span class="k">유형</span>'+값(s.트랙)+'</div>'+
-       '<div class="kv"><span class="k">한 줄</span>'+값(s.주제)+'</div>'+
-       '<div class="kv"><span class="k">대상</span>'+값(s.대상)+'</div>'+
-       '<div class="kv"><span class="k">예측 시점</span>'+값(s.예측시점)+'</div>'+
-       (주제점검 && (주제점검.메모 || (주제점검.걸린기준||[]).length)
-         ? '<div class="chk '+(주제점검.통과?'ok':'no')+'">'+
-           (주제점검.통과 ? '쓸모 확인 · '+esc(주제점검.메모||'')
-                          : '더 다듬을 것 · '+esc((주제점검.걸린기준||[]).join(', ')))+'</div>'
-         : '')+
-       '</div></div>';
-  h += '<div class="sec"><h4>맞히려는 것</h4><div class="in">';
-  if(s.트랙 === '분류'){
-    h += '<div class="kv"><span class="k">이름</span>'+값(t.이름)+'</div>'+
-         '<div class="kv"><span class="k">두 가지</span>'+
-         ((s.범주A && s.범주B)? '<span class="v">'+esc(s.범주A)+' / '+esc(s.범주B)+'</span>'
-                              : '<span class="v no">아직</span>')+'</div>';
+/* ── 계획서 ── */
+/* 근거 글에서 링크를 떼어 「자료: 이름 ↗링크」로 짧게 보여 준다 */
+function 근거HTML(t){
+  if(!t) return '<span class="blank"></span>';
+  const 링크 = [];
+  const 글 = String(t).replace(/\(?\s*(https?:\/\/[^\s)]+)\s*\)?/g, (m,u)=>{ 링크.push(u); return ''; })
+                      .replace(/\s{2,}/g,' ').trim();
+  return '<span class="src">'+esc(글)+
+    링크.map(u=>'<a href="'+esc(u)+'" target="_blank" rel="noopener">↗ 링크</a>').join('')+'</span>';
+}
+function 칸(v, 학생글){
+  if(v===''||v==null) return '<span class="blank"></span>';
+  return 학생글 ? '<span class="mine">'+esc(v)+'</span>' : esc(v);
+}
+function 범위(a,b,u){
+  if(a==null||b==null||!(Number(b)>Number(a))) return '<span class="blank"></span>';
+  return '<span class="num">'+esc(a)+' ~ '+esc(b)+'</span>'+(u? ' '+esc(u):'');
+}
+function 예상글(v){
+  const 말 = {강한양:'크게 ↑', 중간양:'↑', 약한양:'조금 ↑', 없음:'변화 없음', 약한음:'조금 ↓', 중간음:'↓', 강한음:'크게 ↓'};
+  return 말[v] || v;
+}
+function 학기(){
+  const d = new Date(); const y = (나 && 나.반정보 && 나.반정보.학년도) || d.getFullYear();
+  return y + '학년도 ' + ((d.getMonth()+1) >= 3 && (d.getMonth()+1) <= 8 ? '1' : '2') + '학기';
+}
+function 계획서HTML(s, 도장){
+  s = s || {};
+  const t = s.타깃 || {}, f = s.특성 || [];
+  const 분류 = s.트랙 === '분류';
+  const 학번 = (나 && 나.학번) || '';
+  let h = '<article class="sheet">';
+  if(도장) h += '<div class="stamp"><b>확정</b><small>'+도장+'</small></div>';
+  h += '<div class="kick">'+esc(학기())+' · 인공지능 기초</div>';
+  h += '<h2>수행평가 계획서</h2>';
+
+  // 인적 사항
+  h += '<table class="form"><colgroup><col style="width:13%"><col style="width:20%"><col style="width:11%"><col style="width:22%"><col style="width:11%"><col></colgroup><tr>'+
+       '<th>학번</th><td class="c num">'+esc(/^\d+$/.test(학번)? 학번 : '—')+'</td>'+
+       '<th>성명</th><td class="c">'+esc(나 ? 나.이름 : '')+'</td>'+
+       '<th>유형</th><td class="c">'+칸(s.트랙)+'</td></tr></table>';
+
+  // Ⅰ 주제
+  const 점 = 주제점검 || {};
+  const 점검칩 = s.주제 ? (점.통과 ? '<span class="chk ok">현장 쓰임 확인</span>'
+                                  : '<span class="chk no">다듬는 중</span>') : '';
+  h += '<table class="form"><colgroup><col style="width:17%"><col><col style="width:15%"><col style="width:25%"></colgroup>'+
+       '<tr class="sec"><th colspan="4"><span>Ⅰ</span>주제</th></tr>'+
+       '<tr><th>주제</th><td colspan="3">'+칸(s.주제)+점검칩+'</td></tr>'+
+       '<tr><th>대상</th><td>'+칸(s.대상)+'</td><th>예측 시점</th><td>'+칸(s.예측시점)+'</td></tr>'+
+       '<tr><th>현장 쓰임</th><td colspan="3" class="use">'+(점.통과 && 점.메모 ? esc(점.메모) : '<span class="blank"></span>')+'</td></tr>'+
+       '</table>';
+
+  // Ⅱ 맞히려는 값
+  h += '<table class="form"><colgroup><col style="width:17%"><col><col style="width:15%"><col style="width:25%"></colgroup>'+
+       '<tr class="sec"><th colspan="4"><span>Ⅱ</span>맞히려는 값</th></tr>';
+  if(분류){
+    h += '<tr><th>이름</th><td colspan="3">'+칸(t.이름)+'</td></tr>'+
+         '<tr><th>두 가지</th><td colspan="3">'+((s.범주A && s.범주B)? esc(s.범주A)+'  /  '+esc(s.범주B) : '<span class="blank"></span>')+'</td></tr>';
   } else {
-    h += '<div class="kv"><span class="k">이름</span>'+값(t.이름)+'</div>'+
-         '<div class="kv"><span class="k">단위</span>'+값(t.단위)+'</div>'+
-         '<div class="kv"><span class="k">범위</span>'+범(t.최소,t.최대,t.단위)+'</div>'+
-         '<div class="kv"><span class="k">근거</span>'+값(t.근거)+'</div>';
+    h += '<tr><th>이름</th><td>'+칸(t.이름)+'</td><th>단위</th><td>'+칸(t.단위)+'</td></tr>'+
+         '<tr><th>범위</th><td colspan="3">'+범위(t.최소,t.최대,t.단위)+'</td></tr>'+
+         '<tr><th>근거</th><td colspan="3">'+근거HTML(t.근거)+'</td></tr>';
   }
-  h += '</div></div>';
-  h += '<div class="sec"><h4>쓸 정보 '+(f.length? '('+f.length+'개)':'')+'</h4><div class="in">';
-  if(!f.length) h += '<div class="kv"><span class="v no">아직 없습니다</span></div>';
-  f.forEach(x=>{
-    const 예 = x.학생예상 || '';
-    let 방향 = '';
-    if(예){
-      const 색 = /음$/.test(예) ? 'down' : (예==='없음'||예==='비슷함' ? '' : 'up');
-      방향 = '<span class="tag '+색+'">내 예상 · '+esc(예)+'</span>';
-    }
-    h += '<div class="feat"><div class="nm">'+esc(x.이름||'이름 미정')+'</div>'+
-         '<div class="dt">'+(x.단위? esc(x.단위)+' · ':'')+
-         ((x.최대>x.최소)? (x.최소+' ~ '+x.최대) : '범위 미정')+'</div>'+
-         '<div class="dt">근거 : '+(x.근거? esc(x.근거) : '<span style="color:#b9bec4">아직</span>')+'</div>'+
-         방향+'</div>';
-  });
-  h += '</div></div>';
-  if(s.트랙 !== '분류'){
-    h += '<div class="sec"><h4>도움 안 될 것 같은 값</h4><div class="in">'+
-         '<div class="kv"><span class="k">이름</span>'+값(m.이름)+'</div>'+
-         (m.이름? '<div class="kv"><span class="k">범위</span>'+범(m.최소,m.최대,m.단위)+'</div>':'')+
-         '</div></div>';
+  h += '</table>';
+
+  // Ⅲ 쓸 정보
+  h += '<table class="form"><colgroup><col style="width:25%"><col style="width:10%"><col style="width:17%"><col><col style="width:14%"></colgroup>'+
+       '<thead><tr class="sec"><th colspan="5"><span>Ⅲ</span>쓸 정보 '+(f.length? '<span style="font-family:var(--mono);font-weight:400">'+f.length+' / 3~4</span>':'')+'</th></tr>'+
+       '<tr class="cols"><th>정보</th><th>단위</th><th>범위</th><th>근거</th><th>내 예상</th></tr></thead><tbody>';
+  const 줄수 = Math.max(3, f.length);
+  for(let k=0; k<줄수; k++){
+    const x = f[k];
+    if(!x){ h += '<tr><td><span class="blank"></span></td><td></td><td></td><td></td><td></td></tr>'; continue; }
+    h += '<tr><td>'+칸(x.이름)+'</td><td class="c">'+칸(x.단위)+'</td>'+
+         '<td class="c">'+범위(x.최소,x.최대,'')+'</td>'+
+         '<td>'+근거HTML(x.근거)+'</td>'+
+         '<td class="c">'+(x.학생예상 ? '<span class="mine">'+esc(예상글(x.학생예상))+'</span>' : '<span class="blank" style="min-width:3em"></span>')+'</td></tr>';
   }
-  h += '<div class="sec"><h4>적어 둔 글</h4><div class="in">'+
-       '<div class="kv"><span class="k">고른 이유</span>'+값(s.이유)+'</div>'+
-       '<div class="kv"><span class="k">기대</span>'+값(s.기대효과)+'</div></div></div>';
-  document.getElementById('spec').innerHTML = h;
+  h += '</tbody></table>';
+
+  // Ⅳ 나의 생각
+  h += '<table class="form"><colgroup><col style="width:17%"><col></colgroup>'+
+       '<tr class="sec"><th colspan="2"><span>Ⅳ</span>나의 생각</th></tr>'+
+       '<tr><th>고른 이유</th><td>'+칸(s.이유, true)+'</td></tr>'+
+       '<tr><th>기대 효과</th><td>'+칸(s.기대효과, true)+'</td></tr>'+
+       '</table>';
+
+  h += '<div class="sign"><span>작성</span><span class="num">'+esc(반정보 ? 반정보.학년+'-'+반정보.반+'-'+반정보.번호 : '')+'</span>'+
+       '<b>'+esc(나 ? 나.이름 : '')+'</b></div>';
+  h += '</article>';
+  return h;
+}
+
+function paintSpec(){
+  // 알림 띠
+  let n = '';
+  if(나 && 나.이전확정 && 나.이전확정.있음)
+    n += '<div class="prevbar">이미 낸 계획서가 있습니다 — <b>'+esc(나.이전확정.주제||'')+'</b><br>'+
+         '다시 확정하면 이전 것은 지워지고 이 계획서로 바뀝니다.</div>';
+  if(도움요청) n += '<div class="helpbar">선생님께 이 화면을 보여 주세요. 같이 고르면 됩니다.</div>';
+  document.getElementById('notes').innerHTML = n;
+
+  document.getElementById('spec').innerHTML = 계획서HTML(정리, '');
 
   const 부족 = 검사(정리);
   const 열림 = 확정가능 && 부족.length === 0;
   document.getElementById('finbtn').disabled = !열림;
   const fm = document.getElementById('finmsg');
-  if(열림){ fm.innerHTML = '확정하면 선생님께 전달됩니다.'; }
-  else if(부족.length){
-    fm.innerHTML = '<b>남은 것</b><ul class="left">' +
-      부족.slice(0,5).map(x=>'<li>'+esc(x)+'</li>').join('') +
-      (부족.length>5 ? '<li>… 외 '+(부족.length-5)+'개</li>' : '') + '</ul>' +
-      '<button class="btn sm" onclick="점검요청()">이거 채우러 가기</button>';
-  } else { fm.innerHTML = '요약을 확인하면 열립니다.'; }
+  if(열림){ fm.innerHTML = '<b>빈칸이 모두 채워졌습니다.</b><br>확정하면 선생님께 이 계획서가 전달됩니다.'; }
+  else if(부족.length && 정리){
+    fm.innerHTML = '<b>남은 칸 '+부족.length+'개</b><ul>' +
+      부족.slice(0,6).map(x=>'<li>'+esc(x)+'</li>').join('') +
+      (부족.length>6 ? '<li>… 외 '+(부족.length-6)+'개</li>' : '') + '</ul>' +
+      (확정가능 ? '<button class="btn sm" onclick="점검요청()">이 칸 채우러 가기</button>' : '');
+  } else { fm.innerHTML = '대화를 하면서 계획서가 채워집니다. 다 채워지면 확정할 수 있습니다.'; }
 }
 
 /* ── 확정 ── */
@@ -693,8 +866,12 @@ async function finish(){
   b.textContent = '주제 확정하기';
   if(r.오류){ b.disabled = false; 알림(r.오류, true); return; }
   if(r.통과){
+    const d = new Date();
+    const 날짜 = d.getFullYear()+'.'+(d.getMonth()+1)+'.'+d.getDate();
     document.getElementById('donemsg').textContent =
-      (정리.주제||'') + '\n\n선생님이 이 주제에 맞는 데이터를 만들어 나눠 줄 것입니다.';
+      (정리.주제||'') + '\n\n선생님이 이 계획서에 맞는 데이터를 만들어 나눠 줍니다. ' +
+      '「내 예상」은 수행평가 때 직접 모델을 돌려 보고 맞았는지 확인하게 됩니다.';
+    document.getElementById('donesheet').innerHTML = 계획서HTML(정리, 날짜);
     if(나.관리자) document.getElementById('doneAdmin').classList.remove('hide');
     document.getElementById('done').classList.remove('hide');
     return;
@@ -750,7 +927,7 @@ async function loadAdmin(){
         const 예 = f.학생예상 ? esc(f.학생예상) : '—';
         const 다름 = f.학생예상 && 실 && f.학생예상 !== (f.영향 || f.높은쪽);
         const 실자 = f.실자료 && f.실자료 !== '없음'
-          ? ' <span class="src">'+esc(f.실자료)+'</span>' : '';
+          ? ' <span class="srcchip">'+esc(f.실자료)+'</span>' : '';
         return esc(f.이름)+실자+' <span class="mini">'+esc(f.단위||'')+' '+f.최소+'~'+f.최대+
           '<br>예상 '+예+' / 실제 '+(실||'—')+(다름? ' <b>≠</b>':'')+
           (f.근거? '<br>└ '+esc(f.근거) : '')+'</span>';
