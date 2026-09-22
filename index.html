@@ -4,9 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>수행평가 계획서 · 인공지능 기초</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+KR:wght@400;500;600;700&family=Noto+Serif+KR:wght@600;700;900&display=swap">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 <style>
 /* ════════ 토큰 ════════ */
@@ -28,9 +26,9 @@
   --ok:#2C6A45;   --ok-soft:#E5F1E9;
   --warn:#8A5A0A; --warn-soft:#FBF2DF; --warn-line:#EED9AE;
   --bad:#A5312A;  --bad-soft:#FBE9E6;  --bad-line:#F1C9C3;
-  --sans:"IBM Plex Sans KR","Pretendard","Malgun Gothic","Apple SD Gothic Neo",system-ui,sans-serif;
-  --serif:"Noto Serif KR","Nanum Myeongjo","Batang",serif;
-  --mono:"IBM Plex Mono",ui-monospace,"Consolas",monospace;
+  --sans:"Pretendard Variable",Pretendard,-apple-system,"Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif;
+  --serif:var(--sans);
+  --mono:var(--sans);
 }
 *{box-sizing:border-box}
 html,body{height:100%;margin:0}
@@ -41,7 +39,7 @@ input,textarea{font-family:inherit;font-size:15px;color:var(--ink)}
 a{color:var(--accent)}
 :focus-visible{outline:2px solid var(--accent-2);outline-offset:2px}
 .hide{display:none !important}
-.num{font-family:var(--mono);font-variant-numeric:tabular-nums}
+.num{font-variant-numeric:tabular-nums;letter-spacing:.01em}
 
 /* ── 버튼 ── */
 .btn{border:1px solid var(--rule);background:var(--paper);color:var(--ink);
@@ -59,8 +57,8 @@ a{color:var(--accent)}
 #login .intro{background:var(--accent);color:#fff;padding:clamp(40px,7vw,120px);
   display:flex;flex-direction:column;justify-content:center;gap:28px}
 #login .kicker{font-size:13px;letter-spacing:.14em;opacity:.8}
-#login h1{font-family:var(--serif);font-weight:900;font-size:clamp(40px,4.4vw,68px);
-  line-height:1.15;margin:0;letter-spacing:-.02em;text-wrap:balance}
+#login h1{font-weight:800;font-size:clamp(40px,4.2vw,64px);
+  line-height:1.18;margin:0;letter-spacing:-.035em;text-wrap:balance}
 #login .lede{font-size:17px;max-width:44em;opacity:.92;margin:0;word-break:keep-all;text-wrap:pretty}
 #login ol{list-style:none;margin:8px 0 0;padding:0;display:grid;grid-template-columns:repeat(4,auto);
   gap:0;justify-content:start;font-size:13px}
@@ -93,7 +91,7 @@ a{color:var(--accent)}
 #bar{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:24px;
   padding:0 24px;height:60px;background:var(--paper);border-bottom:1px solid var(--rule)}
 #bar .brand{display:flex;align-items:baseline;gap:10px;white-space:nowrap}
-#bar .brand b{font-family:var(--serif);font-size:18px;font-weight:700;letter-spacing:-.01em}
+#bar .brand b{font-size:17px;font-weight:700;letter-spacing:-.02em}
 #bar .brand span{font-size:12.5px;color:var(--muted)}
 #bar .right{display:flex;align-items:center;gap:8px}
 #ubar{font-size:13.5px;color:var(--ink-2);padding:4px 10px;border:1px solid var(--rule-2);border-radius:3px;white-space:nowrap}
@@ -117,7 +115,7 @@ a{color:var(--accent)}
 #log{flex:1;overflow-y:auto;padding:28px 32px 12px;display:flex;flex-direction:column;gap:18px}
 .msg{display:flex;flex-direction:column;gap:4px;max-width:78ch}
 .msg .who{font-size:12px;color:var(--muted);font-weight:600;letter-spacing:.02em}
-.msg .body{white-space:pre-wrap;word-break:break-word}
+.msg .body{white-space:pre-wrap;word-break:keep-all;overflow-wrap:anywhere}
 .msg.bot .body{color:var(--ink)}
 .msg.me{align-self:flex-end;align-items:flex-end;max-width:62ch}
 .msg.me .body{background:var(--accent-soft);color:var(--ink);padding:9px 14px;border-radius:12px 12px 2px 12px}
@@ -165,16 +163,15 @@ a{color:var(--accent)}
 .sheet{position:relative;background:var(--paper);border:1px solid var(--rule);
   box-shadow:0 1px 0 var(--rule-2),0 10px 26px -18px rgba(23,32,43,.35);padding:34px 38px 30px}
 .sheet .kick{font-size:12.5px;color:var(--muted);letter-spacing:.06em;text-align:center}
-.sheet h2{font-family:var(--serif);font-weight:900;font-size:28px;text-align:center;margin:4px 0 20px;
-  letter-spacing:.18em}
+.sheet h2{font-weight:800;font-size:27px;text-align:center;margin:4px 0 20px;letter-spacing:.14em;padding-left:.14em}
 table.form{width:100%;border-collapse:collapse;border:2px solid var(--frame);table-layout:fixed}
 table.form + table.form{border-top:0}
 table.form th,table.form td{border:1px solid var(--rule);padding:8px 10px;vertical-align:top;
-  font-size:14px;text-align:left;word-break:break-word}
+  font-size:14px;text-align:left;word-break:keep-all;overflow-wrap:anywhere}
 table.form th{background:#F3F5F8;color:var(--ink-2);font-weight:600;font-size:13px;white-space:nowrap}
 table.form td.c{text-align:center}
 table.form .sec th{background:var(--frame);color:#fff;font-size:13px;letter-spacing:.06em;text-align:left}
-table.form .sec th span{font-family:var(--serif);margin-right:8px}
+table.form .sec th span{margin-right:8px;font-weight:800}
 table.form tr.cols th{background:#F3F5F8;text-align:center;font-size:12.5px}
 .blank{display:inline-block;min-width:6em;border-bottom:1px dotted var(--muted);height:1.2em;vertical-align:-3px}
 .mine{background:linear-gradient(transparent 38%,var(--hl) 38%,var(--hl) 92%,transparent 92%);padding:0 2px}
@@ -196,7 +193,7 @@ table.form tr.cols th{background:#F3F5F8;text-align:center;font-size:12.5px}
 /* 확정 도장 */
 .stamp{position:absolute;right:46px;top:22px;width:96px;height:96px;border:4px solid var(--stamp);
   border-radius:50%;color:var(--stamp);display:flex;flex-direction:column;align-items:center;justify-content:center;
-  font-family:var(--serif);font-weight:900;transform:rotate(-12deg);opacity:.9;mix-blend-mode:multiply}
+  font-weight:800;transform:rotate(-12deg);opacity:.9;mix-blend-mode:multiply}
 .stamp b{font-size:26px;letter-spacing:.12em;line-height:1}
 .stamp small{font-family:var(--mono);font-size:10.5px;margin-top:4px;font-weight:500}
 
@@ -214,7 +211,7 @@ table.form tr.cols th{background:#F3F5F8;text-align:center;font-size:12.5px}
   grid-template-columns:minmax(320px,.8fr) minmax(0,1.2fr);overflow:hidden}
 #done .left{background:var(--paper);border-right:1px solid var(--rule);padding:clamp(36px,5vw,90px);
   display:flex;flex-direction:column;justify-content:center;gap:18px}
-#done h2{font-family:var(--serif);font-weight:900;font-size:34px;margin:0;letter-spacing:-.01em}
+#done h2{font-weight:800;font-size:32px;margin:0;letter-spacing:-.03em}
 #done p{color:var(--ink-2);margin:0;white-space:pre-wrap}
 #done .acts{display:flex;gap:8px;margin-top:8px}
 #done .right{overflow-y:auto;padding:40px 48px}
@@ -223,7 +220,7 @@ table.form tr.cols th{background:#F3F5F8;text-align:center;font-size:12.5px}
 #admin{position:fixed;inset:0;background:var(--paper);z-index:62;overflow:auto;padding:0 0 60px}
 #adtop{height:60px;border-bottom:1px solid var(--rule);display:flex;align-items:center;
   gap:12px;padding:0 24px;position:sticky;top:0;background:var(--paper);z-index:2}
-#adtop b{font-family:var(--serif);font-size:18px}
+#adtop b{font-size:17px}
 #adtop .u{color:var(--muted);font-size:13px;font-family:var(--mono)}
 #adtop .sp{flex:1}
 .stat{display:flex;gap:28px;padding:16px 24px;border-bottom:1px solid var(--rule-2);font-size:13.5px;color:var(--ink-2);flex-wrap:wrap}
@@ -269,7 +266,7 @@ table.ad tr:hover td{background:#FAFBFC}
     <p class="lede">인공지능을 활용하여, 내 관심사와 희망 주제에 맞는 데이터를 탐색해봅시다.<br>
       모든 채팅 기록은 기록되니 성실하게 수행하도록 합니다.</p>
     <ol>
-      <li><b>1</b>관심 분야</li><li><b>2</b>주제</li><li><b>3</b>맞힐 것</li><li><b>4</b>영향 요인과 예상</li>
+      <li><b>1</b>관심 분야</li><li><b>2</b>예측·분류</li><li><b>3</b>맞힐 것</li><li><b>4</b>쓸 정보</li>
     </ol>
   </section>
   <section class="side">
@@ -376,8 +373,8 @@ const API_URL   = 'https://script.google.com/macros/s/AKfycbwLlLefL8g-DTDgX9ab3q
 const DOMAIN    = 'sdhs.gwe.hs.kr';
 
 /* ══════════════════════════════════════════════════════ */
-const 단계목록 = ['관심분야','주제고르기','맞힐것정하기','요인예상'];
-const 단계이름 = {관심분야:'관심 분야', 주제고르기:'주제', 맞힐것정하기:'맞힐 것', 요인예상:'영향 요인과 예상'};
+const 단계목록 = ['관심분야','방식정하기','맞힐것정하기','요인정하기'];
+const 단계이름 = {관심분야:'관심 분야', 방식정하기:'예측·분류', 맞힐것정하기:'맞힐 것', 요인정하기:'쓸 정보'};
 const KEY = 'aitopic_v3';
 
 let 토큰 = '', 나 = null, 반정보 = null;
@@ -669,8 +666,8 @@ function 검사(s){
     if(!있(s.분류기준) || s.분류기준==='해당 없음') 부족.push('두 가지를 나누는 기준');
   }
   const f = s.특성 || [];
-  if(f.length < 3) 부족.push('영향을 줄 것 3개 이상 (지금 '+f.length+'개)');
-  if(f.length > 4) 부족.push('영향을 줄 것은 4개까지');
+  if(f.length < 3) 부족.push('쓸 정보 3개 이상 (지금 '+f.length+'개)');
+  if(f.length > 4) 부족.push('쓸 정보는 4개까지');
   const 본것 = {};
   f.forEach((x,i)=>{
     const n = x.이름 || (i+1)+'번째 정보';
@@ -679,7 +676,6 @@ function 검사(s){
     else 본것[x.이름] = 1;
     if(['숫자','예아니오'].indexOf(x.형태)<0 || ['학생','챗봇'].indexOf(x.떠올린사람)<0)
       부족.push(n+' 정리 마무리 (챗봇이 채웁니다)');
-    if(!있(x.학생예상)) 부족.push(n+'에 대한 내 예상');
   });
   return 부족.filter((v,i,a)=>a.indexOf(v)===i);
 }
@@ -750,20 +746,19 @@ function 계획서HTML(s, 도장){
   }
   h += '</table>';
 
-  // Ⅲ 영향을 줄 것 (x) 과 내 예상
-  const 예상머리 = 분류 ? '클수록 많을 것 같은 쪽' : '내 예상';
-  h += '<table class="form"><colgroup><col><col style="width:22%"><col style="width:24%"></colgroup>'+
-       '<thead><tr class="sec"><th colspan="3"><span>Ⅲ</span>영향을 줄 것 (x)과 내 예상 '+(f.length? '<span style="font-family:var(--mono);font-weight:400">'+f.length+' / 3~4</span>':'')+'</th></tr>'+
-       '<tr class="cols"><th>정보</th><th>누가 떠올렸나</th><th>'+예상머리+'</th></tr></thead><tbody>';
+  // Ⅲ 쓸 정보 (x)
+  h += '<table class="form"><colgroup><col><col style="width:18%"><col style="width:22%"></colgroup>'+
+       '<thead><tr class="sec"><th colspan="3"><span>Ⅲ</span>맞히는 데 쓸 정보 (x) '+(f.length? '<span style="font-weight:400">'+f.length+' / 3~4</span>':'')+'</th></tr>'+
+       '<tr class="cols"><th>정보</th><th>형태</th><th>누가 떠올렸나</th></tr></thead><tbody>';
   const 줄수 = Math.max(3, f.length);
   for(let k=0; k<줄수; k++){
     const x = f[k];
     if(!x){ h += '<tr><td><span class="blank"></span></td><td></td><td></td></tr>'; continue; }
     const 누구 = x.떠올린사람==='학생' ? '<span class="by me">내가 떠올림</span>'
-              : x.떠올린사람==='챗봇' ? '<span class="by bot">도우미 제안</span>' : '';
-    h += '<tr><td>'+칸(x.이름)+(x.형태==='예아니오' ? '<span class="kind">예/아니오</span>' : '')+'</td>'+
-         '<td class="c">'+누구+'</td>'+
-         '<td class="c">'+(x.학생예상 ? '<span class="mine">'+esc(예상글(x.학생예상))+'</span>' : '<span class="blank" style="min-width:3em"></span>')+'</td></tr>';
+              : x.떠올린사람==='챗봇' ? '<span class="by bot">도우미 추천</span>' : '';
+    h += '<tr><td>'+칸(x.이름)+'</td>'+
+         '<td class="c">'+(x.형태==='예아니오' ? '예 / 아니오' : x.형태==='숫자' ? '숫자' : '')+'</td>'+
+         '<td class="c">'+누구+'</td></tr>';
   }
   h += '</tbody></table>';
 
@@ -810,8 +805,7 @@ async function finish(){
     const 날짜 = d.getFullYear()+'.'+(d.getMonth()+1)+'.'+d.getDate();
     document.getElementById('donemsg').textContent =
       (정리.주제||'') + '\n\n선생님이 이 계획서에 맞는 데이터를 실제 자료로 만들어 나눠 줍니다. ' +
-      '주제를 고른 이유와 기대 효과는 수행평가지에 직접 쓰게 됩니다. ' +
-      '「내 예상」은 수행평가 때 직접 모델을 돌려 보고 맞았는지 확인합니다.';
+      '주제를 고른 이유와 기대 효과는 수행평가지에 직접 쓰게 됩니다.';
     document.getElementById('donesheet').innerHTML = 계획서HTML(정리, 날짜);
     if(나.관리자) document.getElementById('doneAdmin').classList.remove('hide');
     document.getElementById('done').classList.remove('hide');
@@ -859,7 +853,7 @@ async function loadAdmin(){
   document.getElementById('adbody').innerHTML = 경고HTML +
     '<table class="ad"><thead><tr>'+
     '<th style="width:110px">학생</th><th style="width:54px">유형</th><th>주제</th>'+
-    '<th style="width:200px">맞힐 것 (y)</th><th>영향 요인 (x)</th>'+
+    '<th style="width:200px">맞힐 것 (y)</th><th>쓸 정보 (x)</th>'+
     '<th style="width:96px">점검·태도</th><th style="width:70px"></th>'+
     '</tr></thead><tbody>'+
     행.map(x=>{
@@ -867,7 +861,7 @@ async function loadAdmin(){
         const 실자 = f.실자료 && f.실자료 !== '없음'
           ? ' <span class="srcchip">'+esc(f.실자료)+'</span>' : '';
         return esc(f.이름)+실자+' <span class="mini">'+(f.형태==='예아니오'?'예/아니오':'숫자')+
-          ' · '+(f.떠올린사람==='학생'?'학생':'챗봇')+' · 예상 '+esc(f.학생예상||'—')+'</span>';
+          ' · '+(f.떠올린사람==='학생'?'학생':'챗봇')+'</span>';
       }).join('<br>');
       const 타 = x.트랙==='분류'
         ? esc(x.타깃.이름||'')+' <span class="mini">'+esc(x.범주A)+' / '+esc(x.범주B)+
