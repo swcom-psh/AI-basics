@@ -294,7 +294,8 @@ body{font-size:16px;line-height:1.7;letter-spacing:-.005em}
 .opt{display:grid;grid-template-columns:30px 1fr;gap:10px;align-items:start;
   background:var(--ground);border-radius:10px;padding:10px 14px 10px 10px}
 .opt .n{width:28px;height:28px;border-radius:50%;background:var(--accent);color:#fff;
-  font-weight:700;font-size:14.5px;display:inline-flex;align-items:center;justify-content:center;margin-top:1px}
+  font-weight:800;font-size:15px;line-height:1;display:inline-flex;align-items:center;justify-content:center;
+  margin-top:1px;font-variant-numeric:tabular-nums}
 .opt .n.dot{background:var(--rule);width:10px;height:10px;margin:9px 0 0 9px}
 .opt b{font-weight:700;color:var(--ink)}
 .opt .sub{color:var(--ink-2)}
@@ -639,7 +640,10 @@ function 말다듬기(t){
     if(!ln){ 닫기(); return; }
     const m = ln.match(/^([①-⑳]|\d{1,2}[.)]|[-·•])\s*(.*)$/);
     if(m && m[2]){
-      const 번호 = /^[-·•]$/.test(m[1]) ? '' : m[1].replace(/[.)]$/,'');
+      // ①② 같은 동그라미 숫자는 배지 안에서 작게 뭉개지므로 1, 2 로 바꿔 넣는다
+      const 기호 = m[1];
+      const 동그라미 = 기호.charCodeAt(0) >= 0x2460 && 기호.charCodeAt(0) <= 0x2473;
+      const 번호 = /^[-·•]$/.test(기호) ? '' : 동그라미 ? String(기호.charCodeAt(0) - 0x245F) : 기호.replace(/[.)]$/,'');
       let 본문 = esc(m[2]);
       const k = 본문.indexOf(' — ');
       if(k > 0) 본문 = '<b>'+본문.slice(0,k)+'</b><span class="sub"> — '+본문.slice(k+3)+'</span>';
