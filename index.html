@@ -62,7 +62,7 @@ a{color:var(--accent)}
 #login h1{font-family:var(--serif);font-weight:900;font-size:clamp(40px,4.4vw,68px);
   line-height:1.15;margin:0;letter-spacing:-.02em;text-wrap:balance}
 #login .lede{font-size:17px;max-width:44em;opacity:.92;margin:0;word-break:keep-all;text-wrap:pretty}
-#login ol{list-style:none;margin:8px 0 0;padding:0;display:grid;grid-template-columns:repeat(7,auto);
+#login ol{list-style:none;margin:8px 0 0;padding:0;display:grid;grid-template-columns:repeat(4,auto);
   gap:0;justify-content:start;font-size:13px}
 #login ol li{padding:7px 14px 7px 0;margin-right:14px;border-bottom:2px solid rgba(255,255,255,.35)}
 #login ol li b{font-family:var(--mono);font-weight:500;opacity:.7;margin-right:5px}
@@ -100,7 +100,7 @@ a{color:var(--accent)}
 #ubar .num{color:var(--ink)}
 
 /* 단계 — 서식의 칸처럼 나란히 */
-#steps{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));max-width:760px;justify-self:center;width:100%;
+#steps{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));max-width:640px;justify-self:center;width:100%;
   border:1px solid var(--rule);border-radius:3px;overflow:hidden}
 #steps .st{display:flex;align-items:center;justify-content:center;gap:6px;padding:6px 4px;
   font-size:12.5px;color:var(--muted);border-left:1px solid var(--rule);white-space:nowrap;background:var(--paper)}
@@ -182,6 +182,10 @@ table.form tr.cols th{background:#F3F5F8;text-align:center;font-size:12.5px}
 .src a{font-size:12px;text-decoration:none;margin-left:4px;white-space:nowrap}
 .src a:hover{text-decoration:underline}
 .use{font-size:13.5px;color:var(--ink-2)}
+.by{display:inline-block;font-size:11.5px;padding:1px 7px;border-radius:3px;font-weight:600}
+.by.me{background:var(--hl);color:var(--ink)}
+.by.bot{background:var(--rule-2);color:var(--ink-2)}
+.kind{font-size:11.5px;color:var(--muted);margin-left:6px}
 .chk{display:inline-block;font-size:11.5px;font-weight:600;padding:1px 7px;border-radius:3px;margin-left:6px;vertical-align:1px}
 .chk.ok{background:var(--ok-soft);color:var(--ok)}
 .chk.no{background:var(--warn-soft);color:var(--warn)}
@@ -244,7 +248,6 @@ table.ad tr:hover td{background:#FAFBFC}
   #main{grid-template-columns:minmax(0,1fr) minmax(460px,.9fr)}
   #specwrap{padding:22px 22px}
   .sheet{padding:26px 24px 24px}
-  #steps .st span{display:none}
 }
 @media (max-width:900px){
   body{overflow:auto}
@@ -266,8 +269,7 @@ table.ad tr:hover td{background:#FAFBFC}
     <p class="lede">인공지능을 활용하여, 내 관심사와 희망 주제에 맞는 데이터를 탐색해봅시다.<br>
       모든 채팅 기록은 기록되니 성실하게 수행하도록 합니다.</p>
     <ol>
-      <li><b>1</b>관심</li><li><b>2</b>주제</li><li><b>3</b>구성</li><li><b>4</b>예상</li>
-      <li><b>5</b>범위</li><li><b>6</b>이유</li><li><b>7</b>확인</li>
+      <li><b>1</b>관심 분야</li><li><b>2</b>주제</li><li><b>3</b>맞힐 것</li><li><b>4</b>영향 요인과 예상</li>
     </ol>
   </section>
   <section class="side">
@@ -321,7 +323,7 @@ table.ad tr:hover td{background:#FAFBFC}
           <textarea id="q" rows="1" placeholder="답을 쓰고 Enter  (줄바꿈은 Shift+Enter)"></textarea>
           <button class="btn primary" id="send" onclick="send()">보내기</button>
         </div>
-        <div class="hint">값의 범위는 화면이 실제 자료를 찾아 보여 줍니다. 링크를 열어 확인하고 맞는지 알려 주세요.
+        <div class="hint">숫자(값의 범위)는 선생님이 실제 자료로 데이터를 만들면서 정합니다.
           기계학습 방법이나 파이썬 코드는 알려주지 않습니다.</div>
       </div>
     </section>
@@ -374,9 +376,8 @@ const API_URL   = 'https://script.google.com/macros/s/AKfycbwLlLefL8g-DTDgX9ab3q
 const DOMAIN    = 'sdhs.gwe.hs.kr';
 
 /* ══════════════════════════════════════════════════════ */
-const 단계목록 = ['관심분야','주제고르기','구성정하기','예상하기','범위찾기','이유작성','요약확인'];
-const 단계이름 = {관심분야:'관심', 주제고르기:'주제', 구성정하기:'구성', 예상하기:'예상',
-  범위찾기:'범위', 이유작성:'이유', 요약확인:'확인'};
+const 단계목록 = ['관심분야','주제고르기','맞힐것정하기','요인예상'];
+const 단계이름 = {관심분야:'관심 분야', 주제고르기:'주제', 맞힐것정하기:'맞힐 것', 요인예상:'영향 요인과 예상'};
 const KEY = 'aitopic_v3';
 
 let 토큰 = '', 나 = null, 반정보 = null;
@@ -631,12 +632,6 @@ async function 보내기(text, 옵션){
   단계표시(r.단계);
   draw(); paintSpec(); save();
 
-  // 자료 검색이 필요하면 바로 찾아서 이어 보낸다
-  if(r.검색요청 && r.검색요청.length){
-    const g = await 자료가져오기(r.검색요청);
-    return 보내기(g.붙임, {숨김:true, 카드:g.자료, 이어서:true});
-  }
-
   // 챗봇은 다 됐다는데 빈 칸이 남아 있으면, 학생 대신 화면이 알려 준다
   const 부족 = 검사(정리);
   if(확정가능 && 부족.length && !점검보냄){
@@ -656,85 +651,37 @@ function 점검요청(){
         {숨김:true});
 }
 
-/* ── 자료 찾기 : 서버가 웹 검색으로 실제 범위와 링크를 가져온다 ── */
-async function 자료가져오기(요청){
-  const log = document.getElementById('log');
-  const t = document.createElement('div');
-  t.className = 'sysmsg'; t.id = 'searching';
-  t.textContent = '실제 자료를 찾고 있습니다… 20초쯤 걸립니다.';
-  log.appendChild(t); log.scrollTop = log.scrollHeight;
-
-  let r = await api({action:'자료찾기', 요청: 요청.slice(0,3)});
-  if(!(r && (r.자료||[]).length)){           // 한 번은 조용히 다시 시도한다
-    t.textContent = '자료를 다시 찾는 중입니다…';
-    r = await api({action:'자료찾기', 요청: 요청.slice(0,3)});
-  }
-  const el = document.getElementById('searching'); if(el) el.remove();
-
-  const 자료 = (r && r.자료) || [];
-  if(!자료.length){
-    // 못 찾았다는 사실을 챗봇에게도 알려야 대화가 엉키지 않는다
-    return {붙임: '[화면이 찾은 자료]\n자료를 찾지 못했습니다. ' +
-                  '학생에게 각 항목이 대략 얼마쯤일지 물어보고, 근거는 "학생 추정 — 자료 없음"으로 적어 주세요.',
-            자료: null};
-  }
-  const 붙임 = '[화면이 찾은 자료]\n' + 자료.map(d =>
-    '· ' + (d.항목 || d.검색어) + '\n' +
-    (d.요약 ? d.요약 : '자료를 찾지 못했습니다.') + '\n' +
-    ((d.링크||[]).length ? d.링크.map(l=>'  링크: '+l.제목+' ('+l.주소+')').join('\n')
-                         : '  링크 없음')
-  ).join('\n\n');
-  return {붙임: 붙임, 자료: 자료};
-}
-
 /* ── 확정 전 검사 (서버와 같은 규칙) ── */
 function 검사(s){
   const 부족 = [];
   if(!s) return ['아직 정해진 것이 없습니다'];
   const 있 = v => v != null && String(v).trim().length > 0;
-  if(['예측','분류'].indexOf(s.트랙) < 0) 부족.push('문제 유형');
+  if(['예측','분류'].indexOf(s.트랙) < 0) 부족.push('맞히는 방식(예측/분류)');
   if(!있(s.주제) || String(s.주제).length < 5) 부족.push('주제 한 줄');
   if(!있(s.대상)) 부족.push('어디의 자료인지');
   if(!있(s.예측시점)) 부족.push('언제 예측하는지');
   const t = s.타깃 || {};
-  if(!있(t.이름)) 부족.push('맞히려는 값의 이름');
-  if(s.트랙 === '예측'){
-    if(!있(t.단위)) 부족.push('맞히려는 값의 단위');
-    if(!(t.최대 > t.최소)) 부족.push('맞히려는 값의 범위');
-    if(!있(t.근거)) 부족.push('맞히려는 값 범위의 근거');
-  }
-  if(s.트랙 === '분류'){
-    if(!있(s.범주A) || !있(s.범주B)) 부족.push('맞히려는 두 가지');
-    else if(s.범주A === s.범주B) 부족.push('두 가지가 서로 달라야 함');
+  if(!있(t.이름)) 부족.push('맞힐 것의 이름');
+  if(s.트랙==='예측' && (!있(t.단위) || t.단위==='해당 없음')) 부족.push('맞힐 것의 단위');
+  if(s.트랙==='분류'){
+    if(!있(s.범주A) || !있(s.범주B) || s.범주A==='해당 없음') 부족.push('맞힐 두 가지');
+    else if(s.범주A===s.범주B) 부족.push('두 가지가 서로 달라야 함');
+    if(!있(s.분류기준) || s.분류기준==='해당 없음') 부족.push('두 가지를 나누는 기준');
   }
   const f = s.특성 || [];
-  if(f.length < 3) 부족.push('쓸 정보 3개 이상 (지금 '+f.length+'개)');
-  if(f.length > 4) 부족.push('쓸 정보는 4개까지');
+  if(f.length < 3) 부족.push('영향을 줄 것 3개 이상 (지금 '+f.length+'개)');
+  if(f.length > 4) 부족.push('영향을 줄 것은 4개까지');
   const 본것 = {};
   f.forEach((x,i)=>{
     const n = x.이름 || (i+1)+'번째 정보';
     if(!있(x.이름)) 부족.push((i+1)+'번째 정보의 이름');
     else if(본것[x.이름]) 부족.push('정보 이름이 겹침: '+x.이름);
     else 본것[x.이름] = 1;
-    if(!있(x.단위)) 부족.push(n+'의 단위');
-    if(!(x.최대 > x.최소)) 부족.push(n+'의 값 범위');
-    if(!있(x.근거)) 부족.push(n+' 범위의 근거');
+    if(['숫자','예아니오'].indexOf(x.형태)<0 || ['학생','챗봇'].indexOf(x.떠올린사람)<0)
+      부족.push(n+' 정리 마무리 (챗봇이 채웁니다)');
     if(!있(x.학생예상)) 부족.push(n+'에 대한 내 예상');
-    if(s.트랙==='예측' && ['강한양','중간양','약한양','약한음','중간음','강한음'].indexOf(x.영향)<0)
-      부족.push(n+' 정리 마무리 (챗봇이 채웁니다)');
-    if(s.트랙==='분류' && !있(x.높은쪽)) 부족.push(n+' 정리 마무리 (챗봇이 채웁니다)');
-    if(s.트랙==='분류' && 있(x.높은쪽) && x.높은쪽!==s.범주A && x.높은쪽!==s.범주B)
-      부족.push(n+' 정리 마무리 (챗봇이 채웁니다)');
   });
-  if(s.트랙 === '예측'){
-    const m = s.무관변수 || {};
-    if(!있(m.이름)) 부족.push('도움 안 될 것 같은 값');
-    else if(!(m.최대 > m.최소)) 부족.push('도움 안 될 것 같은 값의 범위');
-  }
-  const 글자 = v => String(v||'').replace(/\s/g,'').length;
-  if(글자(s.이유) < 6) 부족.push('주제를 고른 이유');
-  if(글자(s.기대효과) < 6) 부족.push('무엇이 달라지는지');
-  return 부족;
+  return 부족.filter((v,i,a)=>a.indexOf(v)===i);
 }
 
 /* ── 계획서 ── */
@@ -777,7 +724,7 @@ function 계획서HTML(s, 도장){
   h += '<table class="form"><colgroup><col style="width:13%"><col style="width:20%"><col style="width:11%"><col style="width:22%"><col style="width:11%"><col></colgroup><tr>'+
        '<th>학번</th><td class="c num">'+esc(/^\d+$/.test(학번)? 학번 : '—')+'</td>'+
        '<th>성명</th><td class="c">'+esc(나 ? 나.이름 : '')+'</td>'+
-       '<th>유형</th><td class="c">'+칸(s.트랙)+'</td></tr></table>';
+       '<th>방식</th><td class="c">'+(s.트랙 ? esc(s.트랙) : '<span class="blank" style="min-width:3em"></span>')+'</td></tr></table>';
 
   // Ⅰ 주제
   const 점 = 주제점검 || {};
@@ -790,40 +737,35 @@ function 계획서HTML(s, 도장){
        '<tr><th>현장 쓰임</th><td colspan="3" class="use">'+(점.통과 && 점.메모 ? esc(점.메모) : '<span class="blank"></span>')+'</td></tr>'+
        '</table>';
 
-  // Ⅱ 맞히려는 값
+  // Ⅱ 맞힐 것 (y)
   h += '<table class="form"><colgroup><col style="width:17%"><col><col style="width:15%"><col style="width:25%"></colgroup>'+
-       '<tr class="sec"><th colspan="4"><span>Ⅱ</span>맞히려는 값</th></tr>';
+       '<tr class="sec"><th colspan="4"><span>Ⅱ</span>맞힐 것 (y)</th></tr>';
   if(분류){
-    h += '<tr><th>이름</th><td colspan="3">'+칸(t.이름)+'</td></tr>'+
-         '<tr><th>두 가지</th><td colspan="3">'+((s.범주A && s.범주B)? esc(s.범주A)+'  /  '+esc(s.범주B) : '<span class="blank"></span>')+'</td></tr>';
+    h += '<tr><th>무엇을</th><td colspan="3">'+칸(t.이름)+'<span class="kind">둘 중 하나로 맞히기 · 분류</span></td></tr>'+
+         '<tr><th>두 가지</th><td colspan="3">'+((s.범주A && s.범주B && s.범주A!=='해당 없음')? esc(s.범주A)+'  /  '+esc(s.범주B) : '<span class="blank"></span>')+'</td></tr>'+
+         '<tr><th>나누는 기준</th><td colspan="3">'+(s.분류기준 && s.분류기준!=='해당 없음' ? esc(s.분류기준) : '<span class="blank"></span>')+'</td></tr>';
   } else {
-    h += '<tr><th>이름</th><td>'+칸(t.이름)+'</td><th>단위</th><td>'+칸(t.단위)+'</td></tr>'+
-         '<tr><th>범위</th><td colspan="3">'+범위(t.최소,t.최대,t.단위)+'</td></tr>'+
-         '<tr><th>근거</th><td colspan="3">'+근거HTML(t.근거)+'</td></tr>';
+    h += '<tr><th>무엇을</th><td>'+칸(t.이름)+(s.트랙==='예측' ? '<span class="kind">숫자로 맞히기 · 예측</span>' : '')+'</td>'+
+         '<th>단위</th><td>'+(t.단위 && t.단위!=='해당 없음' ? esc(t.단위) : '<span class="blank" style="min-width:3em"></span>')+'</td></tr>';
   }
   h += '</table>';
 
-  // Ⅲ 쓸 정보
-  h += '<table class="form"><colgroup><col style="width:25%"><col style="width:10%"><col style="width:17%"><col><col style="width:14%"></colgroup>'+
-       '<thead><tr class="sec"><th colspan="5"><span>Ⅲ</span>쓸 정보 '+(f.length? '<span style="font-family:var(--mono);font-weight:400">'+f.length+' / 3~4</span>':'')+'</th></tr>'+
-       '<tr class="cols"><th>정보</th><th>단위</th><th>범위</th><th>근거</th><th>내 예상</th></tr></thead><tbody>';
+  // Ⅲ 영향을 줄 것 (x) 과 내 예상
+  const 예상머리 = 분류 ? '클수록 많을 것 같은 쪽' : '내 예상';
+  h += '<table class="form"><colgroup><col><col style="width:22%"><col style="width:24%"></colgroup>'+
+       '<thead><tr class="sec"><th colspan="3"><span>Ⅲ</span>영향을 줄 것 (x)과 내 예상 '+(f.length? '<span style="font-family:var(--mono);font-weight:400">'+f.length+' / 3~4</span>':'')+'</th></tr>'+
+       '<tr class="cols"><th>정보</th><th>누가 떠올렸나</th><th>'+예상머리+'</th></tr></thead><tbody>';
   const 줄수 = Math.max(3, f.length);
   for(let k=0; k<줄수; k++){
     const x = f[k];
-    if(!x){ h += '<tr><td><span class="blank"></span></td><td></td><td></td><td></td><td></td></tr>'; continue; }
-    h += '<tr><td>'+칸(x.이름)+'</td><td class="c">'+칸(x.단위)+'</td>'+
-         '<td class="c">'+범위(x.최소,x.최대,'')+'</td>'+
-         '<td>'+근거HTML(x.근거)+'</td>'+
+    if(!x){ h += '<tr><td><span class="blank"></span></td><td></td><td></td></tr>'; continue; }
+    const 누구 = x.떠올린사람==='학생' ? '<span class="by me">내가 떠올림</span>'
+              : x.떠올린사람==='챗봇' ? '<span class="by bot">도우미 제안</span>' : '';
+    h += '<tr><td>'+칸(x.이름)+(x.형태==='예아니오' ? '<span class="kind">예/아니오</span>' : '')+'</td>'+
+         '<td class="c">'+누구+'</td>'+
          '<td class="c">'+(x.학생예상 ? '<span class="mine">'+esc(예상글(x.학생예상))+'</span>' : '<span class="blank" style="min-width:3em"></span>')+'</td></tr>';
   }
   h += '</tbody></table>';
-
-  // Ⅳ 나의 생각
-  h += '<table class="form"><colgroup><col style="width:17%"><col></colgroup>'+
-       '<tr class="sec"><th colspan="2"><span>Ⅳ</span>나의 생각</th></tr>'+
-       '<tr><th>고른 이유</th><td>'+칸(s.이유, true)+'</td></tr>'+
-       '<tr><th>기대 효과</th><td>'+칸(s.기대효과, true)+'</td></tr>'+
-       '</table>';
 
   h += '<div class="sign"><span>작성</span><span class="num">'+esc(반정보 ? 반정보.학년+'-'+반정보.반+'-'+반정보.번호 : '')+'</span>'+
        '<b>'+esc(나 ? 나.이름 : '')+'</b></div>';
@@ -846,7 +788,7 @@ function paintSpec(){
   const 열림 = 확정가능 && 부족.length === 0;
   document.getElementById('finbtn').disabled = !열림;
   const fm = document.getElementById('finmsg');
-  if(열림){ fm.innerHTML = '<b>빈칸이 모두 채워졌습니다.</b><br>확정하면 선생님께 이 계획서가 전달됩니다.'; }
+  if(열림){ fm.innerHTML = '<b>빈칸이 모두 채워졌습니다.</b><br>계획서를 확인하고, 맞으면 확정하세요. 선생님께 전달됩니다.'; }
   else if(부족.length && 정리){
     fm.innerHTML = '<b>남은 칸 '+부족.length+'개</b><ul>' +
       부족.slice(0,6).map(x=>'<li>'+esc(x)+'</li>').join('') +
@@ -867,8 +809,9 @@ async function finish(){
     const d = new Date();
     const 날짜 = d.getFullYear()+'.'+(d.getMonth()+1)+'.'+d.getDate();
     document.getElementById('donemsg').textContent =
-      (정리.주제||'') + '\n\n선생님이 이 계획서에 맞는 데이터를 만들어 나눠 줍니다. ' +
-      '「내 예상」은 수행평가 때 직접 모델을 돌려 보고 맞았는지 확인하게 됩니다.';
+      (정리.주제||'') + '\n\n선생님이 이 계획서에 맞는 데이터를 실제 자료로 만들어 나눠 줍니다. ' +
+      '주제를 고른 이유와 기대 효과는 수행평가지에 직접 쓰게 됩니다. ' +
+      '「내 예상」은 수행평가 때 직접 모델을 돌려 보고 맞았는지 확인합니다.';
     document.getElementById('donesheet').innerHTML = 계획서HTML(정리, 날짜);
     if(나.관리자) document.getElementById('doneAdmin').classList.remove('hide');
     document.getElementById('done').classList.remove('hide');
@@ -916,24 +859,21 @@ async function loadAdmin(){
   document.getElementById('adbody').innerHTML = 경고HTML +
     '<table class="ad"><thead><tr>'+
     '<th style="width:110px">학생</th><th style="width:54px">유형</th><th>주제</th>'+
-    '<th style="width:180px">맞히려는 것</th><th>쓸 정보</th>'+
+    '<th style="width:200px">맞힐 것 (y)</th><th>영향 요인 (x)</th>'+
     '<th style="width:96px">점검·태도</th><th style="width:70px"></th>'+
     '</tr></thead><tbody>'+
     행.map(x=>{
       const 특 = (x.특성||[]).map(f=>{
-        const 실 = f.영향 ? esc(f.영향) : (f.높은쪽 ? esc(f.높은쪽)+'↑' : '');
-        const 예 = f.학생예상 ? esc(f.학생예상) : '—';
-        const 다름 = f.학생예상 && 실 && f.학생예상 !== (f.영향 || f.높은쪽);
         const 실자 = f.실자료 && f.실자료 !== '없음'
           ? ' <span class="srcchip">'+esc(f.실자료)+'</span>' : '';
-        return esc(f.이름)+실자+' <span class="mini">'+esc(f.단위||'')+' '+f.최소+'~'+f.최대+
-          '<br>예상 '+예+' / 실제 '+(실||'—')+(다름? ' <b>≠</b>':'')+
-          (f.근거? '<br>└ '+esc(f.근거) : '')+'</span>';
+        return esc(f.이름)+실자+' <span class="mini">'+(f.형태==='예아니오'?'예/아니오':'숫자')+
+          ' · '+(f.떠올린사람==='학생'?'학생':'챗봇')+' · 예상 '+esc(f.학생예상||'—')+'</span>';
       }).join('<br>');
       const 타 = x.트랙==='분류'
-        ? esc(x.타깃.이름||'')+' <span class="mini">'+esc(x.범주A)+' / '+esc(x.범주B)+'</span>'
-        : esc(x.타깃.이름||'')+' <span class="mini">'+esc(x.타깃.단위||'')+' '+
-          x.타깃.최소+'~'+x.타깃.최대+(x.타깃.근거? '<br>└ '+esc(x.타깃.근거) : '')+'</span>';
+        ? esc(x.타깃.이름||'')+' <span class="mini">'+esc(x.범주A)+' / '+esc(x.범주B)+
+          (x.분류기준 ? '<br>└ '+esc(x.분류기준) : '')+'</span>'
+        : esc(x.타깃.이름||'')+' <span class="mini">('+esc(x.타깃.단위||'')+')'+
+          (x.타깃.실자료 && x.타깃.실자료!=='없음' ? ' · '+esc(x.타깃.실자료) : '')+'</span>';
       return '<tr><td>'+esc(x.학년)+'-'+esc(x.반)+'-'+esc(x.번호)+' '+esc(x.이름)+
              '<div class="mini">'+esc(x.학번)+'</div></td>'+
              '<td>'+esc(x.트랙)+'</td>'+
@@ -943,8 +883,9 @@ async function loadAdmin(){
                  ? ' · 타깃 '+esc(x.타깃.실자료) : '')+'</div>'+
                (x.점검메모? '<div class="mini">'+esc(x.점검메모)+'</div>':'')+'</td>'+
              '<td>'+타+'</td><td>'+특+'</td>'+
-             '<td><span class="mini">점검 '+esc(x.점검||'')+'<br>대신요청 '+esc(x.대신요청||0)+
-               '<br>도움 '+esc(x.도움요청||0)+'<br>주고받기 '+esc(x.주고받은수||0)+'</span></td>'+
+             '<td><span class="mini">점검 '+esc(x.점검||'')+'<br>학생 제안 '+esc(x.학생제안||0)+'개'+
+               '<br>대신요청 '+esc(x.대신요청||0)+' · 도움 '+esc(x.도움요청||0)+
+               '<br>주고받기 '+esc(x.주고받은수||0)+'</span></td>'+
              '<td><button class="btn sm" onclick="delOne(\''+esc(x.메일)+'\')">삭제</button></td></tr>';
     }).join('')+'</tbody></table>';
 }
