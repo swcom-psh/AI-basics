@@ -430,20 +430,26 @@ function 대화_(req) {
     payload.max_completion_tokens = 3000;
   }
 
-  let res;
-  try {
-    res = UrlFetchApp.fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'post', contentType: 'application/json',
-      headers: { Authorization: 'Bearer ' + 키 },
-      payload: JSON.stringify(payload), muteHttpExceptions: true });
-  } catch (err) {
-    return { 오류: '서버에 연결하지 못했습니다. 잠시 뒤 다시 시도하세요.' };
+  // 한 반이 동시에 보내면 분당 한도(429)나 일시 오류(5xx)가 난다 — 조금씩 늦춰 두 번 더 시도한다
+  let res = null, code = 0;
+  for (let 시도 = 0; 시도 < 3; 시도++) {
+    if (시도 > 0) Utilities.sleep(2500 * 시도 + Math.floor(Math.random() * 1500));
+    try {
+      res = UrlFetchApp.fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'post', contentType: 'application/json',
+        headers: { Authorization: 'Bearer ' + 키 },
+        payload: JSON.stringify(payload), muteHttpExceptions: true });
+      code = res.getResponseCode();
+    } catch (err) { code = -1; }
+    if (code === 200) break;
+    if (code > 0 && code !== 429 && code < 500) break;   // 400 같은 오류는 다시 해도 같다
   }
 
-  const code = res.getResponseCode();
   if (code !== 200) {
-    console.error('OpenAI ' + code + ' : ' + res.getContentText().slice(0, 400));
-    if (code === 429) return { 오류: '지금 요청이 많습니다. 20초쯤 뒤에 다시 보내세요.' };
+    if (res) console.error('OpenAI ' + code + ' : ' + res.getContentText().slice(0, 400));
+    if (code === -1) return { 오류: '서버에 연결하지 못했습니다. 잠시 뒤 다시 시도하세요.', 재시도가능: true };
+    if (code === 429) return { 오류: '지금 요청이 많아 답이 늦어지고 있습니다.', 재시도가능: true };
+    if (code >= 500) return { 오류: '답을 받아오지 못했습니다 (' + code + ').', 재시도가능: true };
     return { 오류: '답을 받아오지 못했습니다 (' + code + '). 다시 시도해 보세요.' };
   }
   try {
@@ -679,6 +685,20 @@ function 관리_(req) {
       });
     }
     return { ok: true, 시트주소: ss.getUrl(), 행: 행, 경고: 경고, 시트행수: v.length };
+  }
+
+  if (req.일 === '대화') {
+    const 채 = ss.getSheetByName(채팅시트이름);
+    if (!채 || 채.getLastRow() < 2) return { ok: true, 줄: [] };
+    const 학번 = String(req.학번 || '');
+    const v = 채.getRange(2, 1, 채.getLastRow() - 1, 12).getValues();
+    const 줄 = [];
+    v.forEach(r => {
+      if (String(r[1]) !== 학번) return;
+      줄.push({ 시각: Utilities.formatDate(new Date(r[0]), 'Asia/Seoul', 'M/d HH:mm'),
+                대화번호: String(r[6]), 순서: r[7], 보낸이: r[8], 내용: String(r[9]), 단계: r[10] });
+    });
+    return { ok: true, 줄: 줄 };
   }
 
   if (req.일 === '삭제') {

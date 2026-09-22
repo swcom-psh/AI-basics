@@ -350,6 +350,29 @@ table.ad{font-size:14.5px}
 table.ad th{font-size:13.5px}
 .mini{font-size:13px;color:var(--muted)}
 .stat{font-size:15px}
+
+/* 관리자 — 주제 겹침 · 대화 보기 */
+.dup{display:inline-block;font-size:12.5px;font-weight:700;background:#FDEBD3;color:#8A4B06;
+  padding:1px 8px;border-radius:5px;margin-left:6px;cursor:help;vertical-align:1px}
+#chatview{position:fixed;inset:0;z-index:70;background:rgba(17,26,36,.45);display:flex;justify-content:flex-end}
+.cvbox{width:min(760px,100%);height:100%;background:var(--ground);display:flex;flex-direction:column;
+  box-shadow:-10px 0 30px rgba(0,0,0,.15)}
+.cvtop{display:flex;align-items:center;gap:10px;padding:16px 22px;background:#fff;border-bottom:1px solid var(--rule)}
+.cvtop b{font-size:17px}
+#chatviewbody{flex:1;overflow-y:auto;padding:18px 22px 40px;display:flex;flex-direction:column;gap:10px}
+.cvhead{font-size:14px;font-weight:700;color:var(--accent);margin-top:14px;padding-bottom:6px;border-bottom:1px solid var(--rule)}
+.cvhead:first-child{margin-top:0}
+.cv{max-width:92%;display:flex;flex-direction:column;gap:3px}
+.cvwho{font-size:12.5px;color:var(--muted)}
+.cvtext{font-size:15px;line-height:1.65;padding:9px 13px;border-radius:10px;background:#fff;border:1px solid var(--rule-2)}
+.cvtext p{margin:0}
+.cvtext p + p,.cvtext p + .opts,.cvtext .opts + p{margin-top:8px}
+.cvtext .opts{gap:6px}
+.cv.me{align-self:flex-end;align-items:flex-end}
+.cv.me .cvtext{background:var(--accent);color:#fff;border-color:var(--accent)}
+.cv.sys .cvtext{background:transparent;border-style:dashed;color:var(--muted);font-size:14px}
+.cv .opt{padding:7px 10px}
+.cvfin{align-self:center;font-size:14px;font-weight:700;color:var(--ok);background:var(--ok-soft);padding:6px 14px;border-radius:20px}
 </style>
 </head>
 <body>
@@ -404,6 +427,7 @@ table.ad th{font-size:13.5px}
     <div class="right">
       <span id="ubar"></span>
       <button class="btn sm ghost" id="resetBtn" onclick="restart()">처음부터 다시</button>
+      <button class="btn sm" id="logoutBtn" onclick="로그아웃()">로그아웃</button>
       <button class="btn sm hide" id="adminBtn" onclick="openAdmin()">관리</button>
     </div>
   </header>
@@ -436,9 +460,11 @@ table.ad th{font-size:13.5px}
 <div id="done" class="hide">
   <section class="left">
     <h2>계획서를 냈습니다</h2>
+    <p style="color:var(--bad);font-weight:600">공용 컴퓨터라면 마치고 꼭 로그아웃하세요.</p>
     <p id="donemsg"></p>
     <div class="acts">
       <button class="btn" onclick="restart()">주제 다시 정하기</button>
+      <button class="btn primary" onclick="로그아웃()">로그아웃</button>
       <button class="btn hide" id="doneAdmin" onclick="openAdmin()">관리자 화면</button>
     </div>
   </section>
@@ -456,6 +482,15 @@ table.ad th{font-size:13.5px}
   </div>
   <div class="stat" id="adstat"></div>
   <div id="adbody"></div>
+</div>
+
+<!-- ════════ 관리자 : 학생 대화 보기 ════════ -->
+<div id="chatview" class="hide" onclick="if(event.target===this)대화닫기()">
+  <div class="cvbox">
+    <div class="cvtop"><b id="chatviewtitle"></b><span style="flex:1"></span>
+      <button class="btn sm" onclick="대화닫기()">닫기</button></div>
+    <div id="chatviewbody"></div>
+  </div>
 </div>
 
 <script>
@@ -491,12 +526,19 @@ async function api(body){
       headers:{'Content-Type':'text/plain;charset=utf-8'},   // preflight 를 피하려고 text/plain
       body: JSON.stringify(Object.assign({token: 토큰}, body))
     });
-  }catch(e){ return {오류:'서버에 연결하지 못했습니다. 인터넷 상태를 확인하세요.'}; }
+  }catch(e){ return {오류:'서버에 연결하지 못했습니다. 인터넷 상태를 확인하세요.', 재시도가능:true}; }
   let j;
   try{ j = await r.json(); }
-  catch(e){ return {오류:'서버 응답을 읽지 못했습니다. 잠시 뒤 다시 시도하세요.'}; }
+  catch(e){ return {오류:'서버가 바빠 응답을 읽지 못했습니다.', 재시도가능:true}; }   // 동시 실행이 몰리면 HTML 오류 쪽이 온다
   if(j && j.만료){ 만료처리(); return {오류:'로그인이 만료되었습니다. 다시 로그인해 주세요.'}; }
   return j;
+}
+function 로그아웃(){
+  if(보내는중) return;
+  if(!confirm('로그아웃할까요? 대화는 저장되어 있어서, 다시 로그인하면 이어서 할 수 있습니다.')) return;
+  try{ google.accounts.id.disableAutoSelect(); }catch(e){}
+  토큰 = ''; sessionStorage.removeItem('idt');
+  location.reload();
 }
 function 만료처리(){
   토큰 = ''; sessionStorage.removeItem('idt');
@@ -513,12 +555,12 @@ window.onload = () => {
       client_id: CLIENT_ID,
       callback: onCredential,
       hd: DOMAIN,
-      auto_select: true,
+      auto_select: false,          // 공용 PC — 앞 학생 계정으로 자동 입장하지 않는다
       cancel_on_tap_outside: false
     });
+    google.accounts.id.disableAutoSelect();
     google.accounts.id.renderButton(document.getElementById('gbtn'),
-      { theme:'outline', size:'large', text:'signin_with', shape:'pill', locale:'ko' });
-    google.accounts.id.prompt();
+      { theme:'outline', size:'large', text:'signin_with', shape:'pill', locale:'ko', width:320 });
   }, 120);
 };
 async function onCredential(res){
@@ -741,8 +783,15 @@ async function 보내기(text, 옵션){
 
   let 순서 = -1;
   for(let i = 히스토리.length - 1; i >= 0; i--) if(히스토리[i].role === 'user'){ 순서 = i; break; }
-  const r = await api({action:'chat', history: 대화기록(), 반정보,
-                       기록:{대화ID, 순서, 숨김: 순서 >= 0 && !!히스토리[순서].숨김}});
+  const 요청 = {action:'chat', history: 대화기록(), 반정보,
+                기록:{대화ID, 순서, 숨김: 순서 >= 0 && !!히스토리[순서].숨김}};
+  let r = await api(요청);
+  for(let 시도 = 1; r.재시도가능 && 시도 <= 2; 시도++){      // 한 반이 몰려 막히면 조금 기다렸다 다시
+    const 글 = t.querySelector('.body');
+    if(글) 글.textContent = '사람이 많아 잠깐 기다리는 중입니다 ('+시도+'/2)';
+    await new Promise(ok => setTimeout(ok, 4000 * 시도 + Math.random() * 2000));
+    r = await api(요청);
+  }
   const el = document.getElementById('typing'); if(el) el.remove();
 
   if(r.오류){
@@ -961,6 +1010,7 @@ async function loadAdmin(){
     '<div style="padding:24px;color:var(--bad)">'+esc(r.오류)+'</div>'; return; }
   document.getElementById('adsheet').href = r.시트주소 || '#';
   const 행 = r.행 || [];
+  비슷한것찾기(행);
   const 경고HTML = r.경고
     ? '<div class="adwarn">'+esc(r.경고)+'</div>' : '';
   const 예측 = 행.filter(x=>x.트랙==='예측').length;
@@ -971,7 +1021,8 @@ async function loadAdmin(){
     '<div>예측 <b>'+예측+'</b></div>'+
     '<div>분류 <b>'+(행.length-예측)+'</b></div>'+
     '<div>자료 A <b>'+등('A')+'</b> · B <b>'+등('B')+'</b> · C <b>'+등('C')+'</b></div>'+
-    '<div>도움 필요했던 학생 <b>'+도움+'</b></div>';
+    '<div>도움 필요했던 학생 <b>'+도움+'</b></div>'+
+    '<div>주제 겹침 <b>'+행.filter(x=>x._비슷.length).length+'</b>명</div>';
   if(!행.length){
     document.getElementById('adbody').innerHTML = 경고HTML +
       '<div style="padding:24px;color:var(--muted)">확정된 주제가 아직 없습니다.'+
@@ -1002,6 +1053,7 @@ async function loadAdmin(){
              '<div class="mini">'+esc(x.학번)+'</div></td>'+
              '<td>'+esc(x.트랙)+'</td>'+
              '<td>'+등급뱃지(x.자료등급)+esc(x.주제)+
+               (x._비슷.length ? ' <span class="dup" title="'+esc(x._비슷.join(', '))+'">겹침 '+x._비슷.length+'</span>' : '')+
                '<div class="mini">'+(x.연계학과? '<b>'+esc(x.연계학과)+'</b> · ':'')+esc(x.대상||'')+(x.예측시점? ' · '+esc(x.예측시점):'')+
                (x.타깃 && x.타깃.실자료 && x.타깃.실자료!=='없음'
                  ? ' · 타깃 '+esc(x.타깃.실자료) : '')+'</div>'+
@@ -1010,9 +1062,50 @@ async function loadAdmin(){
              '<td><span class="mini">점검 '+esc(x.점검||'')+'<br>학생 제안 '+esc(x.학생제안||0)+'개'+
                '<br>대신요청 '+esc(x.대신요청||0)+' · 도움 '+esc(x.도움요청||0)+
                '<br>주고받기 '+esc(x.주고받은수||0)+'</span></td>'+
-             '<td><button class="btn sm" onclick="delOne(\''+esc(x.메일)+'\')">삭제</button></td></tr>';
+             '<td style="white-space:nowrap"><button class="btn sm" onclick="대화보기(\''+esc(x.학번)+'\',\''+esc(x.이름)+'\')">대화</button> '+
+             '<button class="btn sm" onclick="delOne(\''+esc(x.메일)+'\')">삭제</button></td></tr>';
     }).join('')+'</tbody></table>';
 }
+/* 비슷한 주제 — 맞힐 것 이름과 주제를 두 글자씩 쪼개 겹치는 정도로 본다 */
+function 조각(t){
+  const s = String(t||'').replace(/[\s·,()\-]/g,'').replace(/(예측|분류|하기|맞히기|다음날|하루)/g,'');
+  const 모음 = new Set(); for(let i=0;i<s.length-1;i++) 모음.add(s.slice(i,i+2)); return 모음;
+}
+function 비슷한것찾기(행){
+  const 조각들 = 행.map(x => 조각((x.타깃 && x.타깃.이름 || '') + (x.주제 || '')));
+  행.forEach((x,i)=>{
+    x._비슷 = [];
+    행.forEach((y,k)=>{
+      if(i===k) return;
+      const a = 조각들[i], b = 조각들[k]; if(!a.size || !b.size) return;
+      let 같 = 0; a.forEach(v=>{ if(b.has(v)) 같++; });
+      if(같 / Math.min(a.size, b.size) >= 0.6) x._비슷.push(y.학년+'-'+y.반+'-'+y.번호+' '+y.이름);
+    });
+  });
+}
+async function 대화보기(학번, 이름){
+  const 창 = document.getElementById('chatview');
+  const 몸 = document.getElementById('chatviewbody');
+  document.getElementById('chatviewtitle').textContent = 이름 + ' (' + 학번 + ') 대화';
+  몸.innerHTML = '<div class="mini" style="padding:20px">불러오는 중…</div>';
+  창.classList.remove('hide');
+  const r = await api({action:'admin', 일:'대화', 학번});
+  if(r.오류){ 몸.innerHTML = '<div style="padding:20px;color:var(--bad)">'+esc(r.오류)+'</div>'; return; }
+  const 줄 = r.줄 || [];
+  if(!줄.length){ 몸.innerHTML = '<div class="mini" style="padding:20px">채팅기록이 없습니다.</div>'; return; }
+  const 묶음 = {}; const 순 = [];
+  줄.forEach(z => { if(!묶음[z.대화번호]){ 묶음[z.대화번호] = []; 순.push(z.대화번호); } 묶음[z.대화번호].push(z); });
+  몸.innerHTML = 순.map((id,n) =>
+    '<div class="cvhead">'+(n+1)+'번째 대화 · '+esc(묶음[id][0].시각)+' 시작'+(n < 순.length-1 ? ' · <span class="mini">처음부터 다시 누름</span>' : '')+'</div>'+
+    묶음[id].map(z => {
+      if(z.보낸이==='확정') return '<div class="cvfin">확정 — '+esc(z.내용)+' <span class="mini">'+esc(z.시각)+'</span></div>';
+      const 누구 = z.보낸이==='학생' ? 'me' : z.보낸이==='화면' ? 'sys' : 'bot';
+      return '<div class="cv '+누구+'"><span class="cvwho">'+esc(z.보낸이)+' · '+esc(z.시각)+'</span>'+
+             '<div class="cvtext">'+(누구==='bot' ? 말다듬기(z.내용) : esc(z.내용))+'</div></div>';
+    }).join('')
+  ).join('');
+}
+function 대화닫기(){ document.getElementById('chatview').classList.add('hide'); }
 function 등급뱃지(g){
   const v = String(g||'').toUpperCase();
   if(['A','B','C'].indexOf(v) < 0) return '';
