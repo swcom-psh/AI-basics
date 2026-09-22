@@ -254,6 +254,101 @@ table.ad tr:hover td{background:#FAFBFC}
   #log{max-height:none}
   #done{grid-template-columns:1fr;overflow:auto}
 }
+
+/* ════════ 가독성 개선 (2026-09-22) — 위 규칙을 덮어쓴다 ════════ */
+:root{
+  --ink:#111A24; --ink-2:#34404E; --muted:#5A6573;
+  --ground:#F4F6F9; --desk:#E9EDF2; --rule:#CCD3DC; --rule-2:#E2E7ED;
+  --accent:#1E3F8F; --accent-2:#2A55B8; --accent-soft:#E8EEFA;
+}
+body{font-size:16px;line-height:1.7;letter-spacing:-.005em}
+
+/* 상단 */
+#bar{height:66px;gap:28px;padding:0 28px}
+#bar .brand b{font-size:19px}
+#bar .brand span{font-size:14px;color:var(--muted)}
+#ubar{font-size:15px;padding:5px 12px;color:var(--ink)}
+#resetBtn{font-size:14px;color:var(--ink-2)}
+#steps{max-width:720px;border:0;gap:6px;overflow:visible}
+#steps .st{border:1px solid var(--rule);border-radius:8px;padding:8px 6px;font-size:14.5px;
+  color:var(--muted);background:#F7F8FA;gap:7px}
+#steps .st:first-child{border-left:1px solid var(--rule)}
+#steps .st i{font-size:13px;font-weight:700;width:22px;height:22px;border-radius:50%;
+  display:inline-flex;align-items:center;justify-content:center;background:var(--rule-2);color:var(--ink-2)}
+#steps .st.done{color:var(--accent);background:#fff;border-color:#B9C7E6}
+#steps .st.done i{background:var(--accent-soft);color:var(--accent)}
+#steps .st.done i::before{content:none}
+#steps .st.on{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:700}
+#steps .st.on i{background:#fff;color:var(--accent)}
+
+/* 대화 */
+#log{padding:32px 36px 16px;gap:22px}
+.msg{max-width:min(860px,100%);gap:6px}
+.msg .who{font-size:13.5px;font-weight:700;color:var(--accent);letter-spacing:0}
+.msg.bot .body{background:#fff;border:1px solid var(--rule-2);border-radius:4px 16px 16px 16px;
+  padding:16px 20px;font-size:17px;line-height:1.75;color:var(--ink);white-space:normal;
+  box-shadow:0 1px 2px rgba(17,26,36,.04)}
+.msg.bot .body p{margin:0}
+.msg.bot .body p + p,.msg.bot .body p + .opts,.msg.bot .body .opts + p{margin-top:10px}
+.opts{display:flex;flex-direction:column;gap:8px}
+.opt{display:grid;grid-template-columns:30px 1fr;gap:10px;align-items:start;
+  background:var(--ground);border-radius:10px;padding:10px 14px 10px 10px}
+.opt .n{width:28px;height:28px;border-radius:50%;background:var(--accent);color:#fff;
+  font-weight:700;font-size:14.5px;display:inline-flex;align-items:center;justify-content:center;margin-top:1px}
+.opt .n.dot{background:var(--rule);width:10px;height:10px;margin:9px 0 0 9px}
+.opt b{font-weight:700;color:var(--ink)}
+.opt .sub{color:var(--ink-2)}
+.msg.me{max-width:min(620px,85%)}
+.msg.me .who{display:none}
+.msg.me .body{background:var(--accent);color:#fff;font-size:17px;line-height:1.6;
+  padding:11px 18px;border-radius:16px 16px 4px 16px}
+.typing{font-size:16px}
+.msg.bot .body.typing{color:var(--muted)}
+.sysmsg{font-size:15px;padding:13px 16px}
+.hint{font-size:14px;color:var(--muted);margin-top:10px}
+#inputbar{padding:16px 36px 20px}
+#q{font-size:17px;padding:13px 16px;border-radius:10px;border-width:1.5px}
+#send{padding:13px 24px;font-size:16px;border-radius:10px}
+
+/* 계획서 */
+#specwrap{padding:32px 40px}
+.sheet{padding:38px 42px 32px}
+.sheet .kick{font-size:14px;color:var(--muted)}
+.sheet h2{font-size:30px;margin:6px 0 24px}
+table.form th,table.form td{font-size:15.5px;padding:11px 13px;line-height:1.55}
+table.form th{font-size:14.5px;color:var(--ink-2);background:#F2F4F7}
+table.form .sec th{font-size:15px;padding:10px 13px;background:var(--frame)}
+table.form tr.cols th{font-size:14px;background:#F7F8FA;color:var(--ink-2)}
+.kind{font-size:13.5px;color:var(--muted);margin-left:8px}
+.by{font-size:13.5px;padding:3px 10px;border-radius:6px}
+.chk{font-size:13px;padding:2px 9px;border-radius:5px}
+.use{font-size:15px;color:var(--ink-2)}
+.blank{min-width:7em;border-bottom:1.5px dotted #9AA4B1}
+.sheet .sign{font-size:15px;margin-top:22px}
+.helpbar,.prevbar{font-size:14.5px;padding:12px 15px}
+
+/* 확정 줄 */
+#finbar{padding:16px 40px 20px;align-items:center}
+#finmsg{font-size:15px;color:var(--ink-2);line-height:1.6}
+#finmsg ul{font-size:14.5px;margin:6px 0 10px}
+#finbtn{padding:14px 30px;font-size:17px;border-radius:10px}
+#finbtn:disabled{opacity:1;background:#C3CBD8;border-color:#C3CBD8;color:#fff}
+
+/* 로그인 */
+#login .kicker{font-size:15px;opacity:.9}
+#login .lede{font-size:19px;line-height:1.7;opacity:1}
+#login ol{font-size:15px}
+#login .side h2{font-size:24px}
+
+/* 완료 */
+#done p{font-size:17px;line-height:1.75;color:var(--ink-2)}
+#done h2{font-size:36px}
+
+/* 관리자 */
+table.ad{font-size:14.5px}
+table.ad th{font-size:13.5px}
+.mini{font-size:13px;color:var(--muted)}
+.stat{font-size:15px}
 </style>
 </head>
 <body>
@@ -263,10 +358,9 @@ table.ad tr:hover td{background:#FAFBFC}
   <section class="intro">
     <div class="kicker">인공지능 기초 · 수행평가</div>
     <h1>기계학습 데이터 정하기</h1>
-    <p class="lede">인공지능을 활용하여, 내 관심사와 희망 주제에 맞는 데이터를 탐색해봅시다.<br>
-      모든 채팅 기록은 기록되니 성실하게 수행하도록 합니다.</p>
+    <p class="lede">인공지능을 활용하여, 내 관심사와 희망 주제에 맞는 데이터를 탐색해봅시다.</p>
     <ol>
-      <li><b>1</b>관심 분야</li><li><b>2</b>예측·분류</li><li><b>3</b>맞힐 것</li><li><b>4</b>쓸 정보</li>
+      <li><b>1</b>관심 분야·학과</li><li><b>2</b>예측·분류</li><li><b>3</b>맞힐 것</li><li><b>4</b>쓸 정보</li>
     </ol>
   </section>
   <section class="side">
@@ -374,7 +468,7 @@ const DOMAIN    = 'sdhs.gwe.hs.kr';
 
 /* ══════════════════════════════════════════════════════ */
 const 단계목록 = ['관심분야','방식정하기','맞힐것정하기','요인정하기'];
-const 단계이름 = {관심분야:'관심 분야', 방식정하기:'예측·분류', 맞힐것정하기:'맞힐 것', 요인정하기:'쓸 정보'};
+const 단계이름 = {관심분야:'관심 분야·학과', 방식정하기:'예측·분류', 맞힐것정하기:'맞힐 것', 요인정하기:'쓸 정보'};
 const KEY = 'aitopic_v3';
 
 let 토큰 = '', 나 = null, 반정보 = null;
@@ -526,12 +620,35 @@ function draw(){
   log.innerHTML = 히스토리.map(m => {
     if(m.카드) return 자료카드(m.카드);
     if(m.숨김) return '';
+    const 글 = m.보일말 || m.content;
     return '<div class="msg '+(m.role==='user'?'me':'bot')+'">'+
       '<div class="who">'+(m.role==='user'? '나' : '도우미')+'</div>'+
-      '<div class="body">'+esc(m.보일말 || m.content)+'</div></div>';
+      '<div class="body">'+(m.role==='user' ? esc(글).replace(/\n/g,'<br>') : 말다듬기(글))+'</div></div>';
   }).join('');
   알림그리기();
   log.scrollTop = log.scrollHeight;
+}
+/* 도우미 답 : ①②③ / 1. / - 로 시작하는 줄은 선택지 상자로, 나머지는 문단으로.
+   선택지 안에 " — " 가 있으면 앞부분을 굵게 */
+function 말다듬기(t){
+  const 줄 = String(t||'').split('\n');
+  let h = '', 모음 = '';
+  const 닫기 = () => { if(모음){ h += '<div class="opts">'+모음+'</div>'; 모음=''; } };
+  줄.forEach(원 => {
+    const ln = 원.trim();
+    if(!ln){ 닫기(); return; }
+    const m = ln.match(/^([①-⑳]|\d{1,2}[.)]|[-·•])\s*(.*)$/);
+    if(m && m[2]){
+      const 번호 = /^[-·•]$/.test(m[1]) ? '' : m[1].replace(/[.)]$/,'');
+      let 본문 = esc(m[2]);
+      const k = 본문.indexOf(' — ');
+      if(k > 0) 본문 = '<b>'+본문.slice(0,k)+'</b><span class="sub"> — '+본문.slice(k+3)+'</span>';
+      모음 += '<div class="opt">'+(번호 ? '<span class="n">'+esc(번호)+'</span>' : '<span class="n dot"></span>')+
+              '<span>'+본문+'</span></div>';
+    } else { 닫기(); h += '<p>'+esc(ln)+'</p>'; }
+  });
+  닫기();
+  return h;
 }
 function 자료카드(list){
   return '<div class="found"><div class="fh">화면이 찾아 온 자료 — 링크를 열어 맞는지 확인하고 대화로 알려 주세요</div>'+
@@ -662,6 +779,7 @@ function 검사(s){
   const 있 = v => v != null && String(v).trim().length > 0;
   if(['예측','분류'].indexOf(s.트랙) < 0) 부족.push('맞히는 방식(예측/분류)');
   if(!있(s.주제) || String(s.주제).length < 5) 부족.push('주제 한 줄');
+  if(!있(s.연계학과)) 부족.push('연계 학과');
   if(!있(s.대상)) 부족.push('어디의 자료인지');
   if(!있(s.예측시점)) 부족.push('언제 예측하는지');
   const t = s.타깃 || {};
@@ -736,6 +854,7 @@ function 계획서HTML(s, 도장){
   h += '<table class="form"><colgroup><col style="width:17%"><col><col style="width:15%"><col style="width:25%"></colgroup>'+
        '<tr class="sec"><th colspan="4"><span>Ⅰ</span>주제</th></tr>'+
        '<tr><th>주제</th><td colspan="3">'+칸(s.주제)+점검칩+'</td></tr>'+
+       '<tr><th>연계 학과</th><td colspan="3">'+칸(s.연계학과)+'</td></tr>'+
        '<tr><th>대상</th><td>'+칸(s.대상)+'</td><th>예측 시점</th><td>'+칸(s.예측시점)+'</td></tr>'+
        '<tr><th>현장 쓰임</th><td colspan="3" class="use">'+(점.통과 && 점.메모 ? esc(점.메모) : '<span class="blank"></span>')+'</td></tr>'+
        '</table>';
@@ -879,7 +998,7 @@ async function loadAdmin(){
              '<div class="mini">'+esc(x.학번)+'</div></td>'+
              '<td>'+esc(x.트랙)+'</td>'+
              '<td>'+등급뱃지(x.자료등급)+esc(x.주제)+
-               '<div class="mini">'+esc(x.대상||'')+(x.예측시점? ' · '+esc(x.예측시점):'')+
+               '<div class="mini">'+(x.연계학과? '<b>'+esc(x.연계학과)+'</b> · ':'')+esc(x.대상||'')+(x.예측시점? ' · '+esc(x.예측시점):'')+
                (x.타깃 && x.타깃.실자료 && x.타깃.실자료!=='없음'
                  ? ' · 타깃 '+esc(x.타깃.실자료) : '')+'</div>'+
                (x.점검메모? '<div class="mini">'+esc(x.점검메모)+'</div>':'')+'</td>'+
