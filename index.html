@@ -380,7 +380,7 @@ const KEY = 'aitopic_v3';
 let 토큰 = '', 나 = null, 반정보 = null;
 let 히스토리 = [], 정리 = null, 주제점검 = null;
 let 확정가능 = false, 도움요청 = false, 보내는중 = false;
-let 마지막알림 = null, 점검보냄 = false, 현재단계 = '';
+let 마지막알림 = null, 점검보냄 = false, 현재단계 = '', 대화ID = '';
 
 function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g,
   c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
@@ -475,7 +475,7 @@ function openWho(){
 function load(){ try{ return JSON.parse(localStorage.getItem(KEY)||'null'); }catch(e){ return null; } }
 function save(){
   try{ localStorage.setItem(KEY, JSON.stringify(
-    {메일:나.메일, 반정보, 히스토리, 정리, 주제점검, 확정가능, 도움요청, 현재단계})); }catch(e){}
+    {메일:나.메일, 반정보, 히스토리, 정리, 주제점검, 확정가능, 도움요청, 현재단계, 대화ID})); }catch(e){}
 }
 
 function startChat(){
@@ -492,9 +492,13 @@ function 들어가기(정보){
   if(이어감){
     히스토리 = saved.히스토리; 정리 = saved.정리; 주제점검 = saved.주제점검 || null;
     확정가능 = !!saved.확정가능; 도움요청 = !!saved.도움요청; 현재단계 = saved.현재단계 || '';
+    대화ID = saved.대화ID || '';
   } else {
     히스토리 = []; 정리 = null; 주제점검 = null; 확정가능 = false; 도움요청 = false; 현재단계 = '';
+    대화ID = '';
   }
+  // 대화번호 — 「처음부터 다시」를 누르면 새 번호가 된다 (채팅기록에서 대화를 구분하는 데 쓴다)
+  if(!대화ID) 대화ID = (나.학번 || 'x') + '-' + Date.now().toString(36);
   save();
   document.getElementById('who').classList.add('hide');
   document.getElementById('app').classList.remove('hide');
@@ -614,7 +618,10 @@ async function 보내기(text, 옵션){
   t.innerHTML = '<div class="who">도우미</div><div class="body typing">생각하고 있습니다</div>';
   log.appendChild(t); log.scrollTop = log.scrollHeight;
 
-  const r = await api({action:'chat', history: 대화기록()});
+  let 순서 = -1;
+  for(let i = 히스토리.length - 1; i >= 0; i--) if(히스토리[i].role === 'user'){ 순서 = i; break; }
+  const r = await api({action:'chat', history: 대화기록(), 반정보,
+                       기록:{대화ID, 순서, 숨김: 순서 >= 0 && !!히스토리[순서].숨김}});
   const el = document.getElementById('typing'); if(el) el.remove();
 
   if(r.오류){
@@ -796,7 +803,7 @@ function paintSpec(){
 async function finish(){
   const b = document.getElementById('finbtn');
   b.disabled = true; b.textContent = '보내는 중…';
-  const r = await api({action:'finalize', 정리, 반정보, 주제점검,
+  const r = await api({action:'finalize', 정리, 반정보, 주제점검, 기록:{대화ID},
                        history: 히스토리.map(m=>({role:m.role, content:m.content}))});
   b.textContent = '주제 확정하기';
   if(r.오류){ b.disabled = false; 알림(r.오류, true); return; }

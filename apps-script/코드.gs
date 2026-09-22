@@ -28,7 +28,8 @@ const DOMAIN    = 'sdhs.gwe.hs.kr';
 const ADMINS    = ['pshyun1109@sdhs.gwe.hs.kr'];   // 항상 관리자로 들어오는 계정
 
 const MODEL        = 'gpt-4.1';        // 대화용 — 주제를 걸러내는 판단이 필요해서 큰 모델을 쓴다
-const 시트이름      = '시트1';   // 주제 확정 내용과 대화 기록이 함께 쌓이는 시트
+const 시트이름      = '시트1';     // 학생 1명당 1행 — 확정한 계획서
+const 채팅시트이름  = '채팅기록';  // 말 한 마디당 1행 — 대화할 때마다 바로 쌓인다
 const 키시트이름    = 'KEY';     // 이 시트 A2 칸에서 OpenAI 키를 읽는다
 
 // 이 스크립트를 스프레드시트에 붙여서(확장 프로그램 → Apps Script) 만들었다면 비워 둔다.
@@ -248,7 +249,7 @@ function 인증_(token) {
   const out = {
     ok: true,
     메일: 메일,
-    이름: t.name || '',
+    이름: 이름뽑기_(t),
     학번: 메일.split('@')[0],
     관리자: ADMINS.indexOf(메일) >= 0
   };
@@ -265,6 +266,16 @@ function 학번풀기_(학번) {
   const m = String(학번 || '').match(/^(\d{4})([1-3])([1-9])(\d{2})$/);
   if (!m || m[4] === '00') return null;
   return { 학년도: m[1], 학년: m[2], 반: m[3], 번호: String(Number(m[4])) };
+}
+
+/* 학교 계정은 성 칸에 학번, 이름 칸에 이름(3자)이 들어 있다.
+   이름 칸을 먼저 쓰고, 없으면 전체 이름에서 숫자(학번)를 떼어 낸다. */
+function 이름뽑기_(t) {
+  const 이름칸 = String(t.given_name || '').trim();
+  if (이름칸 && !/^\d+$/.test(이름칸)) return 이름칸;
+  const 전체 = String(t.name || '').replace(/\d{5,}/g, '').replace(/\s+/g, ' ').trim();
+  if (전체) return 전체;
+  return String(t.family_name || '').replace(/\d{5,}/g, '').trim();
 }
 
 function 로그인_(req) {
@@ -338,6 +349,7 @@ function 대화_(req) {
       return { 오류: '답이 너무 길어 중간에 끊겼습니다. 「다시 보내기」를 눌러 주세요.' };
     const out = JSON.parse(c.message.content);
     out.사용토큰 = (j.usage && j.usage.total_tokens) || 0;
+    try { 채팅남기기_(a, req, out); } catch (e) { console.error('채팅기록 실패: ' + e); }  // 기록이 실패해도 대화는 이어간다
     return out;
   } catch (err) {
     console.error('parse: ' + res.getContentText().slice(0, 500));
@@ -490,10 +502,14 @@ function 확정_(req) {
       [수.대신, 수.도움, 학생제안],
       [(req.history || []).length, JSON.stringify(req.history || []).slice(0, 45000)]
     ));
-    return { 통과: true };
   } finally {
     lock.releaseLock();
   }
+  try {
+    채팅줄쓰기_([[new Date(), a.학번, a.이름 || 반정보.이름 || '', 반정보.학년 || '', 반정보.반 || '', 반정보.번호 || '',
+                (req.기록 && req.기록.대화ID) || '', '', '확정', 정리.주제 || '', '', a.메일]]);
+  } catch (e) { console.error('채팅기록 실패: ' + e); }
+  return { 통과: true };
 }
 
 function 지우기_(sh, 메일) {
@@ -565,6 +581,74 @@ function 관리_(req) {
     finally { lock.releaseLock(); }
   }
   return { 오류: '알 수 없는 관리 요청' };
+}
+
+/* ════════ 채팅기록 — 말 한 마디당 한 줄 ════════
+   화면이 보내는 기록 정보 : { 대화ID, 순서(마지막 학생 말의 번호), 숨김 }
+   - 학생 말과 도우미 답을 한 번에 두 줄로 쓴다
+   - 같은 학생 말이 이미 적혀 있으면(「다시 보내기」) 다시 쓰지 않는다
+   - 화면이 자동으로 보낸 말(첫인사, [화면 점검])은 보낸이를 「화면」으로 적는다 */
+function 채팅머리목록_() {
+  return ['시각', '학번', '이름', '학년', '반', '번호', '대화번호', '순서', '보낸이', '내용', '단계', '메일'];
+}
+
+function 채팅남기기_(a, req, out) {
+  const 기록 = req.기록 || {};
+  const h = req.history || [];
+  const 마지막 = h.length ? h[h.length - 1] : null;
+  const 반 = 학번풀기_(a.학번) || req.반정보 || {};
+  const 앞 = [a.학번, a.이름 || '', 반.학년 || '', 반.반 || '', 반.번호 || '', 기록.대화ID || ''];
+  const 순서 = Number(기록.순서);
+  const 줄 = [];
+  const 지금 = new Date();
+
+  const sh = 채팅시트_();
+  if (마지막 && 마지막.role === 'user' && !이미있나_(sh, 기록.대화ID, 순서)) {
+    const 글 = String(마지막.content || '');
+    const 화면 = 기록.숨김 || /^\[화면/.test(글);
+    줄.push([지금].concat(앞, [isNaN(순서) ? '' : 순서, 화면 ? '화면' : '학생', 글.slice(0, 5000), '', a.메일]));
+  }
+  줄.push([지금].concat(앞, [isNaN(순서) ? '' : 순서 + 1, '도우미', String(out.답변 || '').slice(0, 5000),
+                          out.단계 || '', a.메일]));
+  채팅줄쓰기_(줄);
+}
+
+/* 최근 200줄 안에 같은 대화의 같은 순서 학생 말이 있는지 */
+function 이미있나_(sh, 대화ID, 순서) {
+  if (!대화ID || isNaN(순서)) return false;
+  const n = sh.getLastRow();
+  if (n < 2) return false;
+  const 시작 = Math.max(2, n - 199);
+  const v = sh.getRange(시작, 7, n - 시작 + 1, 3).getValues();   // 대화번호 · 순서 · 보낸이
+  return v.some(r => String(r[0]) === String(대화ID) && Number(r[1]) === 순서 && r[2] !== '도우미');
+}
+
+function 채팅줄쓰기_(줄) {
+  const sh = 채팅시트_();
+  const lock = LockService.getScriptLock();
+  if (!lock.tryLock(8000)) {           // 몰려서 자리를 못 잡으면 잠금 없이라도 쓴다
+    sh.getRange(sh.getLastRow() + 1, 1, 줄.length, 줄[0].length).setValues(줄);
+    return;
+  }
+  try {
+    sh.getRange(sh.getLastRow() + 1, 1, 줄.length, 줄[0].length).setValues(줄);
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+function 채팅시트_() {
+  const ss = 스프레드시트_();
+  const sh = ss.getSheetByName(채팅시트이름) || ss.insertSheet(채팅시트이름);
+  if (sh.getLastRow() === 0 || String(sh.getRange(1, 1).getValue()).trim() !== '시각') {
+    const 머리 = 채팅머리목록_();
+    if (sh.getLastRow() > 0) sh.insertRowBefore(1);
+    sh.getRange(1, 1, 1, 머리.length).setValues([머리]).setFontWeight('bold');
+    sh.setFrozenRows(1);
+    sh.setColumnWidth(10, 520);       // 내용 열은 넓게
+    sh.getRange('J:J').setWrap(true);
+  }
+  return sh;
 }
 
 /* ════════ 스프레드시트 ════════ */
@@ -640,6 +724,8 @@ function 최초설정() {
   } else Logger.log('⚠ 머리글을 만들지 못했습니다. 시트1 이름을 확인하세요.');
 
   Logger.log('쌓인 학생 기록 : ' + 학생수 + '명');
+  const 채팅 = 채팅시트_();
+  Logger.log('채팅기록 시트 준비됨 (' + 채팅머리목록_().length + '열, 쌓인 줄 ' + Math.max(채팅.getLastRow() - 1, 0) + '개)');
   Logger.log('기록 시트 : ' + ss.getUrl());
   const k = API키_();
   Logger.log(k ? 'OpenAI 키 확인됨 (' + k.slice(0, 7) + '…' + k.slice(-4) + ')'
