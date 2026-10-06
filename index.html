@@ -625,11 +625,19 @@ function startChat(){
 function 들어가기(정보){
   반정보 = 정보;
   const saved = load();
-  const 이어감 = saved && saved.메일 === 나.메일 && (saved.히스토리||[]).length > 0;
-  if(이어감){
+  const 로컬이어감 = saved && saved.메일 === 나.메일 && (saved.히스토리||[]).length > 0;
+  // 이 컴퓨터에 저장된 게 없으면(다른 컴퓨터로 왔거나 지워졌으면) 서버가 채팅기록에서 찾아 준 걸로 이어간다
+  const 서버이어감 = !로컬이어감 && 나.이어서 && (나.이어서.히스토리||[]).length > 0;
+
+  if(로컬이어감){
     히스토리 = saved.히스토리; 정리 = saved.정리; 주제점검 = saved.주제점검 || null;
     확정가능 = !!saved.확정가능; 도움요청 = !!saved.도움요청; 현재단계 = saved.현재단계 || '';
     대화ID = saved.대화ID || '';
+  } else if(서버이어감){
+    히스토리 = 나.이어서.히스토리.map(m => ({role:m.role, content:m.content, 보일말:m.보일말||m.content, 숨김:!!m.숨김}));
+    정리 = null; 주제점검 = null; 확정가능 = false; 도움요청 = false;
+    현재단계 = 나.이어서.단계 || '';
+    대화ID = 나.이어서.대화번호 || '';
   } else {
     히스토리 = []; 정리 = null; 주제점검 = null; 확정가능 = false; 도움요청 = false; 현재단계 = '';
     대화ID = '';
@@ -644,14 +652,22 @@ function 들어가기(정보){
   if(나.관리자) document.getElementById('adminBtn').classList.remove('hide');
   단계표시(현재단계);
   draw(); paintSpec();
-  if(!이어감) 첫말();
+  if(서버이어감) 이어서핑();
+  else if(!로컬이어감) 첫말();
 }
-function restart(){
+/* 다른 컴퓨터에서 이어받았을 때 — 계획서(정리·주제점검·확정가능)는 채팅기록에 안 남아 있으므로,
+   화면에 안 보이는 말 한 마디를 보내 AI가 지금까지 내용을 다시 정리해 돌려주게 한다 */
+function 이어서핑(){
+  보내기('[이어하기] 전에 쓰던 컴퓨터가 아니라 여기서 이어서 할게요. 하던 대로 계속 진행해 주세요.', {숨김:true});
+}
+async function restart(){
   const 쌓인것 = (히스토리 || []).filter(m => !m.숨김).length;
   const 물음 = 쌓인것
     ? '지금까지 나눈 대화를 모두 지우고 처음부터 다시 시작할까요?\n(확정해서 선생님께 보낸 내용은 지워지지 않습니다.)'
     : '처음부터 다시 시작할까요?';
   if(!confirm(물음)) return;
+  // 서버에도 '여기서 끝냈다'고 남겨 둔다 — 안 남기면 다음에 로그인할 때 방금 지운 대화를 서버가 되살려 버린다
+  if(대화ID){ try{ await api({action:'leave', 기록:{대화ID}}); }catch(e){} }
   try{ localStorage.removeItem(KEY); }catch(e){}
   location.reload();
 }

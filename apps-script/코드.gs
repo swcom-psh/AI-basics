@@ -276,6 +276,7 @@ function doPost(e) {
       case 'login':    return 응답_(로그인_(req));
       case 'chat':     return 응답_(대화_(req));
       case 'finalize': return 응답_(확정_(req));
+      case 'leave':    return 응답_(나가기_(req));
       case 'admin':    return 응답_(관리_(req));
       default:         return 응답_({ 오류: '알 수 없는 요청입니다.' });
     }
@@ -360,8 +361,63 @@ function 로그인_(req) {
   const a = 인증_(req.token);
   if (!a.ok) return a;
   const 이전 = 내기록_(a.메일);
+  // 이미 확정한 학생은 이어줄 필요가 없다. 아직이면 다른 컴퓨터에서 하던 대화가 있는지 찾아본다.
+  const 이어서 = 이전.있음 ? null : 이어갈대화_(a.학번);
   return { ok: true, 이름: a.이름, 메일: a.메일, 학번: a.학번,
-           관리자: a.관리자, 이전확정: 이전, 반정보: 학번풀기_(a.학번) };
+           관리자: a.관리자, 이전확정: 이전, 반정보: 학번풀기_(a.학번), 이어서: 이어서 };
+}
+
+/* 컴퓨터를 바꿔도 이어갈 수 있도록 — 화면의 localStorage 가 없을 때 쓰는 서버쪽 대비책.
+   아직 확정하지 않은 학생의 가장 최근 대화를 채팅기록에서 되살려 돌려준다.
+   학생이 「처음부터 다시」를 눌러 끝낸 대화는 나가기_() 가 '초기화' 표시를 남겨 두므로 다시 돌려주지 않는다. */
+function 이어갈대화_(학번) {
+  try {
+    const 채 = 스프레드시트_().getSheetByName(채팅시트이름);
+    if (!채 || 채.getLastRow() < 2) return null;
+    const v = 채.getRange(2, 1, 채.getLastRow() - 1, 12).getValues();
+    // 시각(0) 학번(1) 이름(2) 학년(3) 반(4) 번호(5) 대화번호(6) 순서(7) 보낸이(8) 내용(9) 단계(10) 메일(11)
+
+    let 대화번호 = '';
+    for (let i = v.length - 1; i >= 0; i--) {
+      if (String(v[i][1]) === String(학번)) { 대화번호 = String(v[i][6]); break; }
+    }
+    if (!대화번호) return null;
+
+    const 줄 = v.filter(r => String(r[1]) === String(학번) && String(r[6]) === 대화번호);
+    // 이미 확정했거나(확정) 학생이 직접 처음부터 다시 눌러 끝낸(초기화) 대화는 다시 돌려주지 않는다
+    if (줄.some(r => ['확정', '초기화'].indexOf(String(r[8])) >= 0)) return null;
+
+    줄.sort((a, b) => Number(a[7] || 0) - Number(b[7] || 0));
+    const 히스토리 = [];
+    let 단계 = '';
+    줄.forEach(r => {
+      const 보낸이 = String(r[8]);
+      const 글 = String(r[9] || '');
+      히스토리.push({ role: 보낸이 === '도우미' ? 'assistant' : 'user', content: 글, 보일말: 글, 숨김: 보낸이 === '화면' });
+      if (보낸이 === '도우미' && r[10]) 단계 = String(r[10]);
+    });
+    if (!히스토리.length) return null;
+    return { 대화번호: 대화번호, 단계: 단계, 히스토리: 히스토리 };
+  } catch (e) {
+    console.error('이어갈대화_ 실패: ' + e);
+    return null;
+  }
+}
+
+/* 학생이 「처음부터 다시」를 눌렀을 때 — 그 대화번호를 '초기화'로 표시해 둔다.
+   표시해 두지 않으면 다른 컴퓨터(또는 이 컴퓨터)에서 로그인할 때 방금 지운 대화를 되살려 버린다. */
+function 나가기_(req) {
+  const a = 인증_(req.token);
+  if (!a.ok) return a;
+  const 대화ID = (req.기록 && req.기록.대화ID) || '';
+  if (대화ID) {
+    const 반 = 학번풀기_(a.학번) || req.반정보 || {};
+    try {
+      채팅줄쓰기_([[new Date(), a.학번, a.이름 || 반.이름 || '', 반.학년 || '', 반.반 || '', 반.번호 || '',
+                  대화ID, '', '초기화', '', '', a.메일]]);
+    } catch (e) { console.error('나가기_ 기록 실패: ' + e); }
+  }
+  return { ok: true };
 }
 
 /* ════════ OpenAI 키 ════════
