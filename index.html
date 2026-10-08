@@ -842,14 +842,43 @@ function 점검요청(){
 }
 
 /* ── 확정 전 검사 (서버와 같은 규칙) ── */
+const 뭉뚱그림 = /(^|[\s의])(한|어느|특정|임의의|아무)\s+(?:[가-힣]+\s+)?(지역|지하철역|역|대여소|정류장|학교|초등학교|중학교|고등학교|학급|반|병원|병동|가게|카페|빵집|식당|매장|영화관|영화|작품|영상|광고|게시물|제품|상품|회사|공장|지점|동네|도시|구|동|선수|팀|브랜드|배치|실험실)(\s|$|에|의|을|를|이)/;
+const 먼시점 = /(일주일|한\s*주|[2-9]\s*주|한\s*달|[1-9]\s*달|[1-9]\s*개월|분기|(?:[7-9]|[1-9][0-9])\s*일)\s*(전|앞|이전)/;
+
+function 학생말들(){
+  return (히스토리||[]).filter(m => m.role==='user' && !m.숨김 && !/^\s*\[(화면|이어하기)/.test(String(m.content||'')))
+                       .map(m => String(m.content||''));
+}
+function 조각들(t){
+  const s = String(t||'').replace(/[\s.,!?~·'"“”‘’()\[\]]/g,'');
+  const 모음 = {}; let 수 = 0;
+  for(let i=0;i<s.length-1;i++){ const k = s.slice(i,i+2); if(!모음[k]){ 모음[k]=1; 수++; } }
+  return {모음, 수};
+}
+function 학생말인가(문장){
+  const c = 조각들(문장); if(c.수 < 5) return false;
+  return 학생말들().some(m => {
+    const d = 조각들(m); let 같 = 0;
+    Object.keys(c.모음).forEach(k => { if(d.모음[k]) 같++; });
+    return 같 / c.수 >= 0.8;
+  });
+}
+/* 대화 중 한 번이라도 챗봇이 「도움요청」으로 멈췄으면 — 선생님께 넘어간 학생은 이유·확인문장·학생 제안 수를 면제 */
+function 도움있었나(){
+  return (히스토리||[]).some(m => m.role==='assistant' && /"도움요청"\s*:\s*true/.test(String(m.content||'')));
+}
+
 function 검사(s){
   const 부족 = [];
   if(!s) return ['아직 정해진 것이 없습니다'];
   const 있 = v => v != null && String(v).trim().length > 0;
+  const 도움 = 도움있었나();
   if(['예측','분류'].indexOf(s.트랙) < 0) 부족.push('맞히는 방식(예측/분류)');
   if(!있(s.주제) || String(s.주제).length < 5) 부족.push('주제 한 줄');
   if(!있(s.연계학과)) 부족.push('연계 학과');
   if(!있(s.대상)) 부족.push('어디의 자료인지');
+  else if(뭉뚱그림.test(String(s.대상))) 부족.push('대상을 구체적인 이름으로 (지금: '+s.대상+')');
+  else if(!s.대상확인) 부족.push('대상을 내가 직접 고르기');
   if(!있(s.예측시점)) 부족.push('언제 예측하는지');
   const t = s.타깃 || {};
   if(!있(t.이름)) 부족.push('맞힐 것의 이름');
@@ -860,8 +889,8 @@ function 검사(s){
     if(!있(s.분류기준) || s.분류기준==='해당 없음') 부족.push('두 가지를 나누는 기준');
   }
   const f = s.특성 || [];
-  if(f.length < 3) 부족.push('쓸 정보 3개 이상 (지금 '+f.length+'개)');
-  if(f.length > 4) 부족.push('쓸 정보는 4개까지');
+  if(f.length < 4) 부족.push('쓸 정보 4개 이상 (지금 '+f.length+'개)');
+  if(f.length > 6) 부족.push('쓸 정보는 6개까지 (지금 '+f.length+'개)');
   const 본것 = {};
   f.forEach((x,i)=>{
     const n = x.이름 || (i+1)+'번째 정보';
@@ -870,7 +899,15 @@ function 검사(s){
     else 본것[x.이름] = 1;
     if(['숫자','예아니오'].indexOf(x.형태)<0 || ['학생','챗봇'].indexOf(x.떠올린사람)<0)
       부족.push(n+' 정리 마무리 (챗봇이 채웁니다)');
+    if(!도움 && String(x.가설||'').trim().length < 6) 부족.push(n+'이(가) 왜 영향을 줄 것 같은지 내 생각');
   });
+  if(!도움 && f.filter(x=>x && x.떠올린사람==='학생').length < 2) 부족.push('내가 직접 떠올린 정보 2개 이상');
+  if(먼시점.test(String(s.예측시점||'')))
+    f.forEach(x=>{ if(/예보/.test(String(x.이름||''))) 부족.push('예측 시점이 "'+s.예측시점+'"이라 "'+x.이름+'"은 쓸 수 없음'); });
+  if(!도움){
+    if(!있(s.확인문장) || String(s.확인문장).trim().length < 15) 부족.push('내 주제를 내 말로 한두 문장 쓰기');
+    else if(!학생말인가(s.확인문장)) 부족.push('확인 문장은 내가 직접 쓴 말이어야 함');
+  }
   return 부족.filter((v,i,a)=>a.indexOf(v)===i);
 }
 
@@ -942,20 +979,29 @@ function 계획서HTML(s, 도장){
   h += '</table>';
 
   // Ⅲ 쓸 정보 (x)
-  h += '<table class="form"><colgroup><col><col style="width:18%"><col style="width:22%"></colgroup>'+
-       '<thead><tr class="sec"><th colspan="3"><span>Ⅲ</span>맞히는 데 쓸 정보 (x) '+(f.length? '<span style="font-weight:400">'+f.length+' / 3~4</span>':'')+'</th></tr>'+
-       '<tr class="cols"><th>정보</th><th>형태</th><th>누가 떠올렸나</th></tr></thead><tbody>';
-  const 줄수 = Math.max(3, f.length);
+  h += '<table class="form"><colgroup><col style="width:26%"><col style="width:12%"><col style="width:15%"><col></colgroup>'+
+       '<thead><tr class="sec"><th colspan="4"><span>Ⅲ</span>맞히는 데 쓸 정보 (x) '+(f.length? '<span style="font-weight:400">'+f.length+' / 4~6</span>':'')+'</th></tr>'+
+       '<tr class="cols"><th>정보</th><th>형태</th><th>누가 떠올렸나</th><th>왜 영향을 줄 것 같나 (내 생각)</th></tr></thead><tbody>';
+  const 줄수 = Math.max(4, f.length);
   for(let k=0; k<줄수; k++){
     const x = f[k];
-    if(!x){ h += '<tr><td><span class="blank"></span></td><td></td><td></td></tr>'; continue; }
+    if(!x){ h += '<tr><td><span class="blank"></span></td><td></td><td></td><td></td></tr>'; continue; }
     const 누구 = x.떠올린사람==='학생' ? '<span class="by me">내가 떠올림</span>'
               : x.떠올린사람==='챗봇' ? '<span class="by bot">도우미 추천</span>' : '';
     h += '<tr><td>'+칸(x.이름)+'</td>'+
          '<td class="c">'+(x.형태==='예아니오' ? '예 / 아니오' : x.형태==='숫자' ? '숫자' : '')+'</td>'+
-         '<td class="c">'+누구+'</td></tr>';
+         '<td class="c">'+누구+'</td>'+
+         '<td>'+(x.가설 ? '<span class="mine">'+esc(x.가설)+'</span>' : '<span class="blank"></span>')+'</td></tr>';
   }
   h += '</tbody></table>';
+
+  // Ⅳ 내 말로 정리 (마무리 확인) + 뺀 정보
+  const 뺀 = (s.제외한정보 || []).filter(z => z && z.이름);
+  h += '<table class="form"><colgroup><col style="width:17%"><col></colgroup>'+
+       '<tr class="sec"><th colspan="2"><span>Ⅳ</span>내 말로 정리</th></tr>'+
+       '<tr><th>내 주제</th><td>'+(s.확인문장 ? '<span class="mine">'+esc(s.확인문장)+'</span>' : '<span class="blank"></span>')+'</td></tr>'+
+       (뺀.length ? '<tr><th>뺀 정보</th><td>'+뺀.map(z=>esc(z.이름)+(z.이유 ? ' <span class="src">— '+esc(z.이유)+'</span>' : '')).join('<br>')+'</td></tr>' : '')+
+       '</table>';
 
   h += '<div class="sign"><span>작성</span><span class="num">'+esc(반정보 ? 반정보.학년+'-'+반정보.반+'-'+반정보.번호 : '')+'</span>'+
        '<b>'+esc(나 ? 나.이름 : '')+'</b></div>';
@@ -1058,7 +1104,8 @@ async function loadAdmin(){
         const 실자 = f.실자료 && f.실자료 !== '없음'
           ? ' <span class="srcchip">'+esc(f.실자료)+'</span>' : '';
         return esc(f.이름)+실자+' <span class="mini">'+(f.형태==='예아니오'?'예/아니오':'숫자')+
-          ' · '+(f.떠올린사람==='학생'?'학생':'챗봇')+'</span>';
+          ' · '+(f.떠올린사람==='학생'?'학생':'챗봇')+'</span>'+
+          (f.가설 ? '<div class="mini">└ '+esc(f.가설)+'</div>' : '');
       }).join('<br>');
       const 타 = x.트랙==='분류'
         ? esc(x.타깃.이름||'')+' <span class="mini">'+esc(x.범주A)+' / '+esc(x.범주B)+
@@ -1073,7 +1120,9 @@ async function loadAdmin(){
                '<div class="mini">'+(x.연계학과? '<b>'+esc(x.연계학과)+'</b> · ':'')+esc(x.대상||'')+(x.예측시점? ' · '+esc(x.예측시점):'')+
                (x.타깃 && x.타깃.실자료 && x.타깃.실자료!=='없음'
                  ? ' · 타깃 '+esc(x.타깃.실자료) : '')+'</div>'+
-               (x.점검메모? '<div class="mini">'+esc(x.점검메모)+'</div>':'')+'</td>'+
+               (x.점검메모? '<div class="mini">'+esc(x.점검메모)+'</div>':'')+
+               (x.확인문장? '<div class="mini"><b>내 말:</b> '+esc(x.확인문장)+'</div>':'')+
+               (x.제외한정보? '<div class="mini"><b>뺀 정보:</b> '+esc(x.제외한정보)+'</div>':'')+'</td>'+
              '<td>'+타+'</td><td>'+특+'</td>'+
              '<td><span class="mini">점검 '+esc(x.점검||'')+'<br>학생 제안 '+esc(x.학생제안||0)+'개'+
                '<br>대신요청 '+esc(x.대신요청||0)+' · 도움 '+esc(x.도움요청||0)+
