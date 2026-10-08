@@ -152,6 +152,11 @@ a{color:var(--accent)}
 #q:focus{outline:0;border-color:var(--accent)}
 #send{padding:11px 20px}
 .hint{margin-top:8px;font-size:12.5px;color:var(--muted)}
+.backrow{margin-top:8px}
+.backbtn{background:none;border:1px solid #d5d9e0;border-radius:999px;color:#6b7280;font-size:12px;padding:3px 10px;cursor:pointer;font-family:inherit}
+.backbtn:hover{color:#1f2a44;border-color:#1f2a44}
+.cv.cancelled{opacity:.45}
+.cvback{margin:8px 0;padding:6px 10px;border-left:3px solid #b45309;background:#fff7ed;color:#7c2d12;font-size:13px}
 
 /* ── 계획서 ── */
 #right{background:var(--desk);display:flex;flex-direction:column;min-height:0}
@@ -510,7 +515,7 @@ const KEY = 'aitopic_v3';
 let 토큰 = '', 나 = null, 반정보 = null;
 let 히스토리 = [], 정리 = null, 주제점검 = null;
 let 확정가능 = false, 도움요청 = false, 보내는중 = false;
-let 마지막알림 = null, 점검보냄 = false, 현재단계 = '', 대화ID = '';
+let 마지막알림 = null, 점검보냄 = false, 현재단계 = '', 대화ID = '', 순번 = 0;   // 순번: 다음 학생 말에 붙일 번호(되돌려도 줄지 않는다)
 
 function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g,
   c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
@@ -612,7 +617,7 @@ function openWho(){
 function load(){ try{ return JSON.parse(localStorage.getItem(KEY)||'null'); }catch(e){ return null; } }
 function save(){
   try{ localStorage.setItem(KEY, JSON.stringify(
-    {메일:나.메일, 반정보, 히스토리, 정리, 주제점검, 확정가능, 도움요청, 현재단계, 대화ID})); }catch(e){}
+    {메일:나.메일, 반정보, 히스토리, 정리, 주제점검, 확정가능, 도움요청, 현재단계, 대화ID, 순번})); }catch(e){}
 }
 
 function startChat(){
@@ -633,15 +638,20 @@ function 들어가기(정보){
     히스토리 = saved.히스토리; 정리 = saved.정리; 주제점검 = saved.주제점검 || null;
     확정가능 = !!saved.확정가능; 도움요청 = !!saved.도움요청; 현재단계 = saved.현재단계 || '';
     대화ID = saved.대화ID || '';
+    순번 = Number(saved.순번) || 0;
   } else if(서버이어감){
-    히스토리 = 나.이어서.히스토리.map(m => ({role:m.role, content:m.content, 보일말:m.보일말||m.content, 숨김:!!m.숨김}));
+    히스토리 = 나.이어서.히스토리.map(m => ({role:m.role, content:m.content, 보일말:m.보일말||m.content, 숨김:!!m.숨김, 순서:m.순서}));
+    순번 = Number(나.이어서.다음순서) || 0;
     정리 = null; 주제점검 = null; 확정가능 = false; 도움요청 = false;
     현재단계 = 나.이어서.단계 || '';
     대화ID = 나.이어서.대화번호 || '';
   } else {
     히스토리 = []; 정리 = null; 주제점검 = null; 확정가능 = false; 도움요청 = false; 현재단계 = '';
-    대화ID = '';
+    대화ID = ''; 순번 = 0;
   }
+  // 순번이 없던 예전 기록은 배열 위치를 번호로 삼는다(예전 방식과 같다). 다음 번호는 마지막 번호 바로 뒤.
+  히스토리.forEach((m, i) => { if(typeof m.순서 !== 'number') m.순서 = i; });
+  순번 = Math.max(순번, 히스토리.reduce((a, m) => Math.max(a, m.순서), -1) + 1);
   // 대화번호 — 「처음부터 다시」를 누르면 새 번호가 된다 (채팅기록에서 대화를 구분하는 데 쓴다)
   if(!대화ID) 대화ID = (나.학번 || 'x') + '-' + Date.now().toString(36);
   save();
@@ -676,13 +686,18 @@ function again(){ restart(); }
 /* ── 대화 ── */
 function draw(){
   const log = document.getElementById('log');
-  log.innerHTML = 히스토리.map(m => {
+  let 마지막도우미 = -1;
+  히스토리.forEach((m, i) => { if(m.role === 'assistant' && !m.숨김) 마지막도우미 = i; });
+  log.innerHTML = 히스토리.map((m, i) => {
     if(m.카드) return 자료카드(m.카드);
     if(m.숨김) return '';
     const 글 = m.보일말 || m.content;
+    // 마지막 말이 아닌 도우미 말에는 「여기서부터 다시」 — 그 뒤의 대화를 지우고 그 말에 다시 답한다
+    const 되돌림 = (m.role === 'assistant' && i < 마지막도우미 && !보내는중)
+      ? '<div class="backrow"><button class="backbtn" onclick="되돌리기('+i+')" title="이 말 뒤의 대화를 지우고, 이 말에 다시 답합니다">↩ 여기서부터 다시</button></div>' : '';
     return '<div class="msg '+(m.role==='user'?'me':'bot')+'">'+
       '<div class="who">'+(m.role==='user'? '나' : '도우미')+'</div>'+
-      '<div class="body">'+(m.role==='user' ? esc(글).replace(/\n/g,'<br>') : 말다듬기(글))+'</div></div>';
+      '<div class="body">'+(m.role==='user' ? esc(글).replace(/\n/g,'<br>') : 말다듬기(글))+'</div>'+되돌림+'</div>';
   }).join('');
   알림그리기();
   log.scrollTop = log.scrollHeight;
@@ -786,9 +801,11 @@ async function 보내기(text, 옵션){
   보내는중 = true;
   document.getElementById('send').disabled = true;
   알림지움();
-  if(text != null)
+  if(text != null){
     히스토리.push({role:'user', content:text, 보일말:text,
-                  숨김:!!옵션.숨김, 카드:옵션.카드||null});
+                  숨김:!!옵션.숨김, 카드:옵션.카드||null, 순서:순번});
+    순번 += 2;          // 학생 말 = 순번, 도우미 답 = 순번+1. 되돌려도 번호가 겹치지 않는다
+  }
   draw();
 
   const log = document.getElementById('log');
@@ -797,10 +814,11 @@ async function 보내기(text, 옵션){
   t.innerHTML = '<div class="who">도우미</div><div class="body typing">생각하고 있습니다</div>';
   log.appendChild(t); log.scrollTop = log.scrollHeight;
 
-  let 순서 = -1;
-  for(let i = 히스토리.length - 1; i >= 0; i--) if(히스토리[i].role === 'user'){ 순서 = i; break; }
+  let 보낸말 = null;
+  for(let i = 히스토리.length - 1; i >= 0; i--) if(히스토리[i].role === 'user'){ 보낸말 = 히스토리[i]; break; }
+  const 순서 = 보낸말 ? 보낸말.순서 : -1;
   const 요청 = {action:'chat', history: 대화기록(), 반정보,
-                기록:{대화ID, 순서, 숨김: 순서 >= 0 && !!히스토리[순서].숨김}};
+                기록:{대화ID, 순서, 숨김: !!(보낸말 && 보낸말.숨김)}};
   let r = await api(요청);
   for(let 시도 = 1; r.재시도가능 && 시도 <= 2; 시도++){      // 한 반이 몰려 막히면 조금 기다렸다 다시
     const 글 = t.querySelector('.body');
@@ -816,7 +834,7 @@ async function 보내기(text, 옵션){
     알림(r.오류, true, null, {글:'다시 보내기', 동작:'다시보내기()'});
     끝내기(); return;
   }
-  히스토리.push({role:'assistant', content:JSON.stringify(r), 보일말:r.답변});
+  히스토리.push({role:'assistant', content:JSON.stringify(r), 보일말:r.답변, 순서:순서 + 1});
   정리 = r.정리; 주제점검 = r.주제점검 || null;
   확정가능 = !!r.확정가능; 도움요청 = !!r.도움요청;
   단계표시(r.단계);
@@ -833,6 +851,35 @@ async function 보내기(text, 옵션){
   끝내기();
 }
 function 다시보내기(){ 알림지움(); 보내기(null, {이어서:true}); }
+
+/* ── 이전으로 돌아가기 ──
+   i 번째(도우미) 말까지만 남기고 그 뒤를 지운다. 계획서·단계는 그 말이 담고 있던 상태로 되돌린다.
+   서버에는 되돌린 사실만 남기고(시트의 채팅기록은 지우지 않는다 — 선생님이 취소된 말도 볼 수 있다). */
+async function 되돌리기(i){
+  if(보내는중) return;
+  const 목표 = 히스토리[i];
+  if(!목표 || 목표.role !== 'assistant') return;
+  const 지울수 = 히스토리.slice(i + 1).filter(m => !m.숨김).length;
+  if(!confirm('이 말 뒤의 대화 '+지울수+'개를 지우고, 이 말에 다시 답할까요?\n(되돌린 기록은 선생님이 볼 수 있어요.)')) return;
+  보내는중 = true;
+  const 순서 = typeof 목표.순서 === 'number' ? 목표.순서 : i;
+  const r = await api({action:'rewind', 반정보, 기록:{대화ID, 순서}});
+  if(r.오류 || !r.ok){ 보내는중 = false; 알림(r.오류 || '되돌리지 못했습니다. 다시 시도하세요.', true); return; }
+  히스토리.splice(i + 1);
+  // 그 말이 담고 있던 상태로 계획서를 되돌린다 (이어받은 대화처럼 JSON 이 없으면 비워 두고 다음 답에서 다시 채워진다)
+  let j = null; try{ j = JSON.parse(목표.content); }catch(e){}
+  정리 = j && j.정리 ? j.정리 : null;
+  주제점검 = j && j.주제점검 ? j.주제점검 : null;
+  확정가능 = !!(j && j.확정가능);
+  도움요청 = !!(j && j.도움요청);
+  점검보냄 = false;
+  알림지움();
+  단계표시(j && j.단계 ? j.단계 : 현재단계);
+  보내는중 = false;
+  document.getElementById('send').disabled = false;
+  draw(); paintSpec(); save();
+  document.getElementById('q').focus();
+}
 function 점검요청(){
   const 부족 = 검사(정리);
   if(!부족.length || 보내는중) return;
@@ -1160,12 +1207,23 @@ async function 대화보기(학번, 이름){
   if(!줄.length){ 몸.innerHTML = '<div class="mini" style="padding:20px">채팅기록이 없습니다.</div>'; return; }
   const 묶음 = {}; const 순 = [];
   줄.forEach(z => { if(!묶음[z.대화번호]){ 묶음[z.대화번호] = []; 순.push(z.대화번호); } 묶음[z.대화번호].push(z); });
+  // 「되돌리기」 줄 앞에 있던 말 중 순서가 그 번호보다 큰 것은 취소된 말이다 (흐리게 보여 준다)
+  순.forEach(id => {
+    const L = 묶음[id];
+    L.forEach((z, k) => {
+      if(z.보낸이 !== '되돌리기') return;
+      const 기준 = Number(z.순서);
+      for(let a = 0; a < k; a++)
+        if(L[a].보낸이 !== '되돌리기' && !isNaN(Number(L[a].순서)) && Number(L[a].순서) > 기준) L[a]._취소 = true;
+    });
+  });
   몸.innerHTML = 순.map((id,n) =>
     '<div class="cvhead">'+(n+1)+'번째 대화 · '+esc(묶음[id][0].시각)+' 시작'+(n < 순.length-1 ? ' · <span class="mini">처음부터 다시 누름</span>' : '')+'</div>'+
     묶음[id].map(z => {
       if(z.보낸이==='확정') return '<div class="cvfin">확정 — '+esc(z.내용)+' <span class="mini">'+esc(z.시각)+'</span></div>';
+      if(z.보낸이==='되돌리기') return '<div class="cvback">↩ 되돌림 — '+esc(z.내용)+' <span class="mini">'+esc(z.시각)+'</span></div>';
       const 누구 = z.보낸이==='학생' ? 'me' : z.보낸이==='화면' ? 'sys' : 'bot';
-      return '<div class="cv '+누구+'"><span class="cvwho">'+esc(z.보낸이)+' · '+esc(z.시각)+'</span>'+
+      return '<div class="cv '+누구+(z._취소 ? ' cancelled' : '')+'"><span class="cvwho">'+esc(z.보낸이)+' · '+esc(z.시각)+(z._취소 ? ' · 취소됨' : '')+'</span>'+
              '<div class="cvtext">'+(누구==='bot' ? 말다듬기(z.내용) : esc(z.내용))+'</div></div>';
     }).join('')
   ).join('');
