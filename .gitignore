@@ -1,0 +1,8 @@
+.env
+csv_work/
+csv_out/
+__pycache__/
+
+# 학생 학번이 들어 있는 생성 스크립트와 학생용 수행평가지는 공개 저장소에 올리지 않는다
+csv_tools/build_*.py
+수업자료/
