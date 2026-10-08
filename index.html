@@ -710,7 +710,7 @@ function draw(){
     if(m.숨김) return '';
     const 글 = m.보일말 || m.content;
     // 마지막 말이 아닌 도우미 말에는 「여기서부터 다시」 — 그 뒤의 대화를 지우고 그 말에 다시 답한다
-    const 되돌림 = (m.role === 'assistant' && i < 마지막도우미 && !보내는중)
+    const 되돌림 = (m.role === 'assistant' && i < 마지막도우미)      // 보내는 중에는 누르면 되돌리기() 가 막는다 (그때 다시 그리지 않으므로 여기서 숨기지 않는다)
       ? '<div class="backrow"><button class="backbtn" onclick="되돌리기('+i+')" title="이 말 뒤의 대화를 지우고, 이 말에 다시 답합니다">↩ 여기서부터 다시</button></div>' : '';
     return '<div class="msg '+(m.role==='user'?'me':'bot')+'">'+
       '<div class="who">'+(m.role==='user'? '나' : '도우미')+'</div>'+
