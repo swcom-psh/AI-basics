@@ -550,7 +550,7 @@ function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g,
   c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 
 /* ── 서버 호출 ── */
-async function api(body){
+async function api(body, 옵션){
   if(API_URL.indexOf('PASTE_') === 0)
     return {오류:'API 주소가 설정되지 않았습니다. index.html 의 API_URL 을 채우세요.'};
   let r;
@@ -558,7 +558,8 @@ async function api(body){
     r = await fetch(API_URL, {
       method:'POST',
       headers:{'Content-Type':'text/plain;charset=utf-8'},   // preflight 를 피하려고 text/plain
-      body: JSON.stringify(Object.assign({token: 토큰}, body))
+      body: JSON.stringify(Object.assign({token: 토큰}, body)),
+      keepalive: !!(옵션 && 옵션.keepalive)
     });
   }catch(e){ return {오류:'서버에 연결하지 못했습니다. 인터넷 상태를 확인하세요.', 재시도가능:true}; }
   let j;
@@ -713,7 +714,8 @@ async function restart(){
     : '처음부터 다시 시작할까요?';
   if(!confirm(물음)) return;
   // 서버에도 '여기서 끝냈다'고 남겨 둔다 — 안 남기면 다음에 로그인할 때 방금 지운 대화를 서버가 되살려 버린다
-  if(대화ID){ try{ await api({action:'leave', 기록:{대화ID}}); }catch(e){} }
+  // 기다리지 않고 보낸다(느려 보이지 않게). keepalive 라서 곧바로 탭을 닫아도 서버에 도착한다.
+  if(대화ID){ try{ api({action:'leave', 기록:{대화ID}}, {keepalive:true}).catch(()=>{}); }catch(e){} }
   try{ localStorage.removeItem(KEY); }catch(e){}
   // 페이지를 새로 읽으면 구글 로그인을 처음부터 다시 해야 한다. 로그인은 그대로 두고 대화·계획서·화면 입력만 처음 상태로 되돌린다.
   히스토리 = []; 정리 = null; 주제점검 = null; 확정가능 = false; 도움요청 = false;
@@ -815,8 +817,16 @@ function 알림그리기(){
   log.appendChild(d); log.scrollTop = log.scrollHeight;
 }
 
+const 첫인사 = '안녕하세요! 관심 있는 분야나 가고 싶은 학과가 있나요? 아직 잘 모르겠으면 요즘 시간을 제일 많이 쓰는 것이나 해 본 일(알바·동아리 등)을 말해 줘도 돼요.';
 function 첫말(){
-  보내기('안녕하세요. 수행평가 주제를 정하고 싶습니다. 무엇부터 하면 될까요?', {숨김:true});
+  // 첫 인사는 늘 같은 문장이라 챗봇을 부르지 않고 화면이 바로 보여 준다. 대화 기록(번호)은 예전과 같게 둔다.
+  히스토리.push({role:'user', content:'안녕하세요. 수행평가 주제를 정하고 싶습니다. 무엇부터 하면 될까요?',
+                보일말:'안녕하세요. 수행평가 주제를 정하고 싶습니다. 무엇부터 하면 될까요?', 숨김:true, 카드:null, 순서:순번});
+  히스토리.push({role:'assistant', content:첫인사, 보일말:첫인사, 순서:순번 + 1});
+  순번 += 2;
+  단계표시('관심분야');
+  draw(); paintSpec(); save();
+  const q = document.getElementById('q'); if(q) q.focus();
 }
 function send(){
   const q = document.getElementById('q');
