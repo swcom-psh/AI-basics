@@ -582,6 +582,12 @@ function 만료처리(){
 
 /* ── 구글 로그인 ── */
 window.onload = () => {
+  // 실수로 새로고침해도 다시 로그인하지 않게 — 이 탭에 남아 있는 로그인 정보가 아직 유효하면 그대로 들어간다(약 1시간)
+  let 저장토큰 = ''; try{ 저장토큰 = sessionStorage.getItem('idt') || ''; }catch(e){}
+  if(저장토큰){
+    document.getElementById('loginmsg').textContent = '이어서 들어가는 중…';
+    onCredential({credential: 저장토큰});
+  }
   const 대기 = setInterval(() => {
     if(!(window.google && google.accounts && google.accounts.id)) return;
     clearInterval(대기);
@@ -709,7 +715,19 @@ async function restart(){
   // 서버에도 '여기서 끝냈다'고 남겨 둔다 — 안 남기면 다음에 로그인할 때 방금 지운 대화를 서버가 되살려 버린다
   if(대화ID){ try{ await api({action:'leave', 기록:{대화ID}}); }catch(e){} }
   try{ localStorage.removeItem(KEY); }catch(e){}
-  location.reload();
+  // 페이지를 새로 읽으면 구글 로그인을 처음부터 다시 해야 한다. 로그인은 그대로 두고 대화·계획서·화면 입력만 처음 상태로 되돌린다.
+  히스토리 = []; 정리 = null; 주제점검 = null; 확정가능 = false; 도움요청 = false;
+  마지막알림 = null; 점검보냄 = false; 현재단계 = ''; 대화ID = ''; 순번 = 0; 확정입력 = [];
+  요인 = {대상선택:'', 직접대상:'', 고름:{}, 추가:[]}; 마무리값 = {주제:'', 활용:''}; 폼표식 = '';
+  보내는중 = false;
+  if(나) 나.이어서 = null;                      // 방금 끝낸 대화를 로그인 때 받아 둔 서버 기록에서 되살리지 않는다
+  document.getElementById('done').classList.add('hide');
+  document.getElementById('donesheet').innerHTML = '';
+  document.getElementById('log').innerHTML = '';
+  const xp = document.getElementById('xpick'); if(xp){ xp.innerHTML = ''; xp.classList.add('hide'); }
+  document.getElementById('send').disabled = false;
+  document.getElementById('q').value = '';
+  들어가기(반정보);                              // 새 대화번호로 첫 인사부터 다시
 }
 function again(){ restart(); }
 
