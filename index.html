@@ -152,6 +152,22 @@ a{color:var(--accent)}
 #q:focus{outline:0;border-color:var(--accent)}
 #send{padding:11px 20px}
 .hint{margin-top:8px;font-size:12.5px;color:var(--muted)}
+#xpick{border-top:1px solid #d5d9e0;background:#f7f8fb;padding:12px 18px 10px;max-height:46vh;overflow-y:auto}
+#xpick .xph{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;margin-bottom:8px}
+#xpick .xph b{font-size:14px}
+#xpick .xph span{font-size:12.5px;color:#6b7280}
+#xpick .xlist{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
+@media (max-width:760px){#xpick .xlist{grid-template-columns:1fr}}
+#xpick label.xp{display:grid;grid-template-columns:22px 1fr;gap:6px;align-items:start;background:#fff;border:1px solid #e1e4ea;border-radius:10px;padding:8px 10px;cursor:pointer}
+#xpick label.xp:hover{border-color:#9aa6c4}
+#xpick label.xp.on{border-color:#1f3d8f;background:#eef2ff}
+#xpick .xn{font-weight:600;font-size:13.5px}
+#xpick .xt{display:inline-block;margin-left:6px;font-size:11px;color:#6b7280;border:1px solid #d5d9e0;border-radius:999px;padding:0 7px}
+#xpick .xd{display:block;font-size:12.5px;color:#6b7280;margin-top:2px}
+#xpick .xadd{margin-top:8px;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+#xpick .xadd input{flex:1;min-width:200px;padding:7px 10px;border:1px solid #d5d9e0;border-radius:8px;font:inherit;font-size:13px}
+#xpick .xgo{margin-top:8px;display:flex;align-items:center;gap:10px}
+#xpick .xcnt{font-size:12.5px;color:#6b7280}
 .backrow{margin-top:8px}
 .backbtn{background:none;border:1px solid #d5d9e0;border-radius:999px;color:#6b7280;font-size:12px;padding:3px 10px;cursor:pointer;font-family:inherit}
 .backbtn:hover{color:#1f2a44;border-color:#1f2a44}
@@ -439,6 +455,7 @@ table.ad th{font-size:13.5px}
   <div id="main">
     <section id="left">
       <div id="log"></div>
+      <div id="xpick" class="hide"></div>
       <div id="inputbar">
         <div id="inputwrap">
           <textarea id="q" rows="1" placeholder="답을 쓰고 Enter  (줄바꿈은 Shift+Enter)"></textarea>
@@ -779,6 +796,7 @@ function send(){
 function 끝내기(){
   보내는중 = false;
   document.getElementById('send').disabled = false;
+  보기그리기();            // 답이 돌아온 뒤에야 x 보기 체크 목록을 보여 준다
   document.getElementById('q').focus();
 }
 
@@ -944,11 +962,10 @@ function 검사(s){
     if(!있(x.이름)) 부족.push((i+1)+'번째 정보의 이름');
     else if(본것[x.이름]) 부족.push('정보 이름이 겹침: '+x.이름);
     else 본것[x.이름] = 1;
-    if(['숫자','예아니오'].indexOf(x.형태)<0 || ['학생','챗봇'].indexOf(x.떠올린사람)<0)
+    if(['숫자','예아니오'].indexOf(x.형태)<0 || ['학생','챗봇','보기'].indexOf(x.떠올린사람)<0)
       부족.push(n+' 정리 마무리 (챗봇이 채웁니다)');
-    if(!도움 && String(x.가설||'').trim().length < 6) 부족.push(n+'이(가) 왜 영향을 줄 것 같은지 내 생각');
+    if(!도움 && String(x.가설||'').trim().length < 6) 부족.push(n+'과(와) '+((s.타깃 && s.타깃.이름) || 'y')+' 사이의 관계에 대한 가설');
   });
-  if(!도움 && f.filter(x=>x && x.떠올린사람==='학생').length < 2) 부족.push('내가 직접 떠올린 정보 2개 이상');
   if(먼시점.test(String(s.예측시점||'')))
     f.forEach(x=>{ if(/예보/.test(String(x.이름||''))) 부족.push('예측 시점이 "'+s.예측시점+'"이라 "'+x.이름+'"은 쓸 수 없음'); });
   if(!도움){
@@ -1028,12 +1045,13 @@ function 계획서HTML(s, 도장){
   // Ⅲ 쓸 정보 (x)
   h += '<table class="form"><colgroup><col style="width:26%"><col style="width:12%"><col style="width:15%"><col></colgroup>'+
        '<thead><tr class="sec"><th colspan="4"><span>Ⅲ</span>맞히는 데 쓸 정보 (x) '+(f.length? '<span style="font-weight:400">'+f.length+' / 4~6</span>':'')+'</th></tr>'+
-       '<tr class="cols"><th>정보</th><th>형태</th><th>누가 떠올렸나</th><th>왜 영향을 줄 것 같나 (내 생각)</th></tr></thead><tbody>';
+       '<tr class="cols"><th>정보</th><th>형태</th><th>누가 떠올렸나</th><th>가설 (어떤 관계가 있을 것 같나)</th></tr></thead><tbody>';
   const 줄수 = Math.max(4, f.length);
   for(let k=0; k<줄수; k++){
     const x = f[k];
     if(!x){ h += '<tr><td><span class="blank"></span></td><td></td><td></td><td></td></tr>'; continue; }
     const 누구 = x.떠올린사람==='학생' ? '<span class="by me">내가 떠올림</span>'
+              : x.떠올린사람==='보기' ? '<span class="by bot">보기에서 고름</span>'
               : x.떠올린사람==='챗봇' ? '<span class="by bot">도우미 추천</span>' : '';
     h += '<tr><td>'+칸(x.이름)+'</td>'+
          '<td class="c">'+(x.형태==='예아니오' ? '예 / 아니오' : x.형태==='숫자' ? '숫자' : '')+'</td>'+
@@ -1078,6 +1096,67 @@ function paintSpec(){
       (부족.length>6 ? '<li>… 외 '+(부족.length-6)+'개</li>' : '') + '</ul>' +
       (확정가능 ? '<button class="btn sm" onclick="점검요청()">이 칸 채우러 가기</button>' : '');
   } else { fm.innerHTML = '대화를 하면서 계획서가 채워집니다. 다 채워지면 확정할 수 있습니다.'; }
+  보기그리기();
+}
+
+/* ── x 보기 고르기 ──
+   챗봇이 정리.x보기(10개)를 채우고 아직 특성이 비어 있으면 체크 목록을 보여 준다.
+   고르면 「[보기 선택] …」 한 줄로 챗봇에게 보낸다(직접 추가한 정보는 「[직접 추가] …」). */
+let 고른이름 = new Set(), 보기표식 = '';     // 고른 것은 이름으로 기억한다(보기가 뒤에 덧붙어도 유지)
+function 직접추가목록(){
+  const v = (document.getElementById('xadd') || {}).value || '';
+  return v.split(/[,，\n]/).map(t => t.trim()).filter(Boolean).slice(0, 2);
+}
+function 보기그리기(){
+  const box = document.getElementById('xpick');
+  if(!box) return;
+  const s = 정리 || {}, 보기 = s.x보기 || [];
+  const 열림 = 보기.length > 0 && (s.특성 || []).length === 0 && !보내는중;
+  if(!열림){ box.classList.add('hide'); if(!보내는중) box.innerHTML = ''; return; }
+  const 표식 = 보기.map(x => x.이름).join('|');
+  // 보기가 바뀌었을 때(처음이거나, 학생이 더 달라고 해서 덧붙었을 때)만 다시 그린다 — 고른 것과 직접 쓴 글은 유지한다
+  const 쓴글 = (document.getElementById('xadd') || {}).value || '';
+  if(표식 !== 보기표식){
+    // 새 보기 묶음이 앞의 것을 포함하지 않으면(예: 되돌리기) 선택을 비운다
+    const 이름들 = new Set(보기.map(x => x.이름));
+    고른이름 = new Set([...고른이름].filter(n => 이름들.has(n)));
+    보기표식 = 표식; box.innerHTML = '';
+  }
+  if(!box.querySelector('.xlist')){
+    box.innerHTML =
+      '<div class="xph"><b>쓸 정보 고르기</b><span>'+esc((s.타깃 && s.타깃.이름) || '맞힐 것')+'을(를) 맞히는 데 쓸 정보를 4~6개 골라 주세요.</span></div>'+
+      '<div class="xlist">'+보기.map((x,i) =>
+        '<label class="xp'+(고른이름.has(x.이름) ? ' on' : '')+'" id="xp'+i+'"><input type="checkbox" '+(고른이름.has(x.이름) ? 'checked ' : '')+'onchange="보기토글('+i+',this.checked)">'+
+        '<span><span class="xn">'+esc(x.이름)+'</span><span class="xt">'+esc(x.종류||'')+'</span>'+
+        '<span class="xd">'+esc(x.설명||'')+' · '+(x.형태==='예아니오'?'예/아니오':'숫자')+'</span></span></label>').join('')+'</div>'+
+      '<div class="xadd"><input id="xadd" value="'+esc(쓴글)+'" placeholder="꼭 넣고 싶은 정보가 있으면 직접 적기 (선택, 최대 2개, 쉼표로 구분)" oninput="보기갱신()"></div>'+
+      '<div class="xgo"><button class="btn primary" id="xgo" onclick="보기제출()" disabled>이 정보로 정했어요</button><span class="xcnt" id="xcnt"></span></div>';
+  }
+  box.classList.remove('hide');
+  보기갱신();
+}
+function 보기토글(i, on){
+  const x = ((정리 && 정리.x보기) || [])[i]; if(!x) return;
+  if(on) 고른이름.add(x.이름); else 고른이름.delete(x.이름);
+  const l = document.getElementById('xp'+i); if(l) l.classList.toggle('on', !!on);
+  보기갱신();
+}
+function 보기갱신(){
+  const 합계 = 고른이름.size + 직접추가목록().length;
+  const b = document.getElementById('xgo'), c = document.getElementById('xcnt');
+  if(c) c.textContent = '고른 정보 '+고른이름.size+'개'+(직접추가목록().length ? ' + 직접 추가 '+직접추가목록().length+'개' : '')+' (4~6개)';
+  if(b) b.disabled = !(합계 >= 4 && 합계 <= 6) || 보내는중;
+}
+function 보기제출(){
+  if(보내는중) return;
+  const 보기 = (정리 && 정리.x보기) || [];
+  const 고른 = 보기.filter(x => 고른이름.has(x.이름)).map(x => x.이름);
+  const 추가 = 직접추가목록();
+  if(고른.length + 추가.length < 4 || 고른.length + 추가.length > 6) return;
+  let t = '[보기 선택] ' + 고른.join(', ');
+  if(추가.length) t += '\n[직접 추가] ' + 추가.join(', ');
+  const b = document.getElementById('xgo'); if(b) b.disabled = true;
+  보내기(t, {});
 }
 
 /* ── 확정 ── */
@@ -1151,7 +1230,7 @@ async function loadAdmin(){
         const 실자 = f.실자료 && f.실자료 !== '없음'
           ? ' <span class="srcchip">'+esc(f.실자료)+'</span>' : '';
         return esc(f.이름)+실자+' <span class="mini">'+(f.형태==='예아니오'?'예/아니오':'숫자')+
-          ' · '+(f.떠올린사람==='학생'?'학생':'챗봇')+'</span>'+
+          ' · '+(f.떠올린사람==='학생'?'학생':f.떠올린사람==='보기'?'보기':'챗봇')+'</span>'+
           (f.가설 ? '<div class="mini">└ '+esc(f.가설)+'</div>' : '');
       }).join('<br>');
       const 타 = x.트랙==='분류'
@@ -1169,7 +1248,8 @@ async function loadAdmin(){
                  ? ' · 타깃 '+esc(x.타깃.실자료) : '')+'</div>'+
                (x.점검메모? '<div class="mini">'+esc(x.점검메모)+'</div>':'')+
                (x.확인문장? '<div class="mini"><b>내 말:</b> '+esc(x.확인문장)+'</div>':'')+
-               (x.제외한정보? '<div class="mini"><b>뺀 정보:</b> '+esc(x.제외한정보)+'</div>':'')+'</td>'+
+               (x.제외한정보? '<div class="mini"><b>뺀 정보:</b> '+esc(x.제외한정보)+'</div>':'')+
+               (x.제시한보기? '<div class="mini"><b>제시한 보기:</b> '+esc(x.제시한보기)+'</div>':'')+'</td>'+
              '<td>'+타+'</td><td>'+특+'</td>'+
              '<td><span class="mini">점검 '+esc(x.점검||'')+'<br>학생 제안 '+esc(x.학생제안||0)+'개'+
                '<br>대신요청 '+esc(x.대신요청||0)+' · 도움 '+esc(x.도움요청||0)+
