@@ -152,22 +152,34 @@ a{color:var(--accent)}
 #q:focus{outline:0;border-color:var(--accent)}
 #send{padding:11px 20px}
 .hint{margin-top:8px;font-size:12.5px;color:var(--muted)}
-#xpick{border-top:1px solid #d5d9e0;background:#f7f8fb;padding:12px 18px 10px;max-height:46vh;overflow-y:auto}
-#xpick .xph{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;margin-bottom:8px}
+#xpick{border-top:1px solid #d5d9e0;background:#f7f8fb;padding:12px 18px 10px;max-height:62vh;overflow-y:auto}
+#xpick .xph{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;margin:10px 0 8px}
+#xpick .xph:first-child{margin-top:0}
 #xpick .xph b{font-size:14px}
 #xpick .xph span{font-size:12.5px;color:#6b7280}
-#xpick .xlist{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
-@media (max-width:760px){#xpick .xlist{grid-template-columns:1fr}}
-#xpick label.xp{display:grid;grid-template-columns:22px 1fr;gap:6px;align-items:start;background:#fff;border:1px solid #e1e4ea;border-radius:10px;padding:8px 10px;cursor:pointer}
-#xpick label.xp:hover{border-color:#9aa6c4}
-#xpick label.xp.on{border-color:#1f3d8f;background:#eef2ff}
+#xpick .xtg{display:flex;flex-wrap:wrap;gap:6px 14px;align-items:center}
+#xpick .xrad{font-size:13.5px;cursor:pointer;display:inline-flex;align-items:center;gap:5px}
+#xpick .xtxt{padding:6px 9px;border:1px solid #d5d9e0;border-radius:8px;font:inherit;font-size:13px;min-width:210px}
+#xpick .xlist2{display:flex;flex-direction:column;gap:6px}
+#xpick .xrow{background:#fff;border:1px solid #e1e4ea;border-radius:10px;padding:8px 10px}
+#xpick .xrow.on{border-color:#1f3d8f;background:#eef2ff}
+#xpick .xhead{display:grid;grid-template-columns:22px 1fr;gap:6px;align-items:start;cursor:pointer}
 #xpick .xn{font-weight:600;font-size:13.5px}
 #xpick .xt{display:inline-block;margin-left:6px;font-size:11px;color:#6b7280;border:1px solid #d5d9e0;border-radius:999px;padding:0 7px}
 #xpick .xd{display:block;font-size:12.5px;color:#6b7280;margin-top:2px}
-#xpick .xadd{margin-top:8px;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
-#xpick .xadd input{flex:1;min-width:200px;padding:7px 10px;border:1px solid #d5d9e0;border-radius:8px;font:inherit;font-size:13px}
-#xpick .xgo{margin-top:8px;display:flex;align-items:center;gap:10px}
+#xpick .xrel{margin:8px 0 2px 28px}
+#xpick .xq{font-size:12.5px;color:#374151;margin-bottom:4px}
+#xpick .xrels{display:flex;flex-wrap:wrap;gap:4px 16px;font-size:13px}
+#xpick .xrels label{cursor:pointer;display:inline-flex;align-items:center;gap:4px}
+#xpick .xnote{margin-top:6px;width:100%;box-sizing:border-box;padding:6px 9px;border:1px solid #d5d9e0;border-radius:8px;font:inherit;font-size:12.5px}
+#xpick .xmore{margin-top:8px;display:flex;gap:8px;flex-wrap:wrap}
+#xpick .xaddname{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+#xpick .xgo{margin-top:10px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
 #xpick .xcnt{font-size:12.5px;color:#6b7280}
+#xpick .ftx{margin-bottom:8px}
+#xpick .ftx label{display:block;font-size:13.5px;font-weight:600;margin-bottom:4px}
+#xpick .ftx small{font-weight:400;color:#6b7280;margin-left:6px;font-size:12px}
+#xpick .ftx textarea{width:100%;box-sizing:border-box;padding:8px 10px;border:1px solid #d5d9e0;border-radius:8px;font:inherit;font-size:13.5px;resize:vertical}
 .backrow{margin-top:8px}
 .backbtn{background:none;border:1px solid #d5d9e0;border-radius:999px;color:#6b7280;font-size:12px;padding:3px 10px;cursor:pointer;font-family:inherit}
 .backbtn:hover{color:#1f2a44;border-color:#1f2a44}
@@ -525,8 +537,8 @@ const API_URL   = 'https://script.google.com/macros/s/AKfycbwLlLefL8g-DTDgX9ab3q
 const DOMAIN    = 'sdhs.gwe.hs.kr';
 
 /* ══════════════════════════════════════════════════════ */
-const 단계목록 = ['관심분야','방식정하기','맞힐것정하기','요인정하기'];
-const 단계이름 = {관심분야:'관심 분야·학과', 방식정하기:'예측·분류', 맞힐것정하기:'맞힐 것', 요인정하기:'쓸 정보'};
+const 단계목록 = ['관심분야','맞힐것정하기','요인정하기','마무리'];
+const 단계이름 = {관심분야:'관심 분야·학과', 맞힐것정하기:'맞힐 것(예측·분류)', 요인정하기:'대상·정보·가설', 마무리:'마무리 서술'};
 const KEY = 'aitopic_v3';
 
 let 토큰 = '', 나 = null, 반정보 = null;
@@ -634,7 +646,7 @@ function openWho(){
 function load(){ try{ return JSON.parse(localStorage.getItem(KEY)||'null'); }catch(e){ return null; } }
 function save(){
   try{ localStorage.setItem(KEY, JSON.stringify(
-    {메일:나.메일, 반정보, 히스토리, 정리, 주제점검, 확정가능, 도움요청, 현재단계, 대화ID, 순번})); }catch(e){}
+    {메일:나.메일, 반정보, 히스토리, 정리, 주제점검, 확정가능, 도움요청, 현재단계, 대화ID, 순번, 확정입력})); }catch(e){}
 }
 
 function startChat(){
@@ -656,15 +668,16 @@ function 들어가기(정보){
     확정가능 = !!saved.확정가능; 도움요청 = !!saved.도움요청; 현재단계 = saved.현재단계 || '';
     대화ID = saved.대화ID || '';
     순번 = Number(saved.순번) || 0;
+    확정입력 = saved.확정입력 || [];
   } else if(서버이어감){
     히스토리 = 나.이어서.히스토리.map(m => ({role:m.role, content:m.content, 보일말:m.보일말||m.content, 숨김:!!m.숨김, 순서:m.순서}));
-    순번 = Number(나.이어서.다음순서) || 0;
+    순번 = Number(나.이어서.다음순서) || 0; 확정입력 = [];
     정리 = null; 주제점검 = null; 확정가능 = false; 도움요청 = false;
     현재단계 = 나.이어서.단계 || '';
     대화ID = 나.이어서.대화번호 || '';
   } else {
     히스토리 = []; 정리 = null; 주제점검 = null; 확정가능 = false; 도움요청 = false; 현재단계 = '';
-    대화ID = ''; 순번 = 0;
+    대화ID = ''; 순번 = 0; 확정입력 = [];
   }
   // 순번이 없던 예전 기록은 배열 위치를 번호로 삼는다(예전 방식과 같다). 다음 번호는 마지막 번호 바로 뒤.
   히스토리.forEach((m, i) => { if(typeof m.순서 !== 'number') m.순서 = i; });
@@ -759,6 +772,7 @@ function 자료카드(list){
 }
 function 단계표시(cur){
   현재단계 = cur || 현재단계;
+  if(현재단계 === '방식정하기') 현재단계 = '맞힐것정하기';      // 예전 기록(방식 단계가 따로 있던 때)
   const i = 단계목록.indexOf(현재단계);
   document.getElementById('steps').innerHTML = 단계목록.map((s,k)=>
     '<div class="st '+(k===i?'on':(i>=0&&k<i?'done':''))+'"><i>'+(k+1)+'</i><span>'+단계이름[s]+'</span></div>').join('');
@@ -854,6 +868,7 @@ async function 보내기(text, 옵션){
   }
   히스토리.push({role:'assistant', content:JSON.stringify(r), 보일말:r.답변, 순서:순서 + 1});
   정리 = r.정리; 주제점검 = r.주제점검 || null;
+  if(정리){ 정리.대상후보 = 정리.대상후보 || []; 정리.x보기 = 정리.x보기 || []; 정리.특성 = 정리.특성 || []; 정리보정(); }
   확정가능 = !!r.확정가능; 도움요청 = !!r.도움요청;
   단계표시(r.단계);
   draw(); paintSpec(); save();
@@ -884,12 +899,14 @@ async function 되돌리기(i){
   const r = await api({action:'rewind', 반정보, 기록:{대화ID, 순서}});
   if(r.오류 || !r.ok){ 보내는중 = false; 알림(r.오류 || '되돌리지 못했습니다. 다시 시도하세요.', true); return; }
   히스토리.splice(i + 1);
+  확정입력 = 확정입력.filter(e => e.순서 <= 순서);        // 되돌린 뒤에 낸 화면 입력은 함께 지운다
   // 그 말이 담고 있던 상태로 계획서를 되돌린다 (이어받은 대화처럼 JSON 이 없으면 비워 두고 다음 답에서 다시 채워진다)
   let j = null; try{ j = JSON.parse(목표.content); }catch(e){}
   정리 = j && j.정리 ? j.정리 : null;
   주제점검 = j && j.주제점검 ? j.주제점검 : null;
   확정가능 = !!(j && j.확정가능);
   도움요청 = !!(j && j.도움요청);
+  if(정리){ 정리.대상후보 = 정리.대상후보 || []; 정리.x보기 = 정리.x보기 || []; 정리.특성 = 정리.특성 || []; 정리보정(); }
   점검보냄 = false;
   알림지움();
   단계표시(j && j.단계 ? j.단계 : 현재단계);
@@ -971,6 +988,8 @@ function 검사(s){
   if(!도움){
     if(!있(s.확인문장) || String(s.확인문장).trim().length < 15) 부족.push('내 주제를 내 말로 한두 문장 쓰기');
     else if(!학생말인가(s.확인문장)) 부족.push('확인 문장은 내가 직접 쓴 말이어야 함');
+    if(!있(s.활용방안) || String(s.활용방안).trim().length < 15) 부족.push('이 예측·분류를 어떤 문제 해결에 쓸 수 있을지 내 말로 쓰기');
+    else if(!학생말인가(s.활용방안)) 부족.push('문제 해결 활용 문장은 내가 직접 쓴 말이어야 함');
   }
   return 부족.filter((v,i,a)=>a.indexOf(v)===i);
 }
@@ -1065,6 +1084,7 @@ function 계획서HTML(s, 도장){
   h += '<table class="form"><colgroup><col style="width:17%"><col></colgroup>'+
        '<tr class="sec"><th colspan="2"><span>Ⅳ</span>내 말로 정리</th></tr>'+
        '<tr><th>내 주제</th><td>'+(s.확인문장 ? '<span class="mine">'+esc(s.확인문장)+'</span>' : '<span class="blank"></span>')+'</td></tr>'+
+       '<tr><th>문제 해결 활용</th><td>'+(s.활용방안 ? '<span class="mine">'+esc(s.활용방안)+'</span>' : '<span class="blank"></span>')+'</td></tr>'+
        (뺀.length ? '<tr><th>뺀 정보</th><td>'+뺀.map(z=>esc(z.이름)+(z.이유 ? ' <span class="src">— '+esc(z.이유)+'</span>' : '')).join('<br>')+'</td></tr>' : '')+
        '</table>';
 
@@ -1099,64 +1119,200 @@ function paintSpec(){
   보기그리기();
 }
 
-/* ── x 보기 고르기 ──
-   챗봇이 정리.x보기(10개)를 채우고 아직 특성이 비어 있으면 체크 목록을 보여 준다.
-   고르면 「[보기 선택] …」 한 줄로 챗봇에게 보낸다(직접 추가한 정보는 「[직접 추가] …」). */
-let 고른이름 = new Set(), 보기표식 = '';     // 고른 것은 이름으로 기억한다(보기가 뒤에 덧붙어도 유지)
-function 직접추가목록(){
-  const v = (document.getElementById('xadd') || {}).value || '';
-  return v.split(/[,，\n]/).map(t => t.trim()).filter(Boolean).slice(0, 2);
+/* ── 대상·정보·가설 화면, 마무리 서술 화면 ──
+   챗봇이 정리.대상후보·x보기를 채우면 「요인」 화면(대상 고르기 + 보기에서 4~6개 + 정보마다 관계 가설)을,
+   정보가 다 정해지면 「마무리」 화면(내 주제 / 문제 해결 활용)을 연다.
+   학생이 낸 값은 확정입력에 따로 담아 두고, 챗봇이 옮겨 적다 틀리면 정리보정()이 바로잡는다. */
+let 확정입력 = [];                      // [{순서, 종류:'요인'|'마무리', 값}]
+let 요인 = {대상선택:'', 직접대상:'', 고름:{}, 추가:[]};   // 요인 화면의 입력 상태(다시 그려도 유지)
+let 마무리값 = {주제:'', 활용:''};
+let 폼표식 = '';
+const 관계목록 = ['늘어날 것 같다', '줄어들 것 같다', '관계없을 것 같다'];
+
+function 한줄정리(t){ return String(t || '').replace(/\s+/g, ' ').trim(); }
+function 가설글(관계, 한줄){ const k = 한줄정리(한줄); return 관계 + (k ? ' (' + k + ')' : ''); }
+
+/* 학생이 화면에서 낸 값으로 정리를 바로잡는다 (대상·보기에서 고른 정보의 이름/가설, 마무리 서술은 학생이 쓴 그대로) */
+function 정리보정(){
+  if(!정리) return;
+  const 요 = [...확정입력].reverse().find(e => e.종류 === '요인');
+  if(요){
+    정리.대상 = 요.값.대상; 정리.대상확인 = true;
+    정리.특성 = 정리.특성 || [];
+    const 보기 = 정리.x보기 || [];
+    (요.값.정보 || []).forEach(r => {
+      const 가설 = 가설글(r.관계, r.한줄);
+      let t = 정리.특성.find(x => x.이름 === r.이름);
+      if(!r.직접){
+        const b = 보기.find(x => x.이름 === r.이름) || {};
+        if(!t){ t = {이름:r.이름, 형태:b.형태 || '숫자', 떠올린사람:'보기', 실자료:b.실자료 || '없음', 가설:가설}; 정리.특성.push(t); }
+        t.떠올린사람 = '보기'; t.가설 = 가설;
+      } else if(t){ t.가설 = 가설; }         // 직접 추가는 챗봇이 이름을 다듬거나 뺄 수 있다
+    });
+  }
+  const 마 = [...확정입력].reverse().find(e => e.종류 === '마무리');
+  if(마){
+    if(정리.확인문장) 정리.확인문장 = 마.값.주제;      // 챗봇이 다시 쓰게 해서 비웠으면 그대로 둔다
+    if(정리.활용방안) 정리.활용방안 = 마.값.활용;
+  }
 }
+
 function 보기그리기(){
   const box = document.getElementById('xpick');
   if(!box) return;
-  const s = 정리 || {}, 보기 = s.x보기 || [];
-  const 열림 = 보기.length > 0 && (s.특성 || []).length === 0 && !보내는중;
-  if(!열림){ box.classList.add('hide'); if(!보내는중) box.innerHTML = ''; return; }
-  const 표식 = 보기.map(x => x.이름).join('|');
-  // 보기가 바뀌었을 때(처음이거나, 학생이 더 달라고 해서 덧붙었을 때)만 다시 그린다 — 고른 것과 직접 쓴 글은 유지한다
-  const 쓴글 = (document.getElementById('xadd') || {}).value || '';
-  if(표식 !== 보기표식){
-    // 새 보기 묶음이 앞의 것을 포함하지 않으면(예: 되돌리기) 선택을 비운다
-    const 이름들 = new Set(보기.map(x => x.이름));
-    고른이름 = new Set([...고른이름].filter(n => 이름들.has(n)));
-    보기표식 = 표식; box.innerHTML = '';
+  if(!box._연결){ box.addEventListener('change', 폼이벤트); box.addEventListener('input', 폼이벤트); box.addEventListener('click', 폼클릭); box._연결 = true; }
+  const s = 정리 || {};
+  const 특성 = s.특성 || [];
+  const 요인끝 = 특성.length >= 4 && !!s.대상확인;
+  const 가설끝 = 요인끝 && 특성.every(x => String(x.가설 || '').trim().length >= 6);
+  let 모드 = '';
+  if(!보내는중){
+    if(!요인끝 && ((s.x보기 || []).length || (s.대상후보 || []).length)) 모드 = '요인';
+    else if(가설끝 && (!s.확인문장 || !s.활용방안)) 모드 = '마무리';
   }
-  if(!box.querySelector('.xlist')){
-    box.innerHTML =
-      '<div class="xph"><b>쓸 정보 고르기</b><span>'+esc((s.타깃 && s.타깃.이름) || '맞힐 것')+'을(를) 맞히는 데 쓸 정보를 4~6개 골라 주세요.</span></div>'+
-      '<div class="xlist">'+보기.map((x,i) =>
-        '<label class="xp'+(고른이름.has(x.이름) ? ' on' : '')+'" id="xp'+i+'"><input type="checkbox" '+(고른이름.has(x.이름) ? 'checked ' : '')+'onchange="보기토글('+i+',this.checked)">'+
-        '<span><span class="xn">'+esc(x.이름)+'</span><span class="xt">'+esc(x.종류||'')+'</span>'+
-        '<span class="xd">'+esc(x.설명||'')+' · '+(x.형태==='예아니오'?'예/아니오':'숫자')+'</span></span></label>').join('')+'</div>'+
-      '<div class="xadd"><input id="xadd" value="'+esc(쓴글)+'" placeholder="꼭 넣고 싶은 정보가 있으면 직접 적기 (선택, 최대 2개, 쉼표로 구분)" oninput="보기갱신()"></div>'+
-      '<div class="xgo"><button class="btn primary" id="xgo" onclick="보기제출()" disabled>이 정보로 정했어요</button><span class="xcnt" id="xcnt"></span></div>';
-  }
+  if(!모드){ box.classList.add('hide'); if(!보내는중){ box.innerHTML = ''; 폼표식 = ''; } return; }
+  const 표식 = 모드 + '|' + (s.대상후보 || []).join(',') + '|' + (s.x보기 || []).map(x => x.이름).join('|');
+  if(표식 !== 폼표식 || !box.innerHTML){ 폼표식 = 표식; box.innerHTML = 모드 === '요인' ? 요인HTML(s) : 마무리HTML(); }
   box.classList.remove('hide');
-  보기갱신();
+  if(모드 === '요인') 요인갱신(); else 마무리갱신();
 }
-function 보기토글(i, on){
-  const x = ((정리 && 정리.x보기) || [])[i]; if(!x) return;
-  if(on) 고른이름.add(x.이름); else 고른이름.delete(x.이름);
-  const l = document.getElementById('xp'+i); if(l) l.classList.toggle('on', !!on);
-  보기갱신();
+
+function 관계HTML(키, 이름, 형태, 상태, 앞말){
+  const 문 = '「' + esc(이름) + '」이(가) ' + (형태 === '예아니오' ? '「예」일수록' : '클수록') + ', ' + 앞말 + ' —';
+  return '<div class="xq">' + 문 + '</div><div class="xrels">' +
+    관계목록.map(r => '<label><input type="radio" name="rel_' + esc(키.replace(':', '_')) + '" value="' + r + '" data-t="rel" data-k="' + esc(키) + '"' +
+      (상태.관계 === r ? ' checked' : '') + '> ' + r + '</label>').join('') +
+    '</div><input class="xnote" data-t="note" data-k="' + esc(키) + '" value="' + esc(상태.한줄 || '') + '" placeholder="왜 그럴 것 같은지 한 줄 (선택)">';
 }
-function 보기갱신(){
-  const 합계 = 고른이름.size + 직접추가목록().length;
-  const b = document.getElementById('xgo'), c = document.getElementById('xcnt');
-  if(c) c.textContent = '고른 정보 '+고른이름.size+'개'+(직접추가목록().length ? ' + 직접 추가 '+직접추가목록().length+'개' : '')+' (4~6개)';
-  if(b) b.disabled = !(합계 >= 4 && 합계 <= 6) || 보내는중;
+function 앞말만들기(s){
+  return (s.트랙 === '분류') ? '「' + esc((s.범주A && s.범주A !== '해당 없음') ? s.범주A : '앞쪽 범주') + '」은(는)'
+                              : esc((s.타깃 && s.타깃.이름) || '맞힐 것') + '은(는)';
 }
-function 보기제출(){
-  if(보내는중) return;
+function 추가행HTML(s){
+  return 요인.추가.map((a, k) => '<div class="xrow on"><div class="xaddname"><input class="xtxt" data-t="addname" data-k="' + k + '" value="' + esc(a.이름 || '') +
+    '" placeholder="직접 넣고 싶은 정보 이름 (예: 우리 학교 행사 일정)"><button class="btn sm" data-act="delrow" data-k="' + k + '">지우기</button></div>' +
+    '<div class="xrel">' + 관계HTML('a:' + k, a.이름 || '(정보)', '숫자', a, 앞말만들기(s)) + '</div></div>').join('');
+}
+function 요인HTML(s){
+  const 보기 = s.x보기 || [], 후보 = s.대상후보 || [];
+  const 앞 = 앞말만들기(s);
+  const 대상 = 후보.map(n => '<label class="xrad"><input type="radio" name="xtg" value="' + esc(n) + '" data-t="tg"' + (요인.대상선택 === n ? ' checked' : '') + '> ' + esc(n) + '</label>').join('') +
+    '<label class="xrad"><input type="radio" name="xtg" value="__직접" data-t="tg"' + (요인.대상선택 === '__직접' ? ' checked' : '') + '> 직접 쓰기 ' +
+    '<input class="xtxt" id="xtgin" data-t="tgin" value="' + esc(요인.직접대상) + '" placeholder="예: 우리 학교 2학년 3반"></label>';
+  const 행 = 보기.map((x, i) => {
+    const on = !!요인.고름[x.이름], st = 요인.고름[x.이름] || {관계:'', 한줄:''};
+    return '<div class="xrow' + (on ? ' on' : '') + '" id="xr' + i + '"><label class="xhead"><input type="checkbox" data-t="chk" data-i="' + i + '"' + (on ? ' checked' : '') + '>' +
+      '<span><span class="xn">' + esc(x.이름) + '</span><span class="xt">' + esc(x.종류 || '') + '</span>' +
+      '<span class="xd">' + esc(x.설명 || '') + ' · ' + (x.형태 === '예아니오' ? '예/아니오' : '숫자') + '</span></span></label>' +
+      '<div class="xrel' + (on ? '' : ' hide') + '" id="xrel' + i + '">' + 관계HTML('b:' + i, x.이름, x.형태, st, 앞) + '</div></div>';
+  }).join('');
+  return '<div class="xph"><b>① 대상 정하기</b><span>어느 것의 자료로 할지 골라 주세요.</span></div><div class="xtg">' + 대상 + '</div>' +
+    '<div class="xph"><b>② 쓸 정보 고르기와 ③ 가설</b><span>' + esc((s.타깃 && s.타깃.이름) || '맞힐 것') + '을(를) 맞히는 데 쓸 정보를 4~6개 고르고, 고른 정보마다 어떤 관계가 있을 것 같은지 골라 주세요.</span></div>' +
+    '<div class="xlist2">' + 행 + '</div>' +
+    '<div class="xmore"><button class="btn sm" data-act="more">보기 10개 더 보기</button><button class="btn sm" data-act="addrow">+ 직접 추가 (최대 2개)</button></div>' +
+    '<div id="xadds">' + 추가행HTML(s) + '</div>' +
+    '<div class="xgo"><button class="btn primary" id="xgo" data-act="go1" disabled>이대로 정했어요</button><span class="xcnt" id="xcnt"></span></div>';
+}
+function 마무리HTML(){
+  return '<div class="xph"><b>마무리 서술</b><span>두 칸을 내 말로 직접 써 주세요. (각 15자 이상)</span></div>' +
+    '<div class="ftx"><label>① 내 주제를 한두 문장으로 <small>무엇을 맞히려는지, 어떤 정보를 어떤 가설로 쓰는지</small></label>' +
+    '<textarea id="f1" data-t="f1" rows="2">' + esc(마무리값.주제) + '</textarea></div>' +
+    '<div class="ftx"><label>② 이 예측·분류를 어떤 문제 해결에 활용할 수 있을까요? <small>누가, 어떤 문제를, 어떻게 풀 수 있는지</small></label>' +
+    '<textarea id="f2" data-t="f2" rows="2">' + esc(마무리값.활용) + '</textarea></div>' +
+    '<div class="xgo"><button class="btn primary" id="fgo" data-act="go2" disabled>이대로 냈어요</button><span class="xcnt" id="fcnt"></span></div>';
+}
+
+function 요인대상(){ return 요인.대상선택 === '__직접' ? 한줄정리(요인.직접대상) : (요인.대상선택 || ''); }
+function 요인선택목록(){
   const 보기 = (정리 && 정리.x보기) || [];
-  const 고른 = 보기.filter(x => 고른이름.has(x.이름)).map(x => x.이름);
-  const 추가 = 직접추가목록();
-  if(고른.length + 추가.length < 4 || 고른.length + 추가.length > 6) return;
-  let t = '[보기 선택] ' + 고른.join(', ');
-  if(추가.length) t += '\n[직접 추가] ' + 추가.join(', ');
+  const rows = 보기.filter(x => 요인.고름[x.이름]).map(x => ({이름:x.이름, 직접:false, 관계:요인.고름[x.이름].관계, 한줄:요인.고름[x.이름].한줄}));
+  요인.추가.forEach(a => { if(한줄정리(a.이름)) rows.push({이름:한줄정리(a.이름), 직접:true, 관계:a.관계, 한줄:a.한줄}); });
+  return rows;
+}
+function 요인갱신(){
+  const rows = 요인선택목록(), 대상 = 요인대상();
+  const 빠짐 = rows.filter(r => !r.관계).length;
+  const 문제 = [];
+  if(!대상) 문제.push('대상');
+  if(rows.length < 4 || rows.length > 6) 문제.push('정보 4~6개(지금 ' + rows.length + '개)');
+  if(빠짐) 문제.push('관계를 고르지 않은 정보 ' + 빠짐 + '개');
+  const b = document.getElementById('xgo'), c = document.getElementById('xcnt');
+  if(c) c.textContent = 문제.length ? '남은 것: ' + 문제.join(' · ') : '모두 정했어요. 아래 버튼을 눌러 주세요.';
+  if(b) b.disabled = 문제.length > 0 || 보내는중;
+}
+function 마무리갱신(){
+  const a = 한줄정리(마무리값.주제).length, c = 한줄정리(마무리값.활용).length;
+  const b = document.getElementById('fgo'), t = document.getElementById('fcnt');
+  if(t) t.textContent = '① ' + a + '자 · ② ' + c + '자 (각 15자 이상)';
+  if(b) b.disabled = !(a >= 15 && c >= 15) || 보내는중;
+}
+function 정보토글(i, on){
+  const x = ((정리 && 정리.x보기) || [])[i]; if(!x) return;
+  if(on){ if(!요인.고름[x.이름]) 요인.고름[x.이름] = {관계:'', 한줄:''}; } else delete 요인.고름[x.이름];
+  const r = document.getElementById('xr' + i), l = document.getElementById('xrel' + i);
+  if(r) r.classList.toggle('on', !!on);
+  if(l) l.classList[on ? 'remove' : 'add']('hide');
+  요인갱신();
+}
+function 키상태(k){
+  const [종류, n] = String(k).split(':');
+  if(종류 === 'b'){ const x = ((정리 && 정리.x보기) || [])[Number(n)]; return x ? (요인.고름[x.이름] || null) : null; }
+  return 요인.추가[Number(n)] || null;
+}
+function 폼이벤트(e){
+  const t = e && e.target; if(!t) return;
+  const d = t.dataset || {};
+  if(d.t === 'chk') 정보토글(Number(d.i), t.checked);
+  else if(d.t === 'rel'){ const s = 키상태(d.k); if(s){ s.관계 = t.value; 요인갱신(); } }
+  else if(d.t === 'note'){ const s = 키상태(d.k); if(s) s.한줄 = t.value; }
+  else if(d.t === 'tg'){ 요인.대상선택 = t.value; 요인갱신(); }
+  else if(d.t === 'tgin'){ 요인.직접대상 = t.value; 요인.대상선택 = '__직접'; 요인갱신(); }
+  else if(d.t === 'addname'){ const a = 요인.추가[Number(d.k)]; if(a){ a.이름 = t.value; 요인갱신(); } }
+  else if(d.t === 'f1'){ 마무리값.주제 = t.value; 마무리갱신(); }
+  else if(d.t === 'f2'){ 마무리값.활용 = t.value; 마무리갱신(); }
+}
+function 폼클릭(e){
+  const el = e && e.target && (e.target.closest ? e.target.closest('[data-act]') : e.target);
+  if(!el || !el.dataset || !el.dataset.act) return;
+  const act = el.dataset.act;
+  if(act === 'more') 보기더보기();
+  else if(act === 'addrow') 추가행();
+  else if(act === 'delrow') 삭제행(Number(el.dataset.k));
+  else if(act === 'go1') 요인제출();
+  else if(act === 'go2') 마무리제출();
+}
+function 추가행(){
+  if(요인.추가.length >= 2) return;
+  요인.추가.push({이름:'', 관계:'', 한줄:''});
+  const a = document.getElementById('xadds'); if(a) a.innerHTML = 추가행HTML(정리 || {});
+  요인갱신();
+}
+function 삭제행(k){
+  요인.추가.splice(k, 1);
+  const a = document.getElementById('xadds'); if(a) a.innerHTML = 추가행HTML(정리 || {});
+  요인갱신();
+}
+function 보기더보기(){
+  if(보내는중) return;
+  보내기('[보기 더 보기] 10개 더 보여 주세요.', {});
+}
+function 요인제출(){
+  if(보내는중) return;
+  const rows = 요인선택목록(), 대상 = 요인대상();
+  if(!대상 || rows.length < 4 || rows.length > 6 || rows.some(r => !r.관계)) return;
+  const 줄 = r => (r.직접 ? '직접 추가: ' : '정보: ') + r.이름 + ' | ' + r.관계 + ' | ' + 한줄정리(r.한줄);
+  const t = '[정보 선택]\n대상: ' + 대상 + '\n' + rows.map(줄).join('\n');
+  확정입력.push({순서:순번, 종류:'요인', 값:{대상:대상, 정보:rows.map(r => ({이름:r.이름, 관계:r.관계, 한줄:한줄정리(r.한줄), 직접:!!r.직접}))}});
   const b = document.getElementById('xgo'); if(b) b.disabled = true;
   보내기(t, {});
+}
+function 마무리제출(){
+  if(보내는중) return;
+  const a = 한줄정리(마무리값.주제), c = 한줄정리(마무리값.활용);
+  if(a.length < 15 || c.length < 15) return;
+  확정입력.push({순서:순번, 종류:'마무리', 값:{주제:a, 활용:c}});
+  const b = document.getElementById('fgo'); if(b) b.disabled = true;
+  보내기('[마무리 서술]\n내 주제: ' + a + '\n문제 해결 활용: ' + c, {});
 }
 
 /* ── 확정 ── */
@@ -1248,6 +1404,7 @@ async function loadAdmin(){
                  ? ' · 타깃 '+esc(x.타깃.실자료) : '')+'</div>'+
                (x.점검메모? '<div class="mini">'+esc(x.점검메모)+'</div>':'')+
                (x.확인문장? '<div class="mini"><b>내 말:</b> '+esc(x.확인문장)+'</div>':'')+
+               (x.활용방안? '<div class="mini"><b>문제 해결 활용:</b> '+esc(x.활용방안)+'</div>':'')+
                (x.제외한정보? '<div class="mini"><b>뺀 정보:</b> '+esc(x.제외한정보)+'</div>':'')+
                (x.제시한보기? '<div class="mini"><b>제시한 보기:</b> '+esc(x.제시한보기)+'</div>':'')+'</td>'+
              '<td>'+타+'</td><td>'+특+'</td>'+
