@@ -604,11 +604,23 @@ window.onload = () => {
       { theme:'outline', size:'large', text:'signin_with', shape:'pill', locale:'ko', width:320 });
   }, 120);
 };
+let 로그인중 = false;
 async function onCredential(res){
+  // 저장된 로그인 정보로 자동 입장하는 것과 구글 버튼 로그인이 동시에 오면 화면이 왔다 갔다 하므로 하나만 처리한다
+  if(로그인중) return;
+  로그인중 = true;
+  try{ await 로그인처리(res, 0); }
+  finally{ 로그인중 = false; }
+}
+async function 로그인처리(res, 시도){
   토큰 = res.credential;
   sessionStorage.setItem('idt', 토큰);
-  document.getElementById('loginmsg').textContent = '확인하는 중…';
+  document.getElementById('loginmsg').textContent = 시도 ? '로그인 확인이 늦어지고 있어요. 잠시 뒤 다시 시도합니다… ('+시도+'/4)' : '확인하는 중…';
   const r = await api({action:'login'});
+  if(r.재시도가능 && 시도 < 4){       // 서버가 몰려 바쁠 뿐이다 — 로그인 정보는 그대로 두고 조금 기다렸다 다시
+    await new Promise(ok => setTimeout(ok, 2500 * (시도 + 1) + Math.random() * 2500));
+    return 로그인처리(res, 시도 + 1);
+  }
   if(r.오류 || !r.ok){
     document.getElementById('loginmsg').textContent = r.오류 || '로그인에 실패했습니다.';
     토큰 = ''; sessionStorage.removeItem('idt');
@@ -880,10 +892,10 @@ async function 보내기(text, 옵션){
   const 요청 = {action:'chat', history: 대화기록(), 반정보,
                 기록:{대화ID, 순서, 숨김: !!(보낸말 && 보낸말.숨김)}};
   let r = await api(요청);
-  for(let 시도 = 1; r.재시도가능 && 시도 <= 2; 시도++){      // 한 반이 몰려 막히면 조금 기다렸다 다시
+  for(let 시도 = 1; r.재시도가능 && 시도 <= 4; 시도++){      // 한 반이 몰려 막히면 조금 기다렸다 다시(점점 길게, 무작위로 흩어서)
     const 글 = t.querySelector('.body');
-    if(글) 글.textContent = '사람이 많아 잠깐 기다리는 중입니다 ('+시도+'/2)';
-    await new Promise(ok => setTimeout(ok, 4000 * 시도 + Math.random() * 2000));
+    if(글) 글.textContent = '사람이 많아 잠깐 기다리는 중입니다 ('+시도+'/4)';
+    await new Promise(ok => setTimeout(ok, 3000 * 시도 + Math.random() * 3000));
     r = await api(요청);
   }
   const el = document.getElementById('typing'); if(el) el.remove();
@@ -1066,14 +1078,14 @@ function 계획서HTML(s, 도장){
 
   // Ⅰ 주제
   const 점 = 주제점검 || {};
-  const 점검칩 = s.주제 ? (점.통과 ? '<span class="chk ok">현장 쓰임 확인</span>'
+  const 점검칩 = s.주제 ? (점.통과 ? '<span class="chk ok">문제 해결 확인</span>'
                                   : '<span class="chk no">다듬는 중</span>') : '';
   h += '<table class="form"><colgroup><col style="width:17%"><col><col style="width:15%"><col style="width:25%"></colgroup>'+
        '<tr class="sec"><th colspan="4"><span>Ⅰ</span>주제</th></tr>'+
        '<tr><th>주제</th><td colspan="3">'+칸(s.주제)+점검칩+'</td></tr>'+
        '<tr><th>연계 학과</th><td colspan="3">'+칸(s.연계학과)+'</td></tr>'+
        '<tr><th>대상</th><td>'+칸(s.대상)+'</td><th>예측 시점</th><td>'+칸(s.예측시점)+'</td></tr>'+
-       '<tr><th>현장 쓰임</th><td colspan="3" class="use">'+(점.통과 && 점.메모 ? esc(점.메모) : '<span class="blank"></span>')+'</td></tr>'+
+       '<tr><th>해결할 문제</th><td colspan="3" class="use">'+(점.통과 && 점.메모 ? esc(점.메모) : '<span class="blank"></span>')+'</td></tr>'+
        '</table>';
 
   // Ⅱ 맞힐 것 (y)
