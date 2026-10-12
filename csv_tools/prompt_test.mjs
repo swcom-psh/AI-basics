@@ -11,6 +11,7 @@ const 폴더 = process.argv[2] || 'run';
 const 모델 = process.argv[3] || env.OPENAI_MODEL || 'gpt-4.1';
 const 강도 = process.argv[4] || env.OPENAI_EFFORT || 'low';
 
+const 첫인사 = fs.readFileSync(path.join(path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..'), 'index.html'), 'utf8').match(/const 첫인사 = '([^']*)'/)[1];
 const gs = fs.readFileSync(path.join(ROOT, 'apps-script', '코드.gs'), 'utf8');
 const 프롬프트 = vm.runInNewContext(gs.slice(gs.indexOf('const 시스템프롬프트 = `'), gs.indexOf('`.trim();') + 8) + ';시스템프롬프트');
 const 스키마 = vm.runInNewContext(gs.slice(gs.indexOf('function 응답스키마_'), gs.indexOf('/* ════════ 확정')) + ';응답스키마_()');
@@ -40,7 +41,7 @@ async function 호출(이름, 말) {
   const messages = [
     { role: 'system', content: 프롬프트 },
     { role: 'user', content: '안녕하세요. 수행평가 주제를 정하고 싶습니다. 무엇부터 하면 될까요?' },
-    { role: 'assistant', content: '안녕하세요! 요즘 관심 있거나 궁금한 게 있나요? 가고 싶은 학과가 있으면 말해 줘도 되고, 없어도 괜찮아요. 시간을 제일 많이 쓰는 것이나 해 본 일(알바·동아리 등)도 좋아요.' },
+    { role: 'assistant', content: 첫인사 },
     { role: 'user', content: 말 },
   ];
   const payload = { model: 모델, messages, response_format: { type: 'json_schema', json_schema: { name: 'topic_step', strict: true, schema: 스키마 } } };
