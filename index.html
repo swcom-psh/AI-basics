@@ -437,6 +437,11 @@ table.form td.num{white-space:nowrap;letter-spacing:-.02em}
   #xpick .xrad{flex-wrap:wrap}
   #xpick .xrel{margin-left:4px}
   .sheet{padding:18px 12px}
+  #login{grid-template-columns:minmax(0,1fr)}
+}
+@media (max-width:560px){
+  #login .intro,#login .side{padding:32px 20px}
+  #login ol{grid-template-columns:repeat(2,auto)}
 }
 </style>
 </head>
@@ -635,8 +640,10 @@ window.onload = () => {
       cancel_on_tap_outside: false
     });
     google.accounts.id.disableAutoSelect();
-    google.accounts.id.renderButton(document.getElementById('gbtn'),
-      { theme:'outline', size:'large', text:'signin_with', shape:'pill', locale:'ko', width:320 });
+    const 칸 = document.getElementById('gbtn');
+    const 폭 = Math.max(200, Math.min(320, Math.floor(칸.clientWidth || 320)));   // 좁은 화면에서 버튼이 화면 밖으로 나가지 않게
+    google.accounts.id.renderButton(칸,
+      { theme:'outline', size:'large', text:'signin_with', shape:'pill', locale:'ko', width:폭 });
   }, 120);
 };
 /* 화면에서 오류가 나면 조용히 멈추지 않고 알려 준다 (콘솔을 못 보는 학생도 무엇을 해야 하는지 알게) */

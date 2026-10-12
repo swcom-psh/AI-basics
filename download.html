@@ -307,8 +307,9 @@ window.onload = () => {
       auto_select: false, cancel_on_tap_outside: false     // 공용 PC — 앞 학생 계정으로 자동 입장하지 않는다
     });
     google.accounts.id.disableAutoSelect();
+    const 폭 = Math.max(200, Math.min(320, Math.floor($('gbtn').clientWidth || 320)));   // 좁은 화면에서 버튼이 화면 밖으로 나가지 않게
     google.accounts.id.renderButton($('gbtn'),
-      { theme:'outline', size:'large', text:'signin_with', shape:'pill', locale:'ko', width:320 });
+      { theme:'outline', size:'large', text:'signin_with', shape:'pill', locale:'ko', width:폭 });
   }, 120);
 };
 let 로그인중 = false;
