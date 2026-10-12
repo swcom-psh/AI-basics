@@ -907,6 +907,10 @@ async function 보내기(text, 옵션){
     끝내기(); return;
   }
   히스토리.push({role:'assistant', content:JSON.stringify(r), 보일말:r.답변, 순서:순서 + 1});
+  try{ 답받은뒤(r); }
+  catch(e){ console.error(e); 끝내기(); }      // 화면 그리기에서 오류가 나도 보내기 버튼이 잠긴 채 남지 않게
+}
+function 답받은뒤(r){
   정리 = r.정리; 주제점검 = r.주제점검 || null;
   if(정리){ 정리.대상후보 = 정리.대상후보 || []; 정리.x보기 = 정리.x보기 || []; 정리.특성 = 정리.특성 || []; 정리보정(); }
   확정가능 = !!r.확정가능; 도움요청 = !!r.도움요청;
@@ -917,8 +921,9 @@ async function 보내기(text, 옵션){
   const 부족 = 검사(정리);
   if(확정가능 && 부족.length && !점검보냄){
     점검보냄 = true;
-    return 보내기('[화면 점검] 아직 빈 칸이 있습니다: ' + 부족.join(', ') +
+    보내기('[화면 점검] 아직 빈 칸이 있습니다: ' + 부족.join(', ') +
                  '. 이 칸부터 채워 주세요.', {숨김:true, 이어서:true});
+    return;
   }
   if(!부족.length) 점검보냄 = false;
   끝내기();
@@ -1082,7 +1087,7 @@ function 계획서HTML(s, 도장){
   h += '<table class="form"><colgroup><col style="width:17%"><col><col style="width:15%"><col style="width:25%"></colgroup>'+
        '<tr class="sec"><th colspan="4"><span>Ⅰ</span>주제</th></tr>'+
        '<tr><th>주제</th><td colspan="3">'+칸(s.주제)+점검칩+'</td></tr>'+
-       '<tr><th>연계 학과</th><td colspan="3">'+(있(s.연계학과) ? 칸(s.연계학과) : '<span style="color:var(--muted,#888)">(선택 · 정하지 않음)</span>')+'</td></tr>'+
+       '<tr><th>연계 학과</th><td colspan="3">'+(String(s.연계학과||'').trim() ? 칸(s.연계학과) : '<span style="color:var(--muted,#888)">(선택 · 정하지 않음)</span>')+'</td></tr>'+
        '<tr><th>대상</th><td>'+칸(s.대상)+'</td><th>예측 시점</th><td>'+칸(s.예측시점)+'</td></tr>'+
        '<tr><th>해결할 문제</th><td colspan="3" class="use">'+(점.통과 && 점.메모 ? esc(점.메모) : '<span class="blank"></span>')+'</td></tr>'+
        '</table>';
