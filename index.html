@@ -732,7 +732,7 @@ async function restart(){
   // 페이지를 새로 읽으면 구글 로그인을 처음부터 다시 해야 한다. 로그인은 그대로 두고 대화·계획서·화면 입력만 처음 상태로 되돌린다.
   히스토리 = []; 정리 = null; 주제점검 = null; 확정가능 = false; 도움요청 = false;
   마지막알림 = null; 점검보냄 = false; 현재단계 = ''; 대화ID = ''; 순번 = 0; 확정입력 = [];
-  요인 = {대상선택:'', 직접대상:'', 고름:{}, 추가:[]}; 마무리값 = {주제:'', 활용:''}; 폼표식 = '';
+  요인 = {대상선택:'', 직접대상:'', 시점선택:'', 직접시점:'', 고름:{}, 추가:[]}; 마무리값 = {주제:'', 활용:''}; 폼표식 = '';
   보내는중 = false;
   if(나) 나.이어서 = null;                      // 방금 끝낸 대화를 로그인 때 받아 둔 서버 기록에서 되살리지 않는다
   document.getElementById('done').classList.add('hide');
@@ -1168,7 +1168,7 @@ function paintSpec(){
    정보가 다 정해지면 「마무리」 화면(내 주제 / 문제 해결 활용)을 연다.
    학생이 낸 값은 확정입력에 따로 담아 두고, 챗봇이 옮겨 적다 틀리면 정리보정()이 바로잡는다. */
 let 확정입력 = [];                      // [{순서, 종류:'요인'|'마무리', 값}]
-let 요인 = {대상선택:'', 직접대상:'', 고름:{}, 추가:[]};   // 요인 화면의 입력 상태(다시 그려도 유지)
+let 요인 = {대상선택:'', 직접대상:'', 시점선택:'', 직접시점:'', 고름:{}, 추가:[]};   // 요인 화면의 입력 상태(다시 그려도 유지)
 let 마무리값 = {주제:'', 활용:''};
 let 폼표식 = '';
 const 관계목록 = ['늘어날 것 같다', '줄어들 것 같다', '관계없을 것 같다'];
@@ -1182,6 +1182,7 @@ function 정리보정(){
   const 요 = [...확정입력].reverse().find(e => e.종류 === '요인');
   if(요){
     정리.대상 = 요.값.대상; 정리.대상확인 = true;
+    if(요.값.시점) 정리.예측시점 = 요.값.시점;
     정리.특성 = 정리.특성 || [];
     const 보기 = 정리.x보기 || [];
     (요.값.정보 || []).forEach(r => {
@@ -1250,8 +1251,12 @@ function 요인HTML(s){
       '<span class="xd">' + esc(x.설명 || '') + ' · ' + (x.형태 === '예아니오' ? '예/아니오' : '숫자') + '</span></span></label>' +
       '<div class="xrel' + (on ? '' : ' hide') + '" id="xrel' + i + '">' + 관계HTML('b:' + i, x.이름, x.형태, st, 앞) + '</div></div>';
   }).join('');
+  const 시점 = ['하루 전', '일주일 전', '한 달 전'].map(n => '<label class="xrad"><input type="radio" name="xsi" value="' + n + '" data-t="si"' + (요인.시점선택 === n ? ' checked' : '') + '> ' + n + '</label>').join('') +
+    '<label class="xrad"><input type="radio" name="xsi" value="__직접" data-t="si"' + (요인.시점선택 === '__직접' ? ' checked' : '') + '> 직접 쓰기 ' +
+    '<input class="xtxt" id="xsiin" data-t="siin" value="' + esc(요인.직접시점) + '" placeholder="예: 이틀 전"></label>';
   return '<div class="xph"><b>① 대상 정하기</b><span>어느 것의 자료로 할지 골라 주세요.</span></div><div class="xtg">' + 대상 + '</div>' +
-    '<div class="xph"><b>② 쓸 정보 고르기와 ③ 가설</b><span>' + esc((s.타깃 && s.타깃.이름) || '맞힐 것') + '을(를) 맞히는 데 쓸 정보를 4~6개 고르고, 고른 정보마다 어떤 관계가 있을 것 같은지 골라 주세요.</span></div>' +
+    '<div class="xph"><b>② 언제 쓰는 값인가요?</b><span>맞힐 값을 얼마나 앞서 알아야 쓸모가 있을까요? 모르겠으면 하루 전으로 해도 돼요.</span></div><div class="xtg">' + 시점 + '</div>' +
+    '<div class="xph"><b>③ 쓸 정보 고르기와 ④ 가설</b><span>' + esc((s.타깃 && s.타깃.이름) || '맞힐 것') + '을(를) 맞히는 데 쓸 정보를 4~6개 고르고, 고른 정보마다 어떤 관계가 있을 것 같은지 골라 주세요.</span></div>' +
     '<div class="xlist2">' + 행 + '</div>' +
     '<div class="xmore"><button class="btn sm" data-act="more">보기 10개 더 보기</button><button class="btn sm" data-act="addrow">+ 직접 추가 (최대 2개)</button></div>' +
     '<div id="xadds">' + 추가행HTML(s) + '</div>' +
@@ -1266,6 +1271,7 @@ function 마무리HTML(){
     '<div class="xgo"><button class="btn primary" id="fgo" data-act="go2" disabled>이대로 냈어요</button><span class="xcnt" id="fcnt"></span></div>';
 }
 
+function 요인시점(){ return 요인.시점선택 === '__직접' ? 한줄정리(요인.직접시점) : (요인.시점선택 || ''); }
 function 요인대상(){ return 요인.대상선택 === '__직접' ? 한줄정리(요인.직접대상) : (요인.대상선택 || ''); }
 function 요인선택목록(){
   const 보기 = (정리 && 정리.x보기) || [];
@@ -1278,6 +1284,9 @@ function 요인갱신(){
   const 빠짐 = rows.filter(r => !r.관계).length;
   const 문제 = [];
   if(!대상) 문제.push('대상');
+  const 시점 = 요인시점();
+  if(!시점) 문제.push('언제 쓰는 값인지');
+  else if(먼시점.test(시점)){ const 예보 = rows.filter(r => /예보/.test(String(r.이름 || ''))); if(예보.length) 문제.push('"' + 시점 + '"에는 예보 정보(' + 예보[0].이름 + ')를 쓸 수 없어요'); }
   if(rows.length < 4 || rows.length > 6) 문제.push('정보 4~6개(지금 ' + rows.length + '개)');
   if(빠짐) 문제.push('관계를 고르지 않은 정보 ' + 빠짐 + '개');
   const b = document.getElementById('xgo'), c = document.getElementById('xcnt');
@@ -1311,6 +1320,8 @@ function 폼이벤트(e){
   else if(d.t === 'note'){ const s = 키상태(d.k); if(s) s.한줄 = t.value; }
   else if(d.t === 'tg'){ 요인.대상선택 = t.value; 요인갱신(); }
   else if(d.t === 'tgin'){ 요인.직접대상 = t.value; 요인.대상선택 = '__직접'; 요인갱신(); }
+  else if(d.t === 'si'){ 요인.시점선택 = t.value; 요인갱신(); }
+  else if(d.t === 'siin'){ 요인.직접시점 = t.value; 요인.시점선택 = '__직접'; 요인갱신(); }
   else if(d.t === 'addname'){ const a = 요인.추가[Number(d.k)]; if(a){ a.이름 = t.value; 요인갱신(); } }
   else if(d.t === 'f1'){ 마무리값.주제 = t.value; 마무리갱신(); }
   else if(d.t === 'f2'){ 마무리값.활용 = t.value; 마무리갱신(); }
@@ -1342,11 +1353,11 @@ function 보기더보기(){
 }
 function 요인제출(){
   if(보내는중) return;
-  const rows = 요인선택목록(), 대상 = 요인대상();
-  if(!대상 || rows.length < 4 || rows.length > 6 || rows.some(r => !r.관계)) return;
+  const rows = 요인선택목록(), 대상 = 요인대상(), 시점 = 요인시점();
+  if(!대상 || !시점 || rows.length < 4 || rows.length > 6 || rows.some(r => !r.관계)) return;
   const 줄 = r => (r.직접 ? '직접 추가: ' : '정보: ') + r.이름 + ' | ' + r.관계 + ' | ' + 한줄정리(r.한줄);
-  const t = '[정보 선택]\n대상: ' + 대상 + '\n' + rows.map(줄).join('\n');
-  확정입력.push({순서:순번, 종류:'요인', 값:{대상:대상, 정보:rows.map(r => ({이름:r.이름, 관계:r.관계, 한줄:한줄정리(r.한줄), 직접:!!r.직접}))}});
+  const t = '[정보 선택]\n대상: ' + 대상 + '\n예측 시점: ' + 시점 + '\n' + rows.map(줄).join('\n');
+  확정입력.push({순서:순번, 종류:'요인', 값:{대상:대상, 시점:시점, 정보:rows.map(r => ({이름:r.이름, 관계:r.관계, 한줄:한줄정리(r.한줄), 직접:!!r.직접}))}});
   const b = document.getElementById('xgo'); if(b) b.disabled = true;
   보내기(t, {});
 }
