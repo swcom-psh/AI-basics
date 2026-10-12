@@ -732,7 +732,7 @@ async function restart(){
   // 페이지를 새로 읽으면 구글 로그인을 처음부터 다시 해야 한다. 로그인은 그대로 두고 대화·계획서·화면 입력만 처음 상태로 되돌린다.
   히스토리 = []; 정리 = null; 주제점검 = null; 확정가능 = false; 도움요청 = false;
   마지막알림 = null; 점검보냄 = false; 현재단계 = ''; 대화ID = ''; 순번 = 0; 확정입력 = [];
-  요인 = {대상선택:'', 직접대상:'', 시점선택:'', 직접시점:'', 고름:{}, 추가:[]}; 마무리값 = {주제:'', 활용:''}; 폼표식 = '';
+  요인 = {대상선택:'', 직접대상:'', 시점선택:'', 직접시점:'', 보기시점:'하루 전', 고름:{}, 추가:[]}; 마무리값 = {주제:'', 활용:''}; 폼표식 = '';
   보내는중 = false;
   if(나) 나.이어서 = null;                      // 방금 끝낸 대화를 로그인 때 받아 둔 서버 기록에서 되살리지 않는다
   document.getElementById('done').classList.add('hide');
@@ -1168,7 +1168,7 @@ function paintSpec(){
    정보가 다 정해지면 「마무리」 화면(내 주제 / 문제 해결 활용)을 연다.
    학생이 낸 값은 확정입력에 따로 담아 두고, 챗봇이 옮겨 적다 틀리면 정리보정()이 바로잡는다. */
 let 확정입력 = [];                      // [{순서, 종류:'요인'|'마무리', 값}]
-let 요인 = {대상선택:'', 직접대상:'', 시점선택:'', 직접시점:'', 고름:{}, 추가:[]};   // 요인 화면의 입력 상태(다시 그려도 유지)
+let 요인 = {대상선택:'', 직접대상:'', 시점선택:'', 직접시점:'', 보기시점:'하루 전', 고름:{}, 추가:[]};   // 요인 화면의 입력 상태(다시 그려도 유지)
 let 마무리값 = {주제:'', 활용:''};
 let 폼표식 = '';
 const 관계목록 = ['늘어날 것 같다', '줄어들 것 같다', '관계없을 것 같다'];
@@ -1255,7 +1255,7 @@ function 요인HTML(s){
     '<label class="xrad"><input type="radio" name="xsi" value="__직접" data-t="si"' + (요인.시점선택 === '__직접' ? ' checked' : '') + '> 직접 쓰기 ' +
     '<input class="xtxt" id="xsiin" data-t="siin" value="' + esc(요인.직접시점) + '" placeholder="예: 이틀 전"></label>';
   return '<div class="xph"><b>① 대상 정하기</b><span>어느 것의 자료로 할지 골라 주세요.</span></div><div class="xtg">' + 대상 + '</div>' +
-    '<div class="xph"><b>② 언제 쓰는 값인가요?</b><span>맞힐 값을 얼마나 앞서 알아야 쓸모가 있을까요? 모르겠으면 하루 전으로 해도 돼요.</span></div><div class="xtg">' + 시점 + '</div>' +
+    '<div class="xph"><b>② 언제 쓰는 값인가요?</b><span>맞힐 값을 얼마나 앞서 알아야 쓸모가 있을까요? 모르겠으면 하루 전으로 해도 돼요.</span></div><div class="xtg">' + 시점 + '</div><div id="xsire">' + 시점버튼HTML() + '</div>' +
     '<div class="xph"><b>③ 쓸 정보 고르기와 ④ 가설</b><span>' + esc((s.타깃 && s.타깃.이름) || '맞힐 것') + '을(를) 맞히는 데 쓸 정보를 4~6개 고르고, 고른 정보마다 어떤 관계가 있을 것 같은지 골라 주세요.</span></div>' +
     '<div class="xlist2">' + 행 + '</div>' +
     '<div class="xmore"><button class="btn sm" data-act="more">보기 10개 더 보기</button><button class="btn sm" data-act="addrow">+ 직접 추가 (최대 2개)</button></div>' +
@@ -1271,6 +1271,19 @@ function 마무리HTML(){
     '<div class="xgo"><button class="btn primary" id="fgo" data-act="go2" disabled>이대로 냈어요</button><span class="xcnt" id="fcnt"></span></div>';
 }
 
+function 시점버튼HTML(){
+  const 시점 = 요인시점();
+  if(!시점 || 시점 === 요인.보기시점) return '';
+  return '<div class="xre"><span>지금 보기는 \"' + esc(요인.보기시점) + '\" 기준이에요. \"' + esc(시점) + '\"에 알 수 있는 값으로 바꿔야 해요.</span> ' +
+    '<button class="btn sm primary" data-act="regen"' + (보내는중 ? ' disabled' : '') + '>\"' + esc(시점) + '\"에 맞게 보기 다시 만들기</button></div>';
+}
+function 시점보기다시(){
+  const 시점 = 요인시점();
+  if(보내는중 || !시점) return;
+  요인.고름 = {}; 요인.추가 = 요인.추가.filter(a => 한줄정리(a.이름));    // 새 보기에서 다시 고르게 한다(직접 추가한 것은 남긴다)
+  요인.보기시점 = 시점;
+  보내기('[시점 변경]\n예측 시점: ' + 시점 + '\n이 시점에 알 수 있는 값으로 보기를 10개 새로 만들어 주세요.', {});
+}
 function 요인시점(){ return 요인.시점선택 === '__직접' ? 한줄정리(요인.직접시점) : (요인.시점선택 || ''); }
 function 요인대상(){ return 요인.대상선택 === '__직접' ? 한줄정리(요인.직접대상) : (요인.대상선택 || ''); }
 function 요인선택목록(){
@@ -1280,12 +1293,14 @@ function 요인선택목록(){
   return rows;
 }
 function 요인갱신(){
+  const 재 = document.getElementById('xsire'); if(재) 재.innerHTML = 시점버튼HTML();
   const rows = 요인선택목록(), 대상 = 요인대상();
   const 빠짐 = rows.filter(r => !r.관계).length;
   const 문제 = [];
   if(!대상) 문제.push('대상');
   const 시점 = 요인시점();
   if(!시점) 문제.push('언제 쓰는 값인지');
+  else if(시점 !== 요인.보기시점) 문제.push('"' + 시점 + '"에 맞게 보기 다시 만들기');
   else if(먼시점.test(시점)){ const 예보 = rows.filter(r => /예보/.test(String(r.이름 || ''))); if(예보.length) 문제.push('"' + 시점 + '"에는 예보 정보(' + 예보[0].이름 + ')를 쓸 수 없어요'); }
   if(rows.length < 4 || rows.length > 6) 문제.push('정보 4~6개(지금 ' + rows.length + '개)');
   if(빠짐) 문제.push('관계를 고르지 않은 정보 ' + 빠짐 + '개');
@@ -1331,6 +1346,7 @@ function 폼클릭(e){
   if(!el || !el.dataset || !el.dataset.act) return;
   const act = el.dataset.act;
   if(act === 'more') 보기더보기();
+  else if(act === 'regen') 시점보기다시();
   else if(act === 'addrow') 추가행();
   else if(act === 'delrow') 삭제행(Number(el.dataset.k));
   else if(act === 'go1') 요인제출();
