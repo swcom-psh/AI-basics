@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>수행평가 데이터 받기 · 인공지능 기초</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<style>
+/* ════════ 토큰 — index.html 과 같은 값 ════════ */
+:root{
+  --desk:#E9EDF2; --ground:#F4F6F9; --paper:#FFFFFF;
+  --ink:#111A24; --ink-2:#34404E; --muted:#5A6573;
+  --rule:#CCD3DC; --rule-2:#E2E7ED; --frame:#344150;
+  --accent:#1E3F8F; --accent-2:#2A55B8; --accent-soft:#E8EEFA;
+  --hl:#FFF0A3; --stamp:#C4382A;
+  --ok:#2C6A45; --ok-soft:#E5F1E9;
+  --warn:#8A5A0A; --warn-soft:#FBF2DF; --warn-line:#EED9AE;
+  --bad:#A5312A; --bad-soft:#FBE9E6; --bad-line:#F1C9C3;
+  --sans:"Pretendard Variable",Pretendard,-apple-system,"Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif;
+  --mono:var(--sans);
+}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0}
+body{background:var(--ground);color:var(--ink);font-family:var(--sans);font-size:16px;line-height:1.7;
+  letter-spacing:-.005em;-webkit-font-smoothing:antialiased;word-break:keep-all;overflow-wrap:anywhere}
+button{font-family:inherit;cursor:pointer}
+input{font-family:inherit;font-size:15px;color:var(--ink)}
+a{color:var(--accent)}
+:focus-visible{outline:2px solid var(--accent-2);outline-offset:2px}
+.hide{display:none !important}
+.num{font-variant-numeric:tabular-nums;letter-spacing:.01em}
+
+.btn{border:1px solid var(--rule);background:var(--paper);color:var(--ink);padding:8px 14px;border-radius:4px;
+  font-size:14px;font-weight:500;line-height:1.3;text-decoration:none;display:inline-flex;align-items:center;justify-content:center;gap:8px}
+.btn:hover{border-color:var(--ink-2)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+.btn.primary:hover{background:var(--accent-2);border-color:var(--accent-2)}
+.btn:disabled{opacity:.38;cursor:default}
+.btn.sm{padding:5px 10px;font-size:13px}
+.btn.big{padding:15px 30px;font-size:18px;font-weight:700;border-radius:10px}
+.btn.ghost{border-color:transparent;background:transparent;color:var(--ink-2)}
+.btn.ghost:hover{background:var(--rule-2);border-color:transparent}
+
+/* ════════ 로그인 ════════ */
+#login{position:fixed;inset:0;z-index:60;display:grid;grid-template-columns:1.1fr 1fr;background:var(--paper)}
+#login .intro{background:var(--accent);color:#fff;padding:clamp(40px,7vw,120px);
+  display:flex;flex-direction:column;justify-content:center;gap:28px}
+#login .kicker{font-size:15px;letter-spacing:.14em;opacity:.9}
+#login h1{font-weight:800;font-size:clamp(40px,4.2vw,64px);line-height:1.18;margin:0;letter-spacing:-.035em;text-wrap:balance}
+#login .lede{font-size:19px;line-height:1.7;max-width:44em;margin:0;text-wrap:pretty}
+#login ol{list-style:none;margin:8px 0 0;padding:0;display:grid;grid-template-columns:repeat(3,auto);
+  justify-content:start;font-size:15px}
+#login ol li{padding:7px 14px 7px 0;margin-right:14px;border-bottom:2px solid rgba(255,255,255,.35)}
+#login ol li b{font-weight:500;opacity:.7;margin-right:5px}
+#login .side{display:flex;flex-direction:column;justify-content:center;padding:clamp(40px,6vw,110px);gap:18px}
+#login .side h2{margin:0;font-size:24px;font-weight:700}
+#gbtn{min-height:44px}
+#loginmsg{font-size:14.5px;color:var(--bad);min-height:22px}
+#loginmsg.info{color:var(--ink-2)}
+
+/* ════════ 본 화면 ════════ */
+#app{display:grid;grid-template-rows:auto 1fr;min-height:100vh}
+#bar{display:flex;align-items:center;gap:24px;padding:0 28px;height:66px;background:var(--paper);border-bottom:1px solid var(--rule)}
+#bar .brand{display:flex;align-items:baseline;gap:10px;white-space:nowrap}
+#bar .brand b{font-size:19px;font-weight:700;letter-spacing:-.02em}
+#bar .brand span{font-size:14px;color:var(--muted)}
+#bar .sp{flex:1}
+#ubar{font-size:15px;padding:5px 12px;border:1px solid var(--rule-2);border-radius:3px;white-space:nowrap}
+.adminchip{font-size:11px;font-weight:700;background:var(--ok);color:#fff;padding:2px 7px;border-radius:3px;vertical-align:2px;margin-left:6px}
+
+#stage{display:grid;grid-template-columns:minmax(320px,.8fr) minmax(0,1.2fr);min-height:0}
+#stage .left{background:var(--paper);border-right:1px solid var(--rule);padding:clamp(32px,5vw,80px);
+  display:flex;flex-direction:column;justify-content:center;gap:20px}
+#stage .right{background:var(--desk);padding:40px 48px;overflow-y:auto}
+
+/* 단계 — index.html 의 단계 칸과 같은 모양 */
+#steps{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;max-width:420px}
+#steps .st{display:flex;align-items:center;justify-content:center;gap:7px;padding:8px 6px;font-size:14.5px;
+  color:var(--muted);background:#F7F8FA;border:1px solid var(--rule);border-radius:8px;white-space:nowrap}
+#steps .st i{font-style:normal;font-size:13px;font-weight:700;width:22px;height:22px;border-radius:50%;
+  display:inline-flex;align-items:center;justify-content:center;background:var(--rule-2);color:var(--ink-2)}
+#steps .st.done{color:var(--accent);background:#fff;border-color:#B9C7E6}
+#steps .st.done i{background:var(--accent-soft);color:var(--accent)}
+#steps .st.on{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:700}
+#steps .st.on i{background:#fff;color:var(--accent)}
+
+#stage h2{font-weight:800;font-size:34px;line-height:1.3;margin:0;letter-spacing:-.03em;text-wrap:balance}
+#stage p{margin:0;font-size:17px;line-height:1.75;color:var(--ink-2)}
+#stage .acts{display:flex;gap:10px;flex-wrap:wrap;margin-top:6px;align-items:center}
+.note{padding:12px 15px;border-radius:4px;font-size:14.5px;line-height:1.6;border:1px solid var(--warn-line);
+  background:var(--warn-soft);color:var(--warn)}
+.note.ok{border-color:#BFDCC9;background:var(--ok-soft);color:var(--ok)}
+.note.bad{border-color:var(--bad-line);background:var(--bad-soft);color:var(--bad)}
+
+/* 서식 — 계획서와 같은 종이 */
+.sheet{position:relative;background:var(--paper);border:1px solid var(--rule);
+  box-shadow:0 1px 0 var(--rule-2),0 10px 26px -18px rgba(23,32,43,.35);padding:38px 42px 32px;max-width:760px}
+.sheet .kick{font-size:14px;color:var(--muted);letter-spacing:.06em;text-align:center}
+.sheet h3{font-weight:800;font-size:28px;text-align:center;margin:6px 0 24px;letter-spacing:.12em;padding-left:.12em}
+table.form{width:100%;border-collapse:collapse;border:2px solid var(--frame);table-layout:fixed}
+table.form th,table.form td{border:1px solid var(--rule);padding:11px 13px;vertical-align:top;
+  font-size:15.5px;line-height:1.55;text-align:left}
+table.form th{width:26%;background:#F2F4F7;color:var(--ink-2);font-weight:600;font-size:14.5px;white-space:nowrap}
+table.form .sec th{background:var(--frame);color:#fff;font-size:15px;letter-spacing:.06em;width:auto}
+.mine{background:linear-gradient(transparent 38%,var(--hl) 38%,var(--hl) 92%,transparent 92%);padding:0 2px}
+.blank{display:inline-block;min-width:7em;border-bottom:1.5px dotted #9AA4B1;height:1.2em;vertical-align:-3px}
+.chk{display:inline-block;font-size:13px;font-weight:600;padding:2px 9px;border-radius:5px;margin-left:6px;vertical-align:1px}
+.chk.ok{background:var(--ok-soft);color:var(--ok)}
+.chk.no{background:var(--warn-soft);color:var(--warn)}
+.stamp{position:absolute;right:46px;top:22px;width:96px;height:96px;border:4px solid var(--stamp);
+  border-radius:50%;color:var(--stamp);display:flex;flex-direction:column;align-items:center;justify-content:center;
+  font-weight:800;transform:rotate(-12deg);opacity:.9;mix-blend-mode:multiply}
+.stamp b{font-size:26px;letter-spacing:.12em;line-height:1}
+.stamp small{font-size:10.5px;margin-top:4px;font-weight:500}
+
+.tips{max-width:760px;margin:20px 0 0;padding:16px 20px;background:var(--paper);border:1px solid var(--rule);
+  border-top:3px solid var(--accent);font-size:15px;line-height:1.7;color:var(--ink-2)}
+.tips b{color:var(--accent);font-size:13.5px;display:block;margin-bottom:4px;letter-spacing:.01em}
+.tips ol{margin:0;padding-left:20px}
+.tips code{background:var(--rule-2);padding:1px 6px;border-radius:3px;font-size:14px}
+
+/* 관리자 시험 칸 */
+#adminbox{display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:12px 14px;margin-top:6px;
+  border:1px dashed var(--rule);border-radius:6px;background:var(--ground);font-size:14px;color:var(--ink-2)}
+#adminbox input{padding:8px 10px;border:1px solid var(--rule);border-radius:4px;width:140px}
+
+.spin{display:inline-block;width:1.1em;height:1.1em;border:2px solid currentColor;border-right-color:transparent;
+  border-radius:50%;animation:sp .8s linear infinite;vertical-align:-2px}
+@keyframes sp{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion:reduce){.spin{animation:none}}
+
+@media (max-width:900px){
+  #login{grid-template-columns:1fr;position:static;min-height:100vh}
+  #login .intro{padding:40px 24px}
+  #login .side{padding:36px 24px}
+  #bar{padding:0 16px;gap:12px;height:auto;min-height:60px;flex-wrap:wrap;padding-top:8px;padding-bottom:8px}
+  #stage{grid-template-columns:1fr}
+  #stage .left{border-right:0;border-bottom:1px solid var(--rule);padding:28px 20px}
+  #stage .right{padding:24px 16px}
+  #stage h2{font-size:28px}
+  .sheet{padding:30px 18px 24px}
+  .stamp{right:14px;top:12px;width:76px;height:76px}
+  .stamp b{font-size:21px}
+  table.form th{white-space:normal;width:32%}
+}
+</style>
+</head>
+<body>
+
+<!-- ════════ 로그인 ════════ -->
+<div id="login">
+  <section class="intro">
+    <div class="kicker">인공지능 기초 · 수행평가</div>
+    <h1>내 데이터 받기</h1>
+    <p class="lede">계획서에서 정한 주제에 맞게 선생님이 준비한 나만의 CSV 파일을 내려받습니다.</p>
+    <ol>
+      <li><b>1</b>계획서 확정</li><li><b>2</b>데이터 받기</li><li><b>3</b>수행평가 하기</li>
+    </ol>
+  </section>
+  <section class="side">
+    <h2>학교 계정으로 로그인</h2>
+    <div id="gbtn"></div>
+    <div id="loginmsg"></div>
+  </section>
+</div>
+
+<!-- ════════ 본 화면 ════════ -->
+<div id="app" class="hide">
+  <header id="bar">
+    <div class="brand"><b>수행평가 데이터 받기</b><span>인공지능 기초</span></div>
+    <span class="sp"></span>
+    <span id="ubar"></span>
+    <button class="btn sm" onclick="로그아웃()">로그아웃</button>
+  </header>
+  <div id="stage">
+    <section class="left" id="leftpane"></section>
+    <section class="right" id="rightpane"></section>
+  </div>
+</div>
+
+<script>
+/* ══════════════════════════════════════════════════════
+   설정 — index.html 과 같은 값
+   ══════════════════════════════════════════════════════ */
+const CLIENT_ID = '508397953247-cec1cb0u7jmheuup6llmo05423lcibbu.apps.googleusercontent.com';
+const API_URL   = 'https://script.google.com/macros/s/AKfycbwLlLefL8g-DTDgX9ab3qUzIGCU6-zzbI0W9CyME-qsi5yNj3EJIYf-t_ZNOw9kYzAK/exec';
+const DOMAIN    = 'sdhs.gwe.hs.kr';
+const 계획서주소 = 'https://swcom-psh.github.io/AI-basics/';
+/* ══════════════════════════════════════════════════════ */
+
+let 토큰 = '', 나 = null, 상태 = null, 받는중 = false, 받았음 = false, 지정학번 = '';
+
+function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g,
+  c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+const $ = id => document.getElementById(id);
+
+/* ── 서버 호출 (index.html 과 같은 방식) ── */
+async function api(body){
+  let r;
+  try{
+    r = await fetch(API_URL, {
+      method:'POST',
+      headers:{'Content-Type':'text/plain;charset=utf-8'},   // preflight 를 피하려고 text/plain
+      body: JSON.stringify(Object.assign({token: 토큰}, body))
+    });
+  }catch(e){ return {오류:'서버에 연결하지 못했습니다. 인터넷 상태를 확인하세요.', 재시도가능:true}; }
+  let j;
+  try{ j = await r.json(); }
+  catch(e){ return {오류:'서버가 바빠 응답을 읽지 못했습니다.', 재시도가능:true}; }
+  if(j && j.만료){ 만료처리(); return {오류:'로그인이 만료되었습니다. 다시 로그인해 주세요.', 만료:true}; }
+  return j;
+}
+function 토큰지우기(){ 토큰 = ''; try{ sessionStorage.removeItem('idt'); }catch(e){} }
+function 로그아웃(){
+  if(받는중) return;
+  try{ google.accounts.id.disableAutoSelect(); }catch(e){}
+  토큰지우기();
+  location.reload();
+}
+function 만료처리(){
+  토큰지우기();
+  $('app').classList.add('hide');
+  $('login').classList.remove('hide');
+  안내('로그인이 만료되었습니다. 다시 로그인해 주세요.', false);
+}
+function 안내(글, 정보){ const m = $('loginmsg'); m.textContent = 글; m.classList.toggle('info', !!정보); }
+
+/* ── 구글 로그인 ── 계획서 화면(index.html)에서 로그인했다면 같은 탭에서는 그대로 이어진다 */
+window.onload = () => {
+  let 저장 = ''; try{ 저장 = sessionStorage.getItem('idt') || ''; }catch(e){}
+  if(저장){ 안내('이어서 들어가는 중…', true); onCredential({credential: 저장}); }
+  const 대기 = setInterval(() => {
+    if(!(window.google && google.accounts && google.accounts.id)) return;
+    clearInterval(대기);
+    google.accounts.id.initialize({
+      client_id: CLIENT_ID, callback: onCredential, hd: DOMAIN,
+      auto_select: false, cancel_on_tap_outside: false     // 공용 PC — 앞 학생 계정으로 자동 입장하지 않는다
+    });
+    google.accounts.id.disableAutoSelect();
+    google.accounts.id.renderButton($('gbtn'),
+      { theme:'outline', size:'large', text:'signin_with', shape:'pill', locale:'ko', width:320 });
+  }, 120);
+};
+let 로그인중 = false;
+async function onCredential(res){
+  if(로그인중) return;
+  로그인중 = true;
+  try{ await 로그인처리(res, 0); } finally{ 로그인중 = false; }
+}
+async function 로그인처리(res, 시도){
+  토큰 = res.credential;
+  try{ sessionStorage.setItem('idt', 토큰); }catch(e){}
+  안내(시도 ? '로그인 확인이 늦어지고 있어요. 잠시 뒤 다시 시도합니다… ('+시도+'/4)' : '확인하는 중…', true);
+  const r = await 상태가져오기('');
+  if(r.재시도가능 && 시도 < 4){        // 서버가 몰려 바쁠 뿐이다 — 로그인 정보는 그대로 두고 조금 기다렸다 다시
+    await new Promise(ok => setTimeout(ok, 2500 * (시도 + 1) + Math.random() * 2500));
+    return 로그인처리(res, 시도 + 1);
+  }
+  if(r.오류 || !r.ok){
+    안내(r.오류 || '로그인에 실패했습니다.', false);
+    토큰지우기();
+    try{ google.accounts.id.disableAutoSelect(); }catch(e){}
+    return;
+  }
+  상태 = r; 나 = r;
+  $('login').classList.add('hide');
+  안내('', true);
+  $('app').classList.remove('hide');
+  $('ubar').innerHTML = '<span class="num">' + esc(r.학번 || '') + '</span> ' + esc(r.이름 || '') +
+    (r.관리자 ? '<span class="adminchip">관리자</span>' : '');
+  그리기();
+}
+async function 상태가져오기(학번){
+  const r = await api({action:'csvstatus', 학번: 학번 || ''});
+  return r;
+}
+
+/* ── 화면 ── */
+function 단계칸(확정, 받음){
+  return '<div id="steps">' +
+    '<div class="st '+(확정?'done':'on')+'"><i>'+(확정?'✓':'1')+'</i>계획서 확정</div>' +
+    '<div class="st '+(받음?'done':(확정?'on':''))+'"><i>'+(받음?'✓':'2')+'</i>데이터 받기</div></div>';
+}
+function 관리자칸(){
+  if(!(나 && 나.관리자)) return '';
+  return '<div id="adminbox">관리자 시험 — 학번으로 보기 ' +
+    '<input id="adno" inputmode="numeric" maxlength="10" placeholder="예) 20262609" value="'+esc(지정학번)+'" onkeydown="if(event.key===\'Enter\')학번보기()">' +
+    '<button class="btn sm" onclick="학번보기()">보기</button>' +
+    (지정학번 ? '<button class="btn sm ghost" onclick="지정학번=\'\';학번보기(true)">내 계정으로</button>' : '') + '</div>';
+}
+async function 학번보기(내것){
+  const v = 내것 ? '' : ($('adno').value || '').trim();
+  지정학번 = v; 받았음 = false;
+  const r = await 상태가져오기(v);
+  if(r.오류){ alert(r.오류); return; }
+  상태 = r; 그리기();
+}
+
+function 양식(s, 도장){
+  const 파일 = s.파일;
+  return '<div class="sheet">' +
+    (도장 ? '<div class="stamp"><b>확정</b><small>계획서</small></div>' : '') +
+    '<div class="kick">인공지능 기초 · 수행평가</div><h3>내 데이터</h3>' +
+    '<table class="form">' +
+      '<tr><th>학번 · 이름</th><td><span class="num">'+esc(s.학번||'')+'</span> &nbsp;'+esc((!s.지정 && s.이름) || (파일 ? 파일.이름.replace(/^\d+_/,'').replace(/\.csv$/i,'') : ''))+'</td></tr>' +
+      '<tr class="sec"><th colspan="2">내가 정한 주제</th></tr>' +
+      '<tr><td colspan="2">' + (s.확정
+          ? '<span class="mine">'+esc(s.주제 || '')+'</span>' + (s.트랙 ? '<span style="color:var(--muted);font-size:14px;margin-left:8px">'+esc(s.트랙)+'</span>' : '')
+          : '<span class="blank"></span>') + '</td></tr>' +
+      '<tr class="sec"><th colspan="2">데이터 파일</th></tr>' +
+      '<tr><th>파일</th><td>' + (파일 ? '<span class="num">'+esc(파일.이름)+'</span>' : '<span class="blank"></span>') + '</td></tr>' +
+      '<tr><th>상태</th><td>' + (!s.확정 ? '<span class="chk no">계획서를 먼저 확정</span>'
+          : 파일 ? '<span class="chk ok">받을 수 있음</span>' + (파일.크기 ? '<span style="color:var(--muted);font-size:14px;margin-left:8px" class="num">'+크기글(파일.크기)+'</span>' : '')
+          : '<span class="chk no">선생님이 준비하는 중</span>') + '</td></tr>' +
+    '</table></div>';
+}
+function 크기글(n){ return n < 1024 ? n+' B' : n < 1048576 ? (n/1024).toFixed(0)+' KB' : (n/1048576).toFixed(1)+' MB'; }
+
+function 그리기(){
+  const s = 상태, L = $('leftpane'), R = $('rightpane');
+  const 파일 = s.파일;
+  const 시험 = s.지정 ? '<div class="note">지금 '+esc(s.학번)+' 학생의 화면을 시험으로 보고 있습니다. 파일을 받으면 다운로드 기록에 남습니다.</div>' : '';
+
+  if(!s.확정){
+    // ① 아직 계획서를 안 냄 → 계획서 주소를 안내
+    L.innerHTML = 단계칸(false, false) +
+      '<h2>먼저 수행평가 계획서를<br>써야 해요</h2>' +
+      '<p>데이터는 계획서에서 정한 <b>주제</b>에 맞춰 만들어집니다.<br>아래 버튼으로 계획서 화면에 가서 주제를 정하고 <b>「주제 확정하기」</b>까지 누르면, 여기서 내 데이터를 받을 수 있어요.</p>' +
+      '<div class="acts"><a class="btn primary big" href="'+계획서주소+'">계획서 쓰러 가기 →</a></div>' +
+      '<p style="font-size:14.5px;color:var(--muted)">주소: <a href="'+계획서주소+'">'+계획서주소+'</a><br>확정한 뒤에 이 화면을 새로고침하면 받을 수 있게 열립니다.</p>' + 시험 + 관리자칸();
+  } else if(!파일){
+    // ② 확정은 했지만 선생님이 아직 파일을 안 만듦
+    L.innerHTML = 단계칸(true, false) +
+      '<h2>데이터를 준비하고 있어요</h2>' +
+      '<p>계획서는 잘 제출되었습니다. 선생님이 주제에 맞는 데이터를 만들고 있어서, 아직 받을 파일이 없어요.<br>준비되면 이 화면에서 바로 받을 수 있습니다. 잠시 뒤 다시 확인해 보세요.</p>' +
+      '<div class="acts"><button class="btn primary big" onclick="새로고침()">다시 확인하기</button></div>' + 시험 + 관리자칸();
+  } else {
+    // ③ 받을 수 있음
+    L.innerHTML = 단계칸(true, 받았음) +
+      '<h2>' + (받았음 ? '데이터를 받았어요' : '내 데이터가 준비되었어요') + '</h2>' +
+      '<p>' + (받았음 ? '컴퓨터의 「다운로드」 폴더에 저장됩니다. 못 찾겠으면 아래 버튼으로 다시 받을 수 있어요.'
+                     : '계획서에서 정한 주제에 맞춘 CSV 파일입니다. 버튼을 누르면 바로 내려받아요.') + '</p>' +
+      '<div class="acts"><button class="btn primary big" id="dlbtn" onclick="받기()">' +
+        (받았음 ? '↓ 다시 받기' : '↓ CSV 파일 받기') + '</button></div>' +
+      '<div id="dlmsg"></div>' + 시험 + 관리자칸();
+  }
+
+  R.innerHTML = 양식(s, s.확정) +
+    (s.확정 && 파일 ? '<div class="tips"><b>받은 뒤에는</b><ol>' +
+      '<li>파일을 구글 코랩(또는 쓰는 파이썬 환경)에 올립니다.</li>' +
+      '<li><code>pd.read_csv("'+esc(파일.이름)+'")</code> 처럼 읽습니다. 파일 이름은 바꾸지 마세요.</li>' +
+      '<li>이제 수행평가지의 순서(결측치 → 이상치 → 상관 → 모델)대로 진행합니다.</li></ol></div>' : '');
+}
+async function 새로고침(){
+  const 쪽 = $('leftpane').querySelector('.btn.big');
+  if(쪽){ 쪽.disabled = true; 쪽.innerHTML = '<span class="spin"></span> 확인하는 중'; }
+  const r = await 상태가져오기(지정학번);
+  if(r.오류){ alert(r.오류); }
+  else 상태 = r;
+  그리기();
+}
+
+/* ── 받기 ── */
+async function 받기(){
+  if(받는중) return;
+  받는중 = true;
+  const b = $('dlbtn'), m = $('dlmsg');
+  b.disabled = true; b.innerHTML = '<span class="spin"></span> 준비하는 중…'; m.innerHTML = '';
+  const r = await api({action:'csvget', 학번: 지정학번});
+  받는중 = false;
+  if(r.오류 || !r.ok){
+    그리기();
+    $('dlmsg').innerHTML = '<div class="note bad">'+esc(r.오류 || '받지 못했습니다. 잠시 뒤 다시 눌러 주세요.')+'</div>';
+    return;
+  }
+  const blob = new Blob([r.내용], {type:'text/csv;charset=utf-8'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = r.파일명;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+  받았음 = true;
+  그리기();
+  $('dlmsg').innerHTML = '<div class="note ok">「'+esc(r.파일명)+'」 파일을 내려받았습니다.</div>';
+}
+</script>
+</body>
+</html>
