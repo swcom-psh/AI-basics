@@ -385,6 +385,9 @@ table.ad th{font-size:13.5px}
 .stat{font-size:15px}
 
 /* 관리자 — 주제 겹침 · 대화 보기 */
+.adchips{display:flex;gap:6px;flex-wrap:wrap;align-items:center;padding:8px 18px 4px}
+.adchips .btn.on{background:#1f3d8f;color:#fff;border-color:#1f3d8f}
+.adchips .note{font-size:13px;color:var(--muted);margin-left:6px}
 .dup{display:inline-block;font-size:12.5px;font-weight:700;background:#FDEBD3;color:#8A4B06;
   padding:1px 8px;border-radius:5px;margin-left:6px;cursor:help;vertical-align:1px}
 #chatview{position:fixed;inset:0;z-index:70;background:rgba(17,26,36,.45);display:flex;justify-content:flex-end}
@@ -518,6 +521,7 @@ table.ad th{font-size:13.5px}
     <button class="btn sm" onclick="loadAdmin()">새로고침</button>
     <button class="btn sm" onclick="closeAdmin()">닫기</button>
   </div>
+  <div class="adchips" id="adfilter"></div>
   <div class="stat" id="adstat"></div>
   <div id="adbody"></div>
 </div>
@@ -1444,8 +1448,30 @@ async function loadAdmin(){
   if(r.오류){ document.getElementById('adbody').innerHTML =
     '<div style="padding:24px;color:var(--bad)">'+esc(r.오류)+'</div>'; return; }
   document.getElementById('adsheet').href = r.시트주소 || '#';
-  const 행 = r.행 || [];
-  비슷한것찾기(행);
+  관리응답 = r; 관리행 = r.행 || [];
+  비슷한것찾기(관리행);
+  관리그리기();
+}
+/* 분반 필터 — 「분반」 시트(학번·이름·분반)에 있는 학생만 분반을 알 수 있다 */
+let 관리응답 = null, 관리행 = [], 관리분반 = '';
+try{ 관리분반 = localStorage.getItem('adminBun') || ''; }catch(e){}
+function 분반고르기(b){
+  관리분반 = b;
+  try{ localStorage.setItem('adminBun', b); }catch(e){}
+  관리그리기();
+}
+function 관리그리기(){
+  const r = 관리응답; if(!r) return;
+  const 전체 = 관리행;
+  const 분반들 = ['A', 'B', 'C'];
+  const 수 = b => 전체.filter(x => b === '미지정' ? !x.분반 : x.분반 === b).length;
+  const 칩 = (b, 글) => '<button class="btn sm' + (관리분반 === b ? ' on' : '') + '" onclick="분반고르기(\'' + b + '\')">' + 글 + '</button>';
+  const 안내 = r.분반있음 ? '' : '<span class="note">분반 정보가 없습니다. 구글 시트에 「분반」 시트(학번·이름·분반)를 만들어 채우면 분반별로 볼 수 있어요.</span>';
+  document.getElementById('adfilter').innerHTML =
+    칩('', '전체 ' + 전체.length) + 분반들.map(b => 칩(b, b + '반 ' + 수(b))).join('') +
+    (수('미지정') && r.분반있음 ? 칩('미지정', '분반 미지정 ' + 수('미지정')) : '') + 안내;
+  if(관리분반 && !r.분반있음) 관리분반 = '';
+  const 행 = !관리분반 ? 전체 : 전체.filter(x => 관리분반 === '미지정' ? !x.분반 : x.분반 === 관리분반);
   const 경고HTML = r.경고
     ? '<div class="adwarn">'+esc(r.경고)+'</div>' : '';
   const 예측 = 행.filter(x=>x.트랙==='예측').length;
@@ -1486,7 +1512,7 @@ async function loadAdmin(){
         : esc(x.타깃.이름||'')+' <span class="mini">('+esc(x.타깃.단위||'')+')'+
           (x.타깃.실자료 && x.타깃.실자료!=='없음' ? ' · '+esc(x.타깃.실자료) : '')+'</span>';
       return '<tr><td>'+esc(x.학년)+'-'+esc(x.반)+'-'+esc(x.번호)+' '+esc(x.이름)+
-             '<div class="mini">'+esc(x.학번)+'</div></td>'+
+             '<div class="mini">'+esc(x.학번)+(x.분반 ? ' · '+esc(x.분반)+'반' : '')+'</div></td>'+
              '<td>'+esc(x.트랙)+'</td>'+
              '<td>'+등급뱃지(x.자료등급)+esc(x.주제)+
                (x._비슷.length ? ' <span class="dup" title="'+esc(x._비슷.join(', '))+'">겹침 '+x._비슷.length+'</span>' : '')+

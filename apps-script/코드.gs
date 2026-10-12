@@ -31,6 +31,7 @@ const MODEL        = 'gpt-4.1';   // 기본 모델. KEY 시트 B2 칸에 모델 
 const 추론강도기본  = 'low';       // 추론 모델(gpt-5.x 등)일 때만. KEY 시트 C2 칸에 쓰면 그것을 먼저 쓴다
 const 시트이름      = '시트1';     // 학생 1명당 1행 — 확정한 계획서
 const 채팅시트이름  = '채팅기록';  // 말 한 마디당 1행 — 대화할 때마다 바로 쌓인다
+const 분반시트이름  = '분반';      // 학번 · 이름 · 분반(A/B/C) — 관리자 화면에서 분반별로 거르는 데 쓴다 (선생님이 직접 채운다)
 const 키시트이름    = 'KEY';     // 이 시트 A2 칸에서 OpenAI 키를 읽는다
 
 // 이 스크립트를 스프레드시트에 붙여서(확장 프로그램 → Apps Script) 만들었다면 비워 둔다.
@@ -1191,6 +1192,36 @@ function CSV점검() {
   console.log('받을 수 있는 CSV ' + 모음.length + '개:' + String.fromCharCode(10) + 모음.join(String.fromCharCode(10)));
 }
 
+/* 「분반」 시트 → { 학번: 'A' | 'B' | 'C' } . 머리글에 「학번」과 「분반」이 있으면 그 열을, 없으면 1열=학번 마지막 열=분반으로 읽는다. 시트가 없으면 빈 표. */
+function 분반표_(ss) {
+  const sh = ss.getSheetByName(분반시트이름);
+  const 표 = {};
+  if (!sh || sh.getLastRow() < 1) return 표;
+  const v = sh.getDataRange().getValues();
+  const 머리 = v[0].map(x => String(x).trim());
+  let 학 = 머리.indexOf('학번'), 반 = 머리.indexOf('분반');
+  const 머리있음 = 학 >= 0 && 반 >= 0;
+  if (!머리있음) { 학 = 0; 반 = v[0].length - 1; }
+  for (let r = 머리있음 ? 1 : 0; r < v.length; r++) {
+    const 번호 = String(v[r][학]).trim();
+    const 분 = String(v[r][반]).trim().toUpperCase().replace(/반$/, '');
+    if (번호 && /^[A-Z]$/.test(분)) 표[번호] = 분;
+  }
+  return 표;
+}
+
+/* Apps Script 에서 한 번 실행하면 「분반」 시트가 없을 때 머리글만 만든다. 학번·이름·분반을 채우면 관리자 화면에 분반 필터가 나타난다. */
+function 분반시트만들기() {
+  const ss = 스프레드시트_();
+  let sh = ss.getSheetByName(분반시트이름);
+  if (!sh) sh = ss.insertSheet(분반시트이름);
+  if (sh.getLastRow() < 1) {
+    sh.getRange(1, 1, 1, 3).setValues([['학번', '이름', '분반']]).setFontWeight('bold');
+    sh.setFrozenRows(1);
+  }
+  Logger.log('「' + 분반시트이름 + '」 시트에 학번(8자리) · 이름 · 분반(A/B/C)을 채워 주세요. 학번은 시트1의 학번 칸과 같은 형식입니다.');
+}
+
 /* ════════ 관리자 ════════ */
 function 관리_(req) {
   const a = 인증_(req.token);
@@ -1211,6 +1242,7 @@ function 관리_(req) {
     else if (버전 === 1)
       경고 = '시트1 머리글이 예전 형식입니다. 열 위치가 달라 내용이 어긋나 보일 수 있습니다. ' +
              '쌓인 기록을 다른 시트로 옮긴 뒤 1행을 지우고 최초설정() 을 다시 실행하세요.';
+    const 분반표 = 분반표_(ss);
     for (let r = 시작줄_(sh); r < v.length; r++) {
       const f = [];
       for (let k = 0; k < 6; k++) {
@@ -1221,7 +1253,7 @@ function 관리_(req) {
       }
       행.push({
         시각: String(v[r][0]), 메일: v[r][1], 학번: v[r][2], 이름: v[r][3],
-        학년: v[r][4], 반: v[r][5], 번호: v[r][6],
+        학년: v[r][4], 반: v[r][5], 번호: v[r][6], 분반: 분반표[String(v[r][2])] || '',
         트랙: v[r][7], 주제: v[r][8], 대상: v[r][9], 예측시점: v[r][10], 자료등급: v[r][11],
         연계학과: v[r][12],
         타깃: { 이름: v[r][13], 단위: v[r][14], 실자료: v[r][15] },
@@ -1233,7 +1265,7 @@ function 관리_(req) {
         제외한정보: v[r][57] || '', 확인문장: v[r][58] || '', 제시한보기: v[r][59] || '', 활용방안: v[r][60] || ''
       });
     }
-    return { ok: true, 시트주소: ss.getUrl(), 행: 행, 경고: 경고, 시트행수: v.length };
+    return { ok: true, 시트주소: ss.getUrl(), 행: 행, 경고: 경고, 시트행수: v.length, 분반있음: Object.keys(분반표).length > 0 };
   }
 
   if (req.일 === '대화') {
