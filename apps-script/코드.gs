@@ -425,6 +425,8 @@ function doPost(e) {
       case 'admin':    return 응답_(관리_(req));
       case 'csvstatus': return 응답_(CSV상태_(req));
       case 'csvget':    return 응답_(CSV받기_(req));
+      case 'csvreq':    return 응답_(CSV요청_(req));
+      case 'csvdone':   return 응답_(CSV요청처리_(req));
       default:         return 응답_({ 오류: '알 수 없는 요청입니다.' });
     }
   } catch (err) {
@@ -1094,6 +1096,7 @@ function 내기록_(메일) {
    폴더 이름이 겹치거나 옮겼다면 스크립트 속성 CSV_FOLDER_ID 에 폴더 ID 를 넣으면 그쪽을 먼저 쓴다. */
 const CSV폴더이름 = 'csv_out';
 const 다운로드시트이름 = '다운로드기록';
+const 요청시트이름 = '주제변경요청';   // 학생이 download.html 에서 「확인했어요」 또는 「바꾸고 싶어요」를 낸 기록
 
 function CSV대상_(req, a) {
   // 학생은 자기 학번만. 관리자는 학번을 지정해 시험해 볼 수 있다(서버가 관리자인지 확인한다).
@@ -1153,8 +1156,100 @@ function CSV상태_(req) {
                 확정: !!기록.있음, 주제: 기록.있음 ? 기록.주제 : '', 트랙: 기록.있음 ? 기록.트랙 : '', 파일: null };
   if (!기록.있음) return out;
   const f = CSV찾기_(대상.학번);
-  if (f) out.파일 = { 이름: f.getName(), 크기: f.getSize() };
+  if (f) {
+    out.파일 = { 이름: f.getName(), 크기: f.getSize() };
+    try { out.열 = CSV열_(f); } catch (e) { console.error('열 읽기 실패: ' + e); }
+    try { out.안내 = CSV안내_(f, 대상.학번); } catch (e) { console.error('안내 읽기 실패: ' + e); }
+  }
+  try { out.요청 = 요청내역_(대상.학번); } catch (e) { console.error('요청 읽기 실패: ' + e); }
   return out;
+}
+
+/* CSV 첫 줄(열 이름)만 돌려준다 — 학생이 받기 전에 어떤 열이 있는지 볼 수 있게 (값은 보내지 않는다) */
+function CSV열_(f) {
+  const 첫줄 = f.getBlob().getDataAsString('UTF-8').replace(/^\uFEFF/, '').split('\n')[0].replace(/\r$/, '');
+  return 첫줄.split(',');
+}
+
+/* 같은 폴더의 「학번_안내.json」(학생용 변경 안내) 을 읽는다. 없으면 null. 교사용 데이터 사전(.md)은 읽지 않는다. */
+function CSV안내_(f, 학번) {
+  const it = f.getParents().hasNext() ? f.getParents().next().getFilesByName(학번 + '_안내.json') : null;
+  if (!it || !it.hasNext()) return null;
+  const j = JSON.parse(it.next().getBlob().getDataAsString('UTF-8'));
+  return { 데이터주제: String(j.데이터주제 || ''), 자료: String(j.자료 || ''), 바뀐점: (j.바뀐점 || []).map(String) };
+}
+
+/* ── 주제 변경 요청 / 확인 ── */
+function 요청시트_(ss) {
+  let sh = ss.getSheetByName(요청시트이름);
+  if (!sh) {
+    sh = ss.insertSheet(요청시트이름);
+    sh.appendRow(['시각', '학번', '이름', '종류', '이유', '내용', '상태', '처리메모']);
+    sh.setFrozenRows(1);
+  }
+  return sh;
+}
+
+/* 한 학생의 가장 최근 요청과 확인 기록 */
+function 요청내역_(학번) {
+  const sh = 스프레드시트_().getSheetByName(요청시트이름);
+  if (!sh || sh.getLastRow() < 2) return { 확인: false, 변경: null };
+  const v = sh.getRange(2, 1, sh.getLastRow() - 1, 8).getValues();
+  let 확인 = false, 변경 = null;
+  v.forEach(r => {
+    if (String(r[1]) !== String(학번)) return;
+    if (r[3] === '확인') 확인 = true;
+    if (r[3] === '바꾸고싶어요') 변경 = { 시각: Utilities.formatDate(new Date(r[0]), 'Asia/Seoul', 'M/d HH:mm'), 이유: String(r[4]), 내용: String(r[5]), 상태: String(r[6]), 메모: String(r[7] || '') };
+  });
+  return { 확인: 확인, 변경: 변경 };
+}
+
+function CSV요청_(req) {
+  const a = 인증_(req.token);
+  if (!a.ok) return a;
+  const 대상 = CSV대상_(req, a);
+  if (대상.오류) return 대상;
+  if (!내기록_(대상.메일).있음) return { 오류: '먼저 수행평가 계획서를 확정해야 합니다.' };
+  const 종류 = String(req.종류 || '');
+  if (['확인', '바꾸고싶어요'].indexOf(종류) < 0) return { 오류: '알 수 없는 요청입니다.' };
+  const 이유 = String(req.이유 || '').slice(0, 40);
+  const 내용 = String(req.내용 || '').trim().slice(0, 400);
+  if (종류 === '바꾸고싶어요' && (!이유 || 내용.length < 5)) return { 오류: '이유를 고르고, 어떻게 바꾸고 싶은지 한 줄(5자 이상) 써 주세요.' };
+  const lock = LockService.getScriptLock();
+  lock.tryLock(8000);
+  try {
+    const sh = 요청시트_(스프레드시트_());
+    const v = sh.getLastRow() > 1 ? sh.getRange(2, 1, sh.getLastRow() - 1, 8).getValues() : [];
+    let 줄 = -1;
+    for (let i = v.length - 1; i >= 0; i--) {
+      if (String(v[i][1]) === String(대상.학번) && v[i][3] === 종류 && (종류 === '확인' || v[i][6] === '대기')) { 줄 = i + 2; break; }
+    }
+    if (종류 === '확인') {
+      if (줄 < 0) sh.appendRow([new Date(), 대상.학번, a.이름 || '', '확인', '', '', '확인함', '']);
+    } else if (줄 > 0) {                               // 아직 처리 전 요청이 있으면 그 내용을 고친다
+      sh.getRange(줄, 1, 1, 7).setValues([[new Date(), 대상.학번, a.이름 || '', 종류, 이유, 내용, '대기']]);
+    } else {
+      sh.appendRow([new Date(), 대상.학번, a.이름 || '', 종류, 이유, 내용, '대기', '']);
+    }
+  } finally { try { lock.releaseLock(); } catch (e) {} }
+  return { ok: true, 요청: 요청내역_(대상.학번) };
+}
+
+/* 관리자가 요청을 처리했다고 표시한다 (메모는 학생에게 보인다) */
+function CSV요청처리_(req) {
+  const a = 인증_(req.token);
+  if (!a.ok) return a;
+  if (!a.관리자) return { 오류: '관리자만 쓸 수 있습니다.' };
+  const sh = 스프레드시트_().getSheetByName(요청시트이름);
+  if (!sh || sh.getLastRow() < 2) return { ok: true };
+  const v = sh.getRange(2, 1, sh.getLastRow() - 1, 8).getValues();
+  const 학번 = String(req.학번 || ''), 메모 = String(req.메모 || '').slice(0, 200);
+  v.forEach((r, i) => {
+    if (String(r[1]) === 학번 && r[3] === '바꾸고싶어요' && r[6] === '대기') {
+      sh.getRange(i + 2, 7, 1, 2).setValues([['처리됨', 메모]]);
+    }
+  });
+  return { ok: true };
 }
 
 function CSV받기_(req) {
@@ -1190,6 +1285,18 @@ function CSV점검() {
     while (ds.hasNext()) 걷기(ds.next(), 깊이 + 1);
   })(뿌리, 0);
   console.log('받을 수 있는 CSV ' + 모음.length + '개:' + String.fromCharCode(10) + 모음.join(String.fromCharCode(10)));
+}
+
+/* 「주제변경요청」 시트 → { 학번: { 이유, 내용, 시각 } } (처리 전인 것만) */
+function 요청표_(ss) {
+  const sh = ss.getSheetByName(요청시트이름);
+  const 표 = {};
+  if (!sh || sh.getLastRow() < 2) return 표;
+  sh.getRange(2, 1, sh.getLastRow() - 1, 8).getValues().forEach(r => {
+    if (r[3] === '바꾸고싶어요' && r[6] === '대기')
+      표[String(r[1])] = { 이유: String(r[4]), 내용: String(r[5]), 시각: Utilities.formatDate(new Date(r[0]), 'Asia/Seoul', 'M/d HH:mm') };
+  });
+  return 표;
 }
 
 /* 「분반」 시트 → { 학번: 'A' | 'B' | 'C' } . 머리글에 「학번」과 「분반」이 있으면 그 열을, 없으면 1열=학번 마지막 열=분반으로 읽는다. 시트가 없으면 빈 표. */
@@ -1243,6 +1350,7 @@ function 관리_(req) {
       경고 = '시트1 머리글이 예전 형식입니다. 열 위치가 달라 내용이 어긋나 보일 수 있습니다. ' +
              '쌓인 기록을 다른 시트로 옮긴 뒤 1행을 지우고 최초설정() 을 다시 실행하세요.';
     const 분반표 = 분반표_(ss);
+    const 요청표 = 요청표_(ss);
     for (let r = 시작줄_(sh); r < v.length; r++) {
       const f = [];
       for (let k = 0; k < 6; k++) {
@@ -1253,7 +1361,7 @@ function 관리_(req) {
       }
       행.push({
         시각: String(v[r][0]), 메일: v[r][1], 학번: v[r][2], 이름: v[r][3],
-        학년: v[r][4], 반: v[r][5], 번호: v[r][6], 분반: 분반표[String(v[r][2])] || '',
+        학년: v[r][4], 반: v[r][5], 번호: v[r][6], 분반: 분반표[String(v[r][2])] || '', 변경요청: 요청표[String(v[r][2])] || null,
         트랙: v[r][7], 주제: v[r][8], 대상: v[r][9], 예측시점: v[r][10], 자료등급: v[r][11],
         연계학과: v[r][12],
         타깃: { 이름: v[r][13], 단위: v[r][14], 실자료: v[r][15] },

@@ -385,6 +385,8 @@ table.ad th{font-size:13.5px}
 .stat{font-size:15px}
 
 /* 관리자 — 주제 겹침 · 대화 보기 */
+.reqchip{margin:6px 0 2px;padding:7px 10px;border-radius:8px;background:#FFF1D6;color:#6A3F00;font-size:13.5px;border:1px solid #E3B15F}
+.reqchip b{color:#8A4B06}
 .adchips{display:flex;gap:6px;flex-wrap:wrap;align-items:center;padding:8px 18px 4px}
 .adchips .btn.on{background:#1f3d8f;color:#fff;border-color:#1f3d8f}
 .adchips .note{font-size:13px;color:var(--muted);margin-left:6px}
@@ -1519,6 +1521,7 @@ function 관리그리기(){
                '<div class="mini">'+(x.연계학과? '<b>'+esc(x.연계학과)+'</b> · ':'')+esc(x.대상||'')+(x.예측시점? ' · '+esc(x.예측시점):'')+
                (x.타깃 && x.타깃.실자료 && x.타깃.실자료!=='없음'
                  ? ' · 타깃 '+esc(x.타깃.실자료) : '')+'</div>'+
+               (x.변경요청 ? '<div class="reqchip"><b>주제 변경 요청</b> '+esc(x.변경요청.시각)+' · '+esc(x.변경요청.이유)+'<br>'+esc(x.변경요청.내용)+'<br><button class="btn sm" onclick="요청처리(\''+esc(x.학번)+'\')">처리했어요</button></div>' : '')+
                (x.점검메모? '<div class="mini">'+esc(x.점검메모)+'</div>':'')+
                (x.확인문장? '<div class="mini"><b>내 말:</b> '+esc(x.확인문장)+'</div>':'')+
                (x.활용방안? '<div class="mini"><b>문제 해결 활용:</b> '+esc(x.활용방안)+'</div>':'')+
@@ -1531,6 +1534,13 @@ function 관리그리기(){
              '<td style="white-space:nowrap"><button class="btn sm" onclick="대화보기(\''+esc(x.학번)+'\',\''+esc(x.이름)+'\')">대화</button> '+
              '<button class="btn sm" onclick="delOne(\''+esc(x.메일)+'\')">삭제</button></td></tr>';
     }).join('')+'</tbody></table>';
+}
+async function 요청처리(학번){
+  const 메모 = prompt('학생에게 보일 메모를 써 주세요. (예: 데이터를 다시 만들었어요 / 계획서를 다시 써 주세요)', '데이터를 다시 만들었어요.');
+  if(메모 === null) return;
+  const r = await api({action:'csvdone', 학번:학번, 메모:메모});
+  if(r.오류){ alert(r.오류); return; }
+  loadAdmin();
 }
 /* 비슷한 주제 — 맞힐 것 이름과 주제를 두 글자씩 쪼개 겹치는 정도로 본다 */
 function 조각(t){

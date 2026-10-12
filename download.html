@@ -135,6 +135,51 @@ a{color:var(--teal)}
   #ubar{font-size:13px;padding:4px 10px}
   #login .box{padding:32px 22px 26px}
 }
+/* ════════ 내 주제 → 데이터 주제 ════════ */
+.swap{display:grid;grid-template-columns:1fr auto 1fr;gap:12px;align-items:stretch}
+.swap .side{border-radius:16px;padding:14px 16px;border:1.5px solid var(--line-2);background:#FBFAF4}
+.swap .side.new{border-color:var(--teal);background:var(--teal-soft)}
+.swap .side small{display:block;font-size:12.5px;font-weight:800;letter-spacing:.04em;color:var(--muted);margin-bottom:4px}
+.swap .side.new small{color:var(--teal)}
+.swap .side b{font-size:17px;line-height:1.5;font-weight:700;letter-spacing:-.02em}
+.swap .arrow{align-self:center;font-size:26px;color:var(--teal);font-weight:800}
+.same{font-size:15px;color:var(--teal-deep);background:var(--teal-soft);border-radius:14px;padding:12px 16px}
+.src{display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:800;padding:3px 12px;border-radius:999px;margin:12px 0 0}
+.src.real{background:var(--teal-soft);color:var(--teal)}
+.src.mix{background:#E4EEF9;color:#1F4E8C}
+.src.synth{background:var(--amber-soft);color:var(--amber)}
+.srcdesc{font-size:14px;color:var(--muted);margin-top:6px}
+.chg{list-style:none;margin:14px 0 0;padding:0;display:grid;gap:10px}
+.chg li{display:grid;grid-template-columns:22px 1fr;gap:10px;font-size:15.5px;color:var(--ink-2)}
+.chg li::before{content:"✎";color:var(--teal);font-weight:800;text-align:center}
+.cols{display:flex;flex-wrap:wrap;gap:7px;margin-top:6px}
+.col{font-size:13.5px;padding:4px 11px;border-radius:999px;background:#F2EFE3;border:1px solid var(--line-2);color:var(--ink-2);word-break:break-all}
+.col.y{background:var(--teal);border-color:var(--teal);color:#fff;font-weight:700}
+.col.id{background:transparent;border-style:dashed;color:var(--muted)}
+.colkey{font-size:13px;color:var(--muted);margin-top:10px}
+
+/* ════════ 이 데이터로 할까요? ════════ */
+.fb{display:grid;gap:12px}
+.fb .two{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.fb .btn{width:100%;padding:13px 16px;border-radius:16px;font-size:15.5px}
+.reason{display:grid;gap:8px;margin:14px 0 10px}
+.reason label{display:flex;gap:10px;align-items:flex-start;padding:11px 14px;border:1.5px solid var(--line);border-radius:14px;cursor:pointer;font-size:15px;line-height:1.5;background:#fff}
+.reason label:has(input:checked){border-color:var(--teal);background:var(--teal-soft)}
+.reason input{margin-top:5px}
+textarea{width:100%;min-height:78px;resize:vertical;padding:12px 14px;border:1.5px solid var(--line);border-radius:14px;font:inherit;font-size:15px;color:var(--ink);line-height:1.6}
+.hint{font-size:13.5px;color:var(--muted);margin:6px 2px 0}
+.stat{display:flex;gap:10px;align-items:flex-start;padding:13px 16px;border-radius:14px;font-size:15px;margin-top:6px}
+.stat.wait{background:var(--amber-soft);color:#6A3F00}
+.stat.done{background:var(--teal-soft);color:var(--teal-deep)}
+.stat b{white-space:nowrap}
+.faq{margin-top:4px;font-size:14.5px;color:var(--ink-2)}
+.faq summary{cursor:pointer;font-weight:700;padding:6px 0;color:var(--ink)}
+.faq p{margin:4px 0 8px}
+@media (max-width:560px){
+  .swap{grid-template-columns:1fr}
+  .swap .arrow{transform:rotate(90deg);justify-self:center}
+  .fb .two{grid-template-columns:1fr}
+}
 </style>
 </head>
 <body>
@@ -284,6 +329,65 @@ async function 학번보기(내것){
 }
 function 크기글(n){ return n < 1024 ? n+' B' : n < 1048576 ? (n/1024).toFixed(0)+' KB' : (n/1048576).toFixed(1)+' MB'; }
 
+const 자료설명 = {
+  '실제 자료': ['real', '실제로 기록된 자료로 만들었어요.'],
+  '실제 날씨·달력 + 규칙으로 만든 값': ['mix', '날씨와 달력은 실제 값이고, 나머지는 현실의 관계를 따라 규칙으로 만든 값이에요.'],
+  '규칙으로 만든 가상 자료': ['synth', '실제 자료를 구할 수 없어서, 그 분야에서 알려진 관계를 따라 만든 연습용 자료예요. 현실의 실제 값은 아니에요.']
+};
+function 열그리기(열){
+  if(!열 || !열.length) return '';
+  const 식별 = /^(날짜|기준일|영상|참가자|실험번호|환자번호|환자|기록|경기|과제|측정|웨이퍼|실험)$/;
+  const 칩 = 열.map((c, i) => {
+    const 이름 = c.replace(/_/g, ' ');
+    if(i === 열.length - 1) return '<span class="col y" title="맞힐 값">'+esc(이름)+'</span>';
+    if(i === 0 && 식별.test(c)) return '<span class="col id" title="행을 구분하는 열">'+esc(이름)+'</span>';
+    return '<span class="col">'+esc(이름)+'</span>';
+  }).join('');
+  return '<div class="cols">'+칩+'</div><div class="colkey">초록색은 맞힐 값(y), 점선은 행을 구분하는 열이에요. 나머지는 맞히는 데 쓸 수 있는 정보(x 후보)예요. 수행평가에서는 이 중 4개를 직접 골라요.</div>';
+}
+function 바뀜카드(s){
+  const 안 = s.안내;
+  if(!안) return '';
+  const 자 = 자료설명[안.자료] || ['synth', ''];
+  const 같음 = !안.바뀐점.length;
+  const 위 = (같음 || String(안.데이터주제).replace(/\s/g,'') === String(s.주제||'').replace(/\s/g,''))
+    ? '<div class="same">내가 정한 주제 그대로 데이터를 만들었어요.</div>'
+    : '<div class="swap"><div class="side"><small>내가 정한 주제</small><b>'+esc(s.주제||'')+'</b></div><div class="arrow" aria-hidden="true">→</div>' +
+      '<div class="side new"><small>데이터로 만든 주제</small><b>'+esc(안.데이터주제)+'</b></div></div>';
+  return '<div class="card"><h3>내 주제와 데이터</h3>' + 위 +
+    (안.바뀐점.length ? '<ul class="chg">'+안.바뀐점.map(t=>'<li><span>'+esc(t)+'</span></li>').join('')+'</ul>' : '') +
+    '<span class="src '+자[0]+'">'+esc(안.자료)+'</span>' + (자[1] ? '<div class="srcdesc">'+esc(자[1])+'</div>' : '') + '</div>';
+}
+function 응답카드(s){
+  const q = s.요청 || {확인:false, 변경:null}, 변경 = q.변경;
+  let h = '<div class="card" id="fbcard"><h3>이 데이터로 해도 될까요?</h3>';
+  if(변경 && 변경.상태 === '대기'){
+    h += '<div class="stat wait"><b>바꾸고 싶어요 접수됨</b><span>'+esc(변경.시각)+' · '+esc(변경.이유)+'<br>'+esc(변경.내용)+'<br><span class="hint">선생님이 확인한 뒤 이 화면에 메모를 남겨요. 기다리는 동안 지금 데이터로 수행평가를 계속 연습해도 돼요.</span></span></div>' +
+      '<div class="cta"><button class="btn sm" onclick="요청열기()">내용 고치기</button></div>';
+  } else if(변경 && 변경.상태 === '처리됨'){
+    h += '<div class="stat done"><b>선생님 답</b><span>'+esc(변경.메모 || '확인했어요.')+'<br><span class="hint">'+esc(변경.시각)+' 요청 · '+esc(변경.이유)+'</span></span></div>' +
+      '<div class="cta"><button class="btn sm" onclick="요청열기()">다시 요청하기</button></div>';
+  } else if(q.확인){
+    h += '<div class="stat done"><b>확인했어요</b><span>이 데이터로 하기로 했어요. 마음이 바뀌면 아래에서 언제든 바꾸고 싶다고 알려 주세요.</span></div>' +
+      '<div class="cta"><button class="btn sm" onclick="요청열기()">바꾸고 싶어졌어요</button></div>';
+  } else {
+    h += '<p class="lead" style="font-size:15.5px;margin:0 0 12px">받은 데이터를 훑어보고, 이대로 해도 되는지 알려 주세요. 선생님이 반 전체의 의견을 보고 필요하면 데이터를 고쳐 줘요.</p>' +
+      '<div class="fb"><div class="two"><button class="btn main" onclick="확인하기()">좋아요, 이 데이터로 할게요</button>' +
+      '<button class="btn" onclick="요청열기()">바꾸고 싶어요</button></div></div>';
+  }
+  h += '<div id="reqform" class="hide">' +
+    '<div class="reason" role="radiogroup" aria-label="바꾸고 싶은 이유">' +
+      '<label><input type="radio" name="why" value="정보·맞힐 값만 바꾸고 싶어요"><span><b>주제는 그대로, 정보(x)나 맞힐 값(y)을 조금 바꾸고 싶어요</b><br><span class="hint">예: 이 열 말고 다른 정보를 쓰고 싶어요</span></span></label>' +
+      '<label><input type="radio" name="why" value="다른 주제로 하고 싶어요"><span><b>마음에 안 들어요. 다른 주제로 하고 싶어요</b><br><span class="hint">예: 데이터가 내 관심과 너무 달라요 / 너무 어려워요</span></span></label>' +
+      '<label><input type="radio" name="why" value="데이터가 이상해요"><span><b>데이터가 이상하거나 파일이 잘 안 열려요</b><br><span class="hint">예: 값이 말이 안 되는 것 같아요 / 열 이름이 이상해요</span></span></label></div>' +
+    '<textarea id="reqtxt" maxlength="400" placeholder="어떻게 바꾸고 싶은지, 왜 그런지 한두 문장으로 써 주세요. (5자 이상)">'+esc(변경 ? 변경.내용 : '')+'</textarea>' +
+    '<div class="hint">보낸 내용은 선생님만 봐요. 한 번에 하나만 접수돼요(다시 보내면 내용이 바뀌어요).</div>' +
+    '<div class="cta"><button class="btn main" id="reqbtn" onclick="요청보내기()">선생님께 보내기</button><button class="btn ghost" onclick="요청닫기()">그만두기</button></div><div id="reqmsg"></div></div>' +
+    '<details class="faq"><summary>다른 주제로 완전히 바꾸고 싶다면?</summary><p>먼저 위에서 「다른 주제로 하고 싶어요」를 보내 주세요. 선생님이 확인하고 데이터를 다시 만들거나, 계획서를 다시 쓰도록 열어 줘요. ' +
+    '계획서에서 혼자 주제를 바꾸면 이미 만든 데이터와 맞지 않아 수행평가를 할 수 없을 수 있어요.</p></details></div>';
+  return h;
+}
+
 function 그리기(){
   const s = 상태, 파일 = s.파일, W = $('wrap');
   const 이름 = (!s.지정 && s.이름) || (파일 ? 파일.이름.replace(/^\d+_/,'').replace(/\.csv$/i,'') : '');
@@ -310,19 +414,42 @@ function 그리기(){
       '<div class="cta"><button class="btn main" id="refbtn" onclick="새로고침()">다시 확인하기</button></div></div>';
   } else {
     h = '<p class="hello">'+esc(이름)+' 님</p><h2>'+(받았음?'데이터를 받았어요':'내 데이터가 준비됐어요')+'</h2>' +
-      '<p class="lead">'+(받았음?'「다운로드」 폴더에 저장됩니다. 못 찾겠으면 다시 받을 수 있어요.':'계획서에서 정한 주제에 맞춘 CSV 파일이에요.')+'</p>' +
-      흐름(true,받았음) + 주제카드 +
+      '<p class="lead">'+(받았음?'「다운로드」 폴더에 저장됩니다. 못 찾겠으면 다시 받을 수 있어요.':'내 주제에 맞춘 CSV 파일이에요. 받기 전에 어떻게 만들어졌는지 먼저 읽어 보세요.')+'</p>' +
+      흐름(true,받았음) +
+      (s.안내 ? 바뀜카드(s) : 주제카드) +
       '<div class="card"><div class="file"><div class="ficon">CSV</div><div>' +
         '<span class="pill ok">받을 수 있어요</span><div class="fname" style="margin-top:6px">'+esc(파일.이름)+'</div>' +
-        '<div class="fmeta num">'+(파일.크기?크기글(파일.크기):'')+'</div></div></div>' +
+        '<div class="fmeta num">'+(파일.크기?크기글(파일.크기):'')+(s.열 ? ' · 열 '+s.열.length+'개' : '')+'</div></div></div>' +
+      (s.열 ? '<div style="margin-top:16px">'+열그리기(s.열)+'</div>' : '') +
       '<div class="cta"><button class="btn main big" id="dlbtn" onclick="받기()">'+(받았음?'↓ 다시 받기':'↓ CSV 파일 받기')+'</button></div>' +
       '<div id="dlmsg"></div></div>' +
+      응답카드(s) +
       '<div class="card"><h3>받은 다음에는</h3><ol class="steps">' +
         '<li><span>파일을 구글 코랩(또는 쓰는 파이썬 환경)에 올려요.</span></li>' +
         '<li><span><code>pd.read_csv("'+esc(파일.이름)+'")</code> 로 읽어요. 파일 이름은 바꾸지 마세요.</span></li>' +
         '<li><span>수행평가지 순서(결측치 → 이상치 → 상관 → 모델)대로 진행해요.</span></li></ol></div>';
   }
   W.innerHTML = h + 시험 + 관리자칸();
+}
+
+/* ── 이 데이터로 할까요? ── */
+function 요청열기(){ const f = $('reqform'); if(f){ f.classList.remove('hide'); f.scrollIntoView({behavior:'smooth', block:'center'}); } }
+function 요청닫기(){ const f = $('reqform'); if(f) f.classList.add('hide'); }
+async function 확인하기(){
+  const r = await api({action:'csvreq', 종류:'확인', 학번:지정학번});
+  if(r.오류){ alert(r.오류); return; }
+  상태.요청 = r.요청; 그리기();
+}
+async function 요청보내기(){
+  const 이유 = (document.querySelector('input[name="why"]:checked') || {}).value || '';
+  const 내용 = ($('reqtxt').value || '').trim();
+  const m = $('reqmsg');
+  if(!이유){ m.innerHTML = '<div class="note bad">바꾸고 싶은 이유를 하나 골라 주세요.</div>'; return; }
+  if(내용.length < 5){ m.innerHTML = '<div class="note bad">어떻게 바꾸고 싶은지 한 줄(5자 이상) 써 주세요.</div>'; return; }
+  const b = $('reqbtn'); b.disabled = true; b.innerHTML = '<span class="spin"></span> 보내는 중';
+  const r = await api({action:'csvreq', 종류:'바꾸고싶어요', 이유:이유, 내용:내용, 학번:지정학번});
+  if(r.오류 || !r.ok){ b.disabled = false; b.textContent = '선생님께 보내기'; m.innerHTML = '<div class="note bad">'+esc(r.오류 || '보내지 못했어요. 잠시 뒤 다시 눌러 주세요.')+'</div>'; return; }
+  상태.요청 = r.요청; 그리기();
 }
 async function 새로고침(){
   const b = $('refbtn');
