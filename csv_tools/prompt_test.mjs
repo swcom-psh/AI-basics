@@ -40,7 +40,7 @@ async function 호출(이름, 말) {
   const messages = [
     { role: 'system', content: 프롬프트 },
     { role: 'user', content: '안녕하세요. 수행평가 주제를 정하고 싶습니다. 무엇부터 하면 될까요?' },
-    { role: 'assistant', content: '안녕하세요! 관심 있는 분야나 가고 싶은 학과가 있나요? 아직 잘 모르겠으면 요즘 시간을 제일 많이 쓰는 것이나 해 본 일(알바·동아리 등)을 말해 줘도 돼요.' },
+    { role: 'assistant', content: '안녕하세요! 요즘 관심 있거나 궁금한 게 있나요? 가고 싶은 학과가 있으면 말해 줘도 되고, 없어도 괜찮아요. 시간을 제일 많이 쓰는 것이나 해 본 일(알바·동아리 등)도 좋아요.' },
     { role: 'user', content: 말 },
   ];
   const payload = { model: 모델, messages, response_format: { type: 'json_schema', json_schema: { name: 'topic_step', strict: true, schema: 스키마 } } };

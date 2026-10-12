@@ -270,6 +270,16 @@ y 후보는 아래 순서로 학생마다 새로 만든다. 이 프롬프트에 
    · 그 사람이 곧 스스로 정하는 행동을 그 사람 본인이 맞힌다(예: 내가 과제를 낼지 말지를 내가 맞히기. 스스로 정하면 되는 것이라 맞힐 이유가 없다).
    · 이미 알고 있는 값이거나, 그 값에 영향을 줄 수 없는 사람이 쓴다.
    · 문제가 「알고 싶다」「궁금하다」 수준이다.
+   · 억지스럽다 : 아래 중 하나라도 해당하면 후보에서 뺀다.
+     - 학생이 한 말에서 한 걸음에 이어지지 않고, 분야 이름만 끼워 넣은 느낌이다(예: 편의점 알바 얘기에 갑자기 우주나 날씨).
+     - 그 문제를 실제로 겪는 사람이 현실에 없거나, 겪는다 해도 이 값을 알아서 바꿀 수 있는 행동이 어색하다.
+     - 그 값을 누군가 꾸준히 기록한다고 보기 어렵다(처음 보는 지표, 학생이 일부러 세어야 하는 값).
+     - 예측하려는 값과 쓸 만한 정보가 거의 같은 것이거나, 값이 정해진 규칙이면 계산으로 알 수 있다(예: 요금표대로 나오는 요금).
+     - 맞히려는 값을 담당자가 계획이나 결정으로 정한다(생산량, 인쇄할 양, 편성한 식재료비, 정해 둔 활동 시간처럼). 정해지는 값은 맞힐 것이 아니라 정할 것이다.
+     - 분류인데 기준이 사람마다 달라지는 말이다(집중이 필요한 날, 관리 부담이 큰 날, 분위기가 좋은 날). 분류는 "평소 같은 요일보다 많으면 많음"처럼 기록된 숫자로 기준을 말할 수 있어야 한다.
+     - 일상 운영에서 실제로 기록되지 않는 값이다(출입 계수기가 없는 가게의 방문 고객 수, 교실에서 세지 않는 질문 수, 학생 개인의 공부 시간).
+     - 문장을 소리 내어 읽었을 때 "왜 굳이 이걸?"이라는 생각이 든다.
+     자연스러운 후보가 둘뿐이면 둘만 보여 준다. 숫자를 채우려고 억지 후보를 만들거나, 학생 말과 상관없는 흔한 소재로 채우지 않는다.
 7. 후보마다 두 가지에 답할 수 있어야 한다 : "이 값은 실제로 어디에 기록되나?", "x로 쓸 숫자 정보가 5개 이상 떠오르나?"
    답이 안 되면 그 후보는 버리고 다시 만든다. 마지막에 ①~⑥으로 걸러 낸다.
 후보의 형태는 "어떤 문제를 이 예측으로 어떻게 줄이는지"를 한 줄로 쓴다. 어느 분야든 같은 방식이다.
@@ -407,6 +417,8 @@ function doPost(e) {
       case 'leave':    return 응답_(나가기_(req));
       case 'rewind':   return 응답_(되돌리기_(req));
       case 'admin':    return 응답_(관리_(req));
+      case 'csvstatus': return 응답_(CSV상태_(req));
+      case 'csvget':    return 응답_(CSV받기_(req));
       default:         return 응답_({ 오류: '알 수 없는 요청입니다.' });
     }
   } catch (err) {
@@ -675,6 +687,30 @@ function 대화_(req) {
     payload.max_completion_tokens = 3000;
   }
 
+  let 결과 = 호출하기_(키, payload);
+  if (결과.오류) return 결과;
+
+  // 후보 목록이 약속한 형식(번호·[예측]/[분류]·문제→해결)이 아니거나 억지스러우면 한 번만 고쳐 쓰게 한다
+  const 문제 = 후보점검_(결과.out);
+  if (문제.length) {
+    console.warn('후보 형식 재작성: ' + 문제.join(' / '));
+    const 다시 = JSON.parse(JSON.stringify(payload));
+    다시.messages.push({ role: 'assistant', content: JSON.stringify(결과.out) });
+    다시.messages.push({ role: 'system', content:
+      '방금 후보 목록에 다음 문제가 있다: ' + 문제.join(' / ') + '. 학생에게 보이지 않는 점검이므로 사과하거나 언급하지 말고, ' +
+      '후보 목록을 같은 단계 형식(①②③④, [예측]/[분류], "— 문제: … → 미리 알면 …")으로 다시 써서 같은 JSON 형식으로 답하라. ' +
+      '문제가 있던 후보는 바꾸거나 빼고, 억지스러운 후보는 쓰지 않는다. 후보가 2개여도 좋다.' });
+    const 둘째 = 호출하기_(키, 다시);
+    if (!둘째.오류 && 후보점검_(둘째.out).length <= 문제.length) 결과 = 둘째;
+  }
+  const out = 결과.out;
+  try { 후보걸러내기_(키, 설정, out); } catch (e) { console.error('후보 검토 실패: ' + e); }   // 실패해도 원래 후보를 그대로 쓴다
+  try { 채팅남기기_(a, req, out); } catch (e) { console.error('채팅기록 실패: ' + e); }  // 기록이 실패해도 대화는 이어간다
+  return out;
+}
+
+// OpenAI 한 번 호출 → { out } 또는 { 오류, 재시도가능 }
+function 호출하기_(키, payload) {
   // 한 반이 동시에 보내면 분당 한도(429)나 일시 오류(5xx)가 난다 — 조금씩 늦춰 두 번 더 시도한다
   let res = null, code = 0;
   for (let 시도 = 0; 시도 < 3; 시도++) {
@@ -704,12 +740,83 @@ function 대화_(req) {
       return { 오류: '답이 너무 길어 중간에 끊겼습니다. 「다시 보내기」를 눌러 주세요.' };
     const out = JSON.parse(c.message.content);
     out.사용토큰 = (j.usage && j.usage.total_tokens) || 0;
-    try { 채팅남기기_(a, req, out); } catch (e) { console.error('채팅기록 실패: ' + e); }  // 기록이 실패해도 대화는 이어간다
-    return out;
+    return { out: out };
   } catch (err) {
     console.error('parse: ' + res.getContentText().slice(0, 500));
     return { 오류: '답의 형식이 올바르지 않습니다. 「다시 보내기」를 눌러 주세요.' };
   }
+}
+
+const 후보검토프롬프트 = `
+고등학교 2학년 학생이 수행평가로 정하는 기계학습 주제(맞힐 값 y) 후보 목록을 검토한다.
+후보마다 아래 중 하나라도 해당하면 "억지"로 판정하고, 해당하지 않으면 "자연"으로 판정한다.
+- 학생이 한 말에서 한 걸음에 이어지지 않고 분야 이름만 끼워 넣었다.
+- 그 문제를 실제로 겪는 사람이 없거나, 이 값을 알아서 바꿀 행동이 어색하다.
+- 맞히려는 값을 담당자가 계획·결정으로 정한다(생산량, 인쇄할 양, 정해 둔 활동 시간, 편성한 예산 등).
+- 분류인데 기준이 사람마다 달라지는 말이다(집중이 필요한 날, 관리 부담이 큰 날). 기록된 숫자로 기준을 말할 수 없다.
+- 일상 운영에서 실제로 기록되지 않는 값이다(출입 계수기 없는 가게의 방문 고객 수, 교실에서 세지 않는 질문 수, 학생 개인의 공부 시간).
+- 규칙이나 표로 정해져 계산만 하면 알 수 있는 값이거나, 달력·마감표만 보면 이미 아는 값이다.
+- 소리 내어 읽으면 "왜 굳이 이걸?"이라는 생각이 든다.
+`.trim();
+
+// 후보 목록을 한 번 더 읽어 억지스러운 후보를 거른다. 자연스러운 후보가 2개 이상 남을 때만 목록을 바꾼다(번호는 다시 붙인다).
+function 후보걸러내기_(키, 설정, out) {
+  if (!out || out.단계 !== '맞힐것정하기') return;
+  const 줄들 = String(out.답변 || '').split('\n');
+  const 후보 = 줄들.map((l, i) => ({ l: l, i: i })).filter(x => /^\s*[①②③④⑤⑥]/.test(x.l));
+  if (후보.length < 3) return;                       // 2개 이하는 더 줄이지 않는다
+  const 검토 = {
+    model: 설정.모델,
+    messages: [
+      { role: 'system', content: 후보검토프롬프트 },
+      { role: 'user', content: 후보.map(x => x.l.trim()).join('\n') }],
+    response_format: { type: 'json_schema', json_schema: { name: 'review', strict: true, schema: {
+      type: 'object', additionalProperties: false, required: ['판정'],
+      properties: { 판정: { type: 'array', items: { type: 'object', additionalProperties: false, required: ['번호', '억지'],
+        properties: { 번호: { type: 'string' }, 억지: { type: 'boolean' } } } } } } } }
+  };
+  if (설정.추론) { 검토.reasoning_effort = 설정.강도; 검토.max_completion_tokens = 4000; }
+  else { 검토.temperature = 0; 검토.max_completion_tokens = 1500; }
+  const r = 호출하기_(키, 검토);
+  if (r.오류 || !r.out || !r.out.판정) return;
+  const 억지번호 = {};
+  r.out.판정.forEach(x => { if (x.억지) 억지번호[String(x.번호).trim().charAt(0)] = true; });
+  const 남김 = 후보.filter(x => !억지번호[x.l.trim().charAt(0)]);
+  if (남김.length < 2 || 남김.length === 후보.length) return;
+  const 번호들 = ['①', '②', '③', '④', '⑤', '⑥'];
+  const 후보줄 = {};
+  후보.forEach(x => { 후보줄[x.i] = true; });
+  const 새줄 = [];
+  let 넣음 = false;
+  줄들.forEach((l, i) => {
+    if (!후보줄[i]) { 새줄.push(l); return; }
+    if (!넣음) {                                       // 후보가 있던 자리에 남긴 후보를 번호를 새로 붙여 넣는다
+      넣음 = true;
+      남김.forEach((x, k) => 새줄.push(x.l.replace(/^\s*[①②③④⑤⑥]/, 번호들[k])));
+    }
+  });
+  out.답변 = 새줄.join('\n').replace(/\n{3,}/g, '\n\n');
+  console.warn('억지 후보 ' + (후보.length - 남김.length) + '개 제외');
+}
+
+// y 후보 목록(①②…)이 약속한 형식을 지켰는지 본다. 어긋난 점을 글로 돌려준다(없으면 빈 배열).
+function 후보점검_(out) {
+  const 말 = String((out && out.답변) || '');
+  if (!out || out.단계 !== '맞힐것정하기') return [];
+  const 줄들 = 말.split('\n').filter(l => /^\s*[①②③④⑤⑥]/.test(l));
+  if (줄들.length === 0) return /\[(예측|분류)\]/.test(말) ? ['후보에 ①②③④ 번호가 없다'] : [];
+  const 문제 = [];
+  if (줄들.length > 4) 문제.push('후보가 4개를 넘는다');
+  줄들.forEach(l => {
+    const 번호 = l.trim().charAt(0);
+    if (!/\[(예측|분류)\]/.test(l)) 문제.push(번호 + ' 에 [예측]/[분류] 표시가 없다');
+    if (!/문제\s*:/.test(l) && !/→/.test(l)) 문제.push(번호 + ' 에 "문제 → 해결"이 없다');
+    else if (!/→/.test(l)) 문제.push(번호 + ' 에 "→ 미리 알면 …(행동)"이 없다');
+    else if (!/문제\s*:/.test(l) && !/(해서|때문|늦게|못해|어렵|몰라|놓치|남|부족|몰리|지연|혼잡|낭비)/.test(l)) 문제.push(번호 + ' 에 겪는 문제가 분명하지 않다');
+    // 스스로 정하는 행동을 본인이 맞히는 후보(억지)
+    if (/(내가|본인이|스스로)\s*[^→]{0,12}(낼지|할지|갈지|볼지|먹을지|살지|말지)/.test(l)) 문제.push(번호 + ' 은 스스로 정하는 행동을 맞히는 후보라 쓸모가 없다');
+  });
+  return 문제;
 }
 
 function 응답스키마_() {
@@ -980,6 +1087,111 @@ function 내기록_(메일) {
     }
   } catch (e) {}
   return { 있음: false };
+}
+
+/* ════════ 데이터(CSV) 받기 — download.html ════════
+   학생은 계획서를 확정한 뒤에만, 그리고 자기 학번의 파일만 받을 수 있다.
+   파일은 구글 드라이브의 csv_out 폴더(하위 분반 폴더 포함)에서 「학번_이름.csv」를 학번으로 찾는다.
+   (같은 폴더의 「…_데이터사전.md」는 정답이 들어 있으므로 .csv 만 찾는다 — 절대 내보내지 않는다.)
+   폴더 이름이 겹치거나 옮겼다면 스크립트 속성 CSV_FOLDER_ID 에 폴더 ID 를 넣으면 그쪽을 먼저 쓴다. */
+const CSV폴더이름 = 'csv_out';
+const 다운로드시트이름 = '다운로드기록';
+
+function CSV대상_(req, a) {
+  // 학생은 자기 학번만. 관리자는 학번을 지정해 시험해 볼 수 있다(서버가 관리자인지 확인한다).
+  const 지정 = String(req.학번 || '').trim();
+  if (a.관리자 && 지정) {
+    if (!/^\d{4,10}$/.test(지정)) return { 오류: '학번은 숫자로 입력하세요.' };
+    return { 학번: 지정, 메일: 지정 + '@' + DOMAIN, 지정: true };
+  }
+  return { 학번: a.학번, 메일: a.메일, 지정: false };
+}
+
+function CSV뿌리_() {
+  const id = (PropertiesService.getScriptProperties().getProperty('CSV_FOLDER_ID') || '').trim();
+  if (id) { try { return DriveApp.getFolderById(id); } catch (e) { console.error('CSV_FOLDER_ID 를 열 수 없음: ' + e); } }
+  const it = DriveApp.getFoldersByName(CSV폴더이름);
+  return it.hasNext() ? it.next() : null;
+}
+
+function 폴더에서찾기_(폴더, 접두, 깊이) {
+  const fs = 폴더.getFiles();
+  while (fs.hasNext()) {
+    const f = fs.next();
+    if (f.getName().indexOf(접두) === 0 && /\.csv$/i.test(f.getName())) return f;
+  }
+  if (깊이 >= 2) return null;
+  const ds = 폴더.getFolders();
+  while (ds.hasNext()) {
+    const r = 폴더에서찾기_(ds.next(), 접두, 깊이 + 1);
+    if (r) return r;
+  }
+  return null;
+}
+
+function CSV찾기_(학번) {
+  if (!/^\d+$/.test(String(학번))) return null;
+  const cache = CacheService.getScriptCache();
+  const 키 = 'csvf_' + 학번;
+  const hit = cache.get(키);
+  if (hit) {
+    try { const f = DriveApp.getFileById(hit); if (!f.isTrashed()) return f; } catch (e) {}
+  }
+  const 뿌리 = CSV뿌리_();
+  if (!뿌리) return null;
+  const f = 폴더에서찾기_(뿌리, 학번 + '_', 0);
+  if (f) cache.put(키, f.getId(), 300);
+  return f;
+}
+
+/* 계획서를 냈는지, 받을 파일이 있는지만 알려 준다 (파일 내용은 보내지 않는다) */
+function CSV상태_(req) {
+  const a = 인증_(req.token);
+  if (!a.ok) return a;
+  const 대상 = CSV대상_(req, a);
+  if (대상.오류) return 대상;
+  const 기록 = 내기록_(대상.메일);
+  const out = { ok: true, 이름: a.이름, 학번: 대상.학번, 관리자: a.관리자, 지정: 대상.지정,
+                확정: !!기록.있음, 주제: 기록.있음 ? 기록.주제 : '', 트랙: 기록.있음 ? 기록.트랙 : '', 파일: null };
+  if (!기록.있음) return out;
+  const f = CSV찾기_(대상.학번);
+  if (f) out.파일 = { 이름: f.getName(), 크기: f.getSize() };
+  return out;
+}
+
+function CSV받기_(req) {
+  const a = 인증_(req.token);
+  if (!a.ok) return a;
+  const 대상 = CSV대상_(req, a);
+  if (대상.오류) return 대상;
+  if (!내기록_(대상.메일).있음) return { 오류: '먼저 수행평가 계획서를 확정해야 받을 수 있습니다.' };
+  const f = CSV찾기_(대상.학번);
+  if (!f) return { 오류: '아직 이 학번의 데이터가 준비되지 않았습니다.' };
+  let 글 = f.getBlob().getDataAsString('UTF-8');
+  if (글.charCodeAt(0) !== 0xFEFF) 글 = '\uFEFF' + 글;        // 엑셀에서 한글이 깨지지 않게
+  try {
+    const ss = 스프레드시트_();
+    let sh = ss.getSheetByName(다운로드시트이름);
+    if (!sh) { sh = ss.insertSheet(다운로드시트이름); sh.appendRow(['시각', '학번', '이름', '파일', '받은계정']); }
+    sh.appendRow([new Date(), 대상.학번, a.이름 || '', f.getName(), a.메일]);
+  } catch (e) { console.error('다운로드기록 실패: ' + e); }
+  return { ok: true, 파일명: f.getName(), 내용: 글 };
+}
+
+/* 편집기에서 한 번 실행 — 드라이브 접근 권한을 승인하고, 파일이 어디서 어떻게 잡히는지 로그로 보여 준다 */
+function CSV점검() {
+  const 뿌리 = CSV뿌리_();
+  if (!뿌리) { console.log('csv_out 폴더를 찾지 못했습니다. 스크립트 속성 CSV_FOLDER_ID 에 폴더 ID 를 넣으세요.'); return; }
+  console.log('폴더: ' + 뿌리.getName() + ' (' + 뿌리.getId() + ')');
+  const 모음 = [];
+  (function 걷기(폴더, 깊이) {
+    const fs = 폴더.getFiles();
+    while (fs.hasNext()) { const f = fs.next(); if (/\.csv$/i.test(f.getName())) 모음.push(f.getName()); }
+    if (깊이 >= 2) return;
+    const ds = 폴더.getFolders();
+    while (ds.hasNext()) 걷기(ds.next(), 깊이 + 1);
+  })(뿌리, 0);
+  console.log('받을 수 있는 CSV ' + 모음.length + '개:' + String.fromCharCode(10) + 모음.join(String.fromCharCode(10)));
 }
 
 /* ════════ 관리자 ════════ */
