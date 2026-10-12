@@ -380,23 +380,21 @@ async function 관리자목록열기(){
   if(r.오류){ 목록상태 = r.오류; 목록틀그리기(); return; }
   학생목록 = (r.행 || []).map(x => ({학번:String(x.학번), 이름:x.이름 || '', 학년:x.학년, 반:x.반, 번호:x.번호,
     분반:x.분반 || '', 트랙:x.트랙 || '', 주제:x.주제 || '', 요청:x.변경요청 || null}))
-    .sort((a, b) => String(a.학번).localeCompare(String(b.학번)));
+    .sort((a, b) => (a.분반 || '힣').localeCompare(b.분반 || '힣') || String(a.학번).localeCompare(String(b.학번)));
   목록상태 = '';
   목록틀그리기();
   미리불러오기();
 }
 function 목록틀그리기(){
   const A = $('adminlist');
-  const 분반있음 = 학생목록.some(x => x.분반);
-  const 묶음 = 분반있음 ? ['전체'].concat([...new Set(학생목록.map(x => x.분반 || '미지정'))].sort())
-                       : ['전체'].concat([...new Set(학생목록.map(x => x.반 + '반'))].sort((a, b) => parseInt(a) - parseInt(b)));
+  const 묶음 = ['전체'].concat([...new Set(학생목록.map(학생의묶음))].sort());
   A.innerHTML = '<div class="ah"><h4>학생 화면 미리보기</h4><small>' + (학생목록.length ? '계획서를 확정한 학생 ' + 학생목록.length + '명 · 누르면 바로 보여요' : '') + '</small>' +
     '<input type="search" id="asearch" placeholder="이름·학번 찾기" value="' + esc(검색어) + '" oninput="검색바꿈(this.value)">' +
     '<div class="chips">' + 묶음.map(g => '<button class="chip' + (g === 분반필터 ? ' on' : '') + '" onclick="분반바꿈(\'' + g + '\')">' + esc(g) + '</button>').join('') + '</div></div>' +
     '<div id="alist"></div>';
   목록그리기();
 }
-function 학생의묶음(x){ return 학생목록.some(y => y.분반) ? (x.분반 || '미지정') : x.반 + '반'; }
+function 학생의묶음(x){ return x.분반 || '미지정'; }
 function 보이는학생(){
   const q = 검색어.trim();
   return 학생목록.filter(x => (분반필터 === '전체' || 학생의묶음(x) === 분반필터) &&
