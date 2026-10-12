@@ -1025,7 +1025,15 @@ async function 되돌리기(i){
   draw(); paintSpec(); save();
   document.getElementById('q').focus();
 }
+let 판정걸림 = [];                       // 확정할 때 서버의 상식 판정에 걸린 정보 [{이름, 이유, 대안}]
 function 점검요청(){
+  if(판정걸림.length && !보내는중){
+    // 서버가 이 줄들을 읽어 그 정보를 빼고 화면으로 되돌린다 (형식: - 이름 :: 이유 :: 대안)
+    const 줄 = 판정걸림.map(p => '- ' + 한줄정리(p.이름) + ' :: ' + 한줄정리(p.이유) + ' :: ' + 한줄정리(p.대안));
+    판정걸림 = [];
+    보내기('[화면 점검] 상식 판정에서 걸린 정보:\n' + 줄.join('\n'), {숨김:true});
+    return;
+  }
   const 부족 = 검사(정리);
   if(!부족.length || 보내는중) return;
   점검보냄 = true;
@@ -1078,8 +1086,7 @@ function 검사(s){
     if(!있(s.분류기준) || s.분류기준==='해당 없음') 부족.push('두 가지를 나누는 기준');
   }
   const f = s.특성 || [];
-  if(f.length < 4) 부족.push('쓸 정보 4개 이상 (지금 '+f.length+'개)');
-  if(f.length > 6) 부족.push('쓸 정보는 6개까지 (지금 '+f.length+'개)');
+  if(f.length !== 5) 부족.push('쓸 정보는 5개 (지금 '+f.length+'개)');
   const 본것 = {};
   f.forEach((x,i)=>{
     const n = x.이름 || (i+1)+'번째 정보';
@@ -1168,7 +1175,7 @@ function 계획서HTML(s, 도장){
 
   // Ⅲ 쓸 정보 (x)
   h += '<table class="form"><colgroup><col style="width:26%"><col style="width:12%"><col style="width:15%"><col></colgroup>'+
-       '<thead><tr class="sec"><th colspan="4"><span>Ⅲ</span>맞히는 데 쓸 정보 (x) '+(f.length? '<span style="font-weight:400">'+f.length+' / 4~6</span>':'')+'</th></tr>'+
+       '<thead><tr class="sec"><th colspan="4"><span>Ⅲ</span>맞히는 데 쓸 정보 (x) '+(f.length? '<span style="font-weight:400">'+f.length+' / 5</span>':'')+'</th></tr>'+
        '<tr class="cols"><th>정보</th><th>형태</th><th>누가 떠올렸나</th><th>가설 (어떤 관계가 있을 것 같나)</th></tr></thead><tbody>';
   const 줄수 = Math.max(4, f.length);
   for(let k=0; k<줄수; k++){
@@ -1225,7 +1232,7 @@ function paintSpec(){
 }
 
 /* ── 대상·정보·가설 화면, 마무리 서술 화면 ──
-   챗봇이 정리.대상후보·x보기를 채우면 「요인」 화면(대상 고르기 + 보기에서 4~6개 + 정보마다 관계 가설)을,
+   챗봇이 정리.대상후보·x보기를 채우면 「요인」 화면(대상 고르기 + 보기에서 5개 + 정보마다 관계 가설)을,
    정보가 다 정해지면 「마무리」 화면(내 주제 / 문제 해결 활용)을 연다.
    학생이 낸 값은 확정입력에 따로 담아 두고, 챗봇이 옮겨 적다 틀리면 정리보정()이 바로잡는다. */
 let 확정입력 = [];                      // [{순서, 종류:'요인'|'마무리', 값}]
@@ -1281,7 +1288,7 @@ function 보기그리기(){
   if(!box._연결){ box.addEventListener('change', 폼이벤트); box.addEventListener('input', 폼이벤트); box.addEventListener('click', 폼클릭); box._연결 = true; }
   const s = 정리 || {};
   const 특성 = s.특성 || [];
-  const 요인끝 = 특성.length >= 4 && !!s.대상확인;
+  const 요인끝 = 특성.length === 5 && !!s.대상확인;
   const 가설끝 = 요인끝 && 특성.every(x => String(x.가설 || '').trim().length >= 6);
   let 모드 = '';
   const 화면단계 = 현재단계 === '요인정하기' || 현재단계 === '마무리';        // 맞힐 것·정보를 말하는 동안에는 체크 화면을 열지 않는다
@@ -1326,7 +1333,7 @@ function 요인HTML(s){
       '<div class="xrel' + (on ? '' : ' hide') + '" id="xrel' + i + '">' + 관계HTML('b:' + i, x.이름, x.형태, st, 앞) + '</div></div>';
   }).join('');
   return '<div class="xph"><b>① 대상 정하기</b><span>어느 것의 자료로 할지 골라 주세요.</span></div><div class="xtg">' + 대상 + '</div>' +
-    '<div class="xph"><b>② 쓸 정보 고르기와 ③ 가설</b><span>' + esc((s.타깃 && s.타깃.이름) || '맞힐 것') + '을(를) 맞히는 데 쓸 정보를 4~6개 고르고, 고른 정보마다 어떤 관계가 있을 것 같은지 골라 주세요.</span></div>' +
+    '<div class="xph"><b>② 쓸 정보 고르기와 ③ 가설</b><span>' + esc((s.타깃 && s.타깃.이름) || '맞힐 것') + '을(를) 맞히는 데 쓸 정보를 5개 고르고, 고른 정보마다 어떤 관계가 있을 것 같은지 골라 주세요.</span></div>' +
     '<div class="xlist2">' + 행 + '</div>' +
     '<div class="xmore"><button class="btn sm" data-act="more">보기 10개 더 보기</button><button class="btn sm" data-act="addrow">+ 직접 추가 (최대 2개)</button></div>' +
     '<div id="xadds">' + 추가행HTML(s) + '</div>' +
@@ -1353,7 +1360,7 @@ function 요인갱신(){
   const 빠짐 = rows.filter(r => !r.관계).length;
   const 문제 = [];
   if(!대상) 문제.push('대상');
-  if(rows.length < 4 || rows.length > 6) 문제.push('정보 4~6개(지금 ' + rows.length + '개)');
+  if(rows.length !== 5) 문제.push('정보 5개(지금 ' + rows.length + '개)');
   if(빠짐) 문제.push('관계를 고르지 않은 정보 ' + 빠짐 + '개');
   const b = document.getElementById('xgo'), c = document.getElementById('xcnt');
   if(c) c.textContent = 문제.length ? '남은 것: ' + 문제.join(' · ') : '모두 정했어요. 아래 버튼을 눌러 주세요.';
@@ -1418,7 +1425,7 @@ function 보기더보기(){
 function 요인제출(){
   if(보내는중) return;
   const rows = 요인선택목록(), 대상 = 요인대상();
-  if(!대상 || rows.length < 4 || rows.length > 6 || rows.some(r => !r.관계)) return;
+  if(!대상 || rows.length !== 5 || rows.some(r => !r.관계)) return;
   const 줄 = r => (r.직접 ? '직접 추가: ' : '정보: ') + r.이름 + ' | ' + r.관계 + ' | ' + 한줄정리(r.한줄);
   const t = '[정보 선택]\n대상: ' + 대상 + '\n' + rows.map(줄).join('\n');
   확정입력.push({순서:순번, 종류:'요인', 값:{대상:대상, 정보:rows.map(r => ({이름:r.이름, 관계:r.관계, 한줄:한줄정리(r.한줄), 직접:!!r.직접}))}});
@@ -1454,7 +1461,8 @@ async function finish(){
     return;
   }
   b.disabled = false;
-  알림('아직 정해지지 않은 것이 있어 확정할 수 없습니다.', true, r.부족,
+  판정걸림 = r.판정걸림 || [];
+  알림(판정걸림.length ? '맞히는 데 쓰기 어려운 정보가 있어 확정할 수 없습니다.' : '아직 정해지지 않은 것이 있어 확정할 수 없습니다.', true, r.부족,
        {글:'챗봇에게 알리기', 동작:'점검요청()'});
 }
 
