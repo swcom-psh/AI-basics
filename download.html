@@ -3,146 +3,137 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>수행평가 데이터 받기 · 인공지능 기초</title>
+<title>내 데이터 받기 · 인공지능 기초</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 <style>
-/* ════════ 토큰 — index.html 과 같은 값 ════════ */
+/* 계획서 화면(남색·서식 종이)과 한눈에 구분되도록 청록·크림 톤의 카드형으로 만든다 */
 :root{
-  --desk:#E9EDF2; --ground:#F4F6F9; --paper:#FFFFFF;
-  --ink:#111A24; --ink-2:#34404E; --muted:#5A6573;
-  --rule:#CCD3DC; --rule-2:#E2E7ED; --frame:#344150;
-  --accent:#1E3F8F; --accent-2:#2A55B8; --accent-soft:#E8EEFA;
-  --hl:#FFF0A3; --stamp:#C4382A;
-  --ok:#2C6A45; --ok-soft:#E5F1E9;
-  --warn:#8A5A0A; --warn-soft:#FBF2DF; --warn-line:#EED9AE;
-  --bad:#A5312A; --bad-soft:#FBE9E6; --bad-line:#F1C9C3;
+  --bg:#F4F1E8; --card:#FFFFFF; --ink:#12231F; --ink-2:#3C504A; --muted:#667A73;
+  --line:#DDD8C8; --line-2:#ECE8DA;
+  --teal:#0B6B5D; --teal-2:#0E8573; --teal-soft:#DDF0EA; --teal-deep:#08433B;
+  --amber:#B96A00; --amber-soft:#FFF1D6;
+  --bad:#B3361F; --bad-soft:#FCE7E2;
   --sans:"Pretendard Variable",Pretendard,-apple-system,"Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif;
-  --mono:var(--sans);
 }
 *{box-sizing:border-box}
-html,body{height:100%;margin:0}
-body{background:var(--ground);color:var(--ink);font-family:var(--sans);font-size:16px;line-height:1.7;
-  letter-spacing:-.005em;-webkit-font-smoothing:antialiased;word-break:keep-all;overflow-wrap:anywhere}
+html,body{margin:0;min-height:100%}
+body{background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:16px;line-height:1.7;
+  -webkit-font-smoothing:antialiased;word-break:keep-all;overflow-wrap:anywhere}
 button{font-family:inherit;cursor:pointer}
 input{font-family:inherit;font-size:15px;color:var(--ink)}
-a{color:var(--accent)}
-:focus-visible{outline:2px solid var(--accent-2);outline-offset:2px}
+a{color:var(--teal)}
+:focus-visible{outline:3px solid #7CCFBE;outline-offset:2px}
 .hide{display:none !important}
-.num{font-variant-numeric:tabular-nums;letter-spacing:.01em}
+.num{font-variant-numeric:tabular-nums}
 
-.btn{border:1px solid var(--rule);background:var(--paper);color:var(--ink);padding:8px 14px;border-radius:4px;
-  font-size:14px;font-weight:500;line-height:1.3;text-decoration:none;display:inline-flex;align-items:center;justify-content:center;gap:8px}
-.btn:hover{border-color:var(--ink-2)}
-.btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
-.btn.primary:hover{background:var(--accent-2);border-color:var(--accent-2)}
-.btn:disabled{opacity:.38;cursor:default}
-.btn.sm{padding:5px 10px;font-size:13px}
-.btn.big{padding:15px 30px;font-size:18px;font-weight:700;border-radius:10px}
+.btn{border:1.5px solid var(--line);background:var(--card);color:var(--ink);padding:9px 16px;border-radius:999px;
+  font-size:14px;font-weight:600;line-height:1.3;text-decoration:none;display:inline-flex;align-items:center;justify-content:center;gap:8px}
+.btn:hover{border-color:var(--teal)}
+.btn.main{background:var(--teal);border-color:var(--teal);color:#fff}
+.btn.main:hover{background:var(--teal-2);border-color:var(--teal-2)}
+.btn.sm{padding:6px 13px;font-size:13px}
 .btn.ghost{border-color:transparent;background:transparent;color:var(--ink-2)}
-.btn.ghost:hover{background:var(--rule-2);border-color:transparent}
+.btn.big{padding:17px 34px;font-size:19px;font-weight:800;box-shadow:0 8px 20px -10px rgba(11,107,93,.7)}
+.btn:disabled{opacity:.5;cursor:default}
 
-/* ════════ 로그인 ════════ */
-#login{position:fixed;inset:0;z-index:60;display:grid;grid-template-columns:1.1fr 1fr;background:var(--paper)}
-#login .intro{background:var(--accent);color:#fff;padding:clamp(40px,7vw,120px);
-  display:flex;flex-direction:column;justify-content:center;gap:28px}
-#login .kicker{font-size:15px;letter-spacing:.14em;opacity:.9}
-#login h1{font-weight:800;font-size:clamp(40px,4.2vw,64px);line-height:1.18;margin:0;letter-spacing:-.035em;text-wrap:balance}
-#login .lede{font-size:19px;line-height:1.7;max-width:44em;margin:0;text-wrap:pretty}
-#login ol{list-style:none;margin:8px 0 0;padding:0;display:grid;grid-template-columns:repeat(3,auto);
-  justify-content:start;font-size:15px}
-#login ol li{padding:7px 14px 7px 0;margin-right:14px;border-bottom:2px solid rgba(255,255,255,.35)}
-#login ol li b{font-weight:500;opacity:.7;margin-right:5px}
-#login .side{display:flex;flex-direction:column;justify-content:center;padding:clamp(40px,6vw,110px);gap:18px}
-#login .side h2{margin:0;font-size:24px;font-weight:700}
-#gbtn{min-height:44px}
-#loginmsg{font-size:14.5px;color:var(--bad);min-height:22px}
+/* ════════ 로그인 — 가운데 카드 ════════ */
+#login{position:fixed;inset:0;z-index:60;display:flex;align-items:center;justify-content:center;padding:20px;
+  background:radial-gradient(1200px 600px at 15% -10%,#0E8573 0,transparent 60%),
+             radial-gradient(900px 500px at 100% 110%,#08433B 0,transparent 60%),#0B6B5D;overflow:auto}
+#login .box{width:min(460px,100%);background:var(--card);border-radius:26px;padding:40px 36px 34px;
+  box-shadow:0 30px 60px -30px rgba(0,0,0,.5);text-align:center}
+#login .badge{width:68px;height:68px;margin:0 auto 18px;border-radius:20px;background:var(--teal-soft);color:var(--teal);
+  display:flex;align-items:center;justify-content:center}
+#login h1{margin:0 0 8px;font-size:30px;font-weight:800;letter-spacing:-.03em}
+#login p{margin:0 0 24px;color:var(--ink-2);font-size:16px}
+#gbtn{min-height:44px;display:flex;justify-content:center}
+#loginmsg{font-size:14.5px;color:var(--bad);min-height:24px;margin-top:14px}
 #loginmsg.info{color:var(--ink-2)}
+#login .kick{font-size:13px;color:var(--muted);margin-top:22px;padding-top:16px;border-top:1px dashed var(--line)}
 
 /* ════════ 본 화면 ════════ */
-#app{display:grid;grid-template-rows:auto 1fr;min-height:100vh}
-#bar{display:flex;align-items:center;gap:24px;padding:0 28px;height:66px;background:var(--paper);border-bottom:1px solid var(--rule)}
-#bar .brand{display:flex;align-items:baseline;gap:10px;white-space:nowrap}
-#bar .brand b{font-size:19px;font-weight:700;letter-spacing:-.02em}
-#bar .brand span{font-size:14px;color:var(--muted)}
+#bar{display:flex;align-items:center;gap:14px;padding:14px max(20px,calc((100% - 760px)/2));
+  background:var(--teal-deep);color:#fff}
+#bar .brand{white-space:nowrap;font-weight:800;font-size:17px;letter-spacing:-.02em;display:flex;align-items:center;gap:10px}
+#bar .brand svg{opacity:.9}
 #bar .sp{flex:1}
-#ubar{font-size:15px;padding:5px 12px;border:1px solid var(--rule-2);border-radius:3px;white-space:nowrap}
-.adminchip{font-size:11px;font-weight:700;background:var(--ok);color:#fff;padding:2px 7px;border-radius:3px;vertical-align:2px;margin-left:6px}
+#ubar{font-size:14px;padding:5px 13px;border-radius:999px;background:rgba(255,255,255,.14);white-space:nowrap}
+.adminchip{font-size:11px;font-weight:800;background:#FFD27A;color:#4A2E00;padding:1px 8px;border-radius:999px;margin-left:8px}
+#bar .btn{white-space:nowrap;background:transparent;border-color:rgba(255,255,255,.4);color:#fff}
+#bar .btn:hover{background:rgba(255,255,255,.12);border-color:#fff}
 
-#stage{display:grid;grid-template-columns:minmax(320px,.8fr) minmax(0,1.2fr);min-height:0}
-#stage .left{background:var(--paper);border-right:1px solid var(--rule);padding:clamp(32px,5vw,80px);
-  display:flex;flex-direction:column;justify-content:center;gap:20px}
-#stage .right{background:var(--desk);padding:40px 48px;overflow-y:auto}
+#wrap{max-width:760px;margin:0 auto;padding:34px 20px 70px}
+.hello{font-size:15px;color:var(--teal);font-weight:700;margin:0 0 4px}
+#wrap h2{font-size:34px;font-weight:800;line-height:1.3;margin:0 0 8px;letter-spacing:-.035em;text-wrap:balance}
+.lead{font-size:17px;color:var(--ink-2);margin:0 0 26px}
 
-/* 단계 — index.html 의 단계 칸과 같은 모양 */
-#steps{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;max-width:420px}
-#steps .st{display:flex;align-items:center;justify-content:center;gap:7px;padding:8px 6px;font-size:14.5px;
-  color:var(--muted);background:#F7F8FA;border:1px solid var(--rule);border-radius:8px;white-space:nowrap}
-#steps .st i{font-style:normal;font-size:13px;font-weight:700;width:22px;height:22px;border-radius:50%;
-  display:inline-flex;align-items:center;justify-content:center;background:var(--rule-2);color:var(--ink-2)}
-#steps .st.done{color:var(--accent);background:#fff;border-color:#B9C7E6}
-#steps .st.done i{background:var(--accent-soft);color:var(--accent)}
-#steps .st.on{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:700}
-#steps .st.on i{background:#fff;color:var(--accent)}
+/* 진행 표시 — 점과 선 */
+.track{display:flex;align-items:center;margin:0 0 30px;font-size:13.5px;color:var(--muted);font-weight:600}
+.track .dot{display:flex;align-items:center;gap:8px;white-space:nowrap}
+.track .dot i{font-style:normal;width:26px;height:26px;border-radius:50%;border:2px solid var(--line);background:var(--card);
+  display:inline-flex;align-items:center;justify-content:center;font-size:12px;font-weight:800}
+.track .bar{flex:1;height:3px;background:var(--line);margin:0 12px;border-radius:2px;min-width:20px}
+.track .on{color:var(--ink)} .track .on i{border-color:var(--teal);color:var(--teal)}
+.track .done{color:var(--teal)} .track .done i{background:var(--teal);border-color:var(--teal);color:#fff}
+.track .bar.done{background:var(--teal)}
 
-#stage h2{font-weight:800;font-size:34px;line-height:1.3;margin:0;letter-spacing:-.03em;text-wrap:balance}
-#stage p{margin:0;font-size:17px;line-height:1.75;color:var(--ink-2)}
-#stage .acts{display:flex;gap:10px;flex-wrap:wrap;margin-top:6px;align-items:center}
-.note{padding:12px 15px;border-radius:4px;font-size:14.5px;line-height:1.6;border:1px solid var(--warn-line);
-  background:var(--warn-soft);color:var(--warn)}
-.note.ok{border-color:#BFDCC9;background:var(--ok-soft);color:var(--ok)}
-.note.bad{border-color:var(--bad-line);background:var(--bad-soft);color:var(--bad)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:22px;padding:26px 28px;margin-bottom:16px;
+  box-shadow:0 14px 30px -24px rgba(18,35,31,.55)}
+.card h3{margin:0 0 10px;font-size:13.5px;font-weight:800;color:var(--muted);letter-spacing:.04em}
 
-/* 서식 — 계획서와 같은 종이 */
-.sheet{position:relative;background:var(--paper);border:1px solid var(--rule);
-  box-shadow:0 1px 0 var(--rule-2),0 10px 26px -18px rgba(23,32,43,.35);padding:38px 42px 32px;max-width:760px}
-.sheet .kick{font-size:14px;color:var(--muted);letter-spacing:.06em;text-align:center}
-.sheet h3{font-weight:800;font-size:28px;text-align:center;margin:6px 0 24px;letter-spacing:.12em;padding-left:.12em}
-table.form{width:100%;border-collapse:collapse;border:2px solid var(--frame);table-layout:fixed}
-table.form th,table.form td{border:1px solid var(--rule);padding:11px 13px;vertical-align:top;
-  font-size:15.5px;line-height:1.55;text-align:left}
-table.form th{width:26%;background:#F2F4F7;color:var(--ink-2);font-weight:600;font-size:14.5px;white-space:nowrap}
-table.form .sec th{background:var(--frame);color:#fff;font-size:15px;letter-spacing:.06em;width:auto}
-.mine{background:linear-gradient(transparent 38%,var(--hl) 38%,var(--hl) 92%,transparent 92%);padding:0 2px}
-.blank{display:inline-block;min-width:7em;border-bottom:1.5px dotted #9AA4B1;height:1.2em;vertical-align:-3px}
-.chk{display:inline-block;font-size:13px;font-weight:600;padding:2px 9px;border-radius:5px;margin-left:6px;vertical-align:1px}
-.chk.ok{background:var(--ok-soft);color:var(--ok)}
-.chk.no{background:var(--warn-soft);color:var(--warn)}
-.stamp{position:absolute;right:46px;top:22px;width:96px;height:96px;border:4px solid var(--stamp);
-  border-radius:50%;color:var(--stamp);display:flex;flex-direction:column;align-items:center;justify-content:center;
-  font-weight:800;transform:rotate(-12deg);opacity:.9;mix-blend-mode:multiply}
-.stamp b{font-size:26px;letter-spacing:.12em;line-height:1}
-.stamp small{font-size:10.5px;margin-top:4px;font-weight:500}
+/* 주제 인용 */
+.topic{font-size:21px;font-weight:700;line-height:1.5;letter-spacing:-.02em;border-left:5px solid var(--teal);padding:2px 0 2px 16px}
+.topic small{display:inline-block;font-size:13px;font-weight:700;color:var(--teal);background:var(--teal-soft);
+  padding:1px 10px;border-radius:999px;margin-left:8px;vertical-align:3px}
 
-.tips{max-width:760px;margin:20px 0 0;padding:16px 20px;background:var(--paper);border:1px solid var(--rule);
-  border-top:3px solid var(--accent);font-size:15px;line-height:1.7;color:var(--ink-2)}
-.tips b{color:var(--accent);font-size:13.5px;display:block;margin-bottom:4px;letter-spacing:.01em}
-.tips ol{margin:0;padding-left:20px}
-.tips code{background:var(--rule-2);padding:1px 6px;border-radius:3px;font-size:14px}
+/* 파일 카드 */
+.file{display:grid;grid-template-columns:auto 1fr;gap:18px;align-items:center}
+.ficon{width:64px;height:78px;border-radius:10px 20px 10px 10px;background:var(--teal-soft);border:2px solid var(--teal);
+  position:relative;display:flex;align-items:flex-end;justify-content:center;padding-bottom:9px;color:var(--teal);
+  font-weight:800;font-size:15px;letter-spacing:.04em}
+.ficon::before{content:"";position:absolute;right:-2px;top:-2px;width:20px;height:20px;background:var(--card);
+  border-left:2px solid var(--teal);border-bottom:2px solid var(--teal);border-radius:0 0 0 8px}
+.file.off .ficon{background:var(--amber-soft);border-color:#E3B15F;color:var(--amber)}
+.file.off .ficon::before{border-color:#E3B15F}
+.file.lock .ficon{background:#EFEDE4;border-color:#C9C4B1;color:#8C8670}
+.file.lock .ficon::before{border-color:#C9C4B1}
+.fname{font-weight:800;font-size:18px;line-height:1.35;word-break:break-all}
+.fmeta{font-size:14px;color:var(--muted);margin-top:2px}
+.pill{display:inline-block;font-size:12.5px;font-weight:800;padding:2px 11px;border-radius:999px;margin-right:6px}
+.pill.ok{background:var(--teal-soft);color:var(--teal)}
+.pill.wait{background:var(--amber-soft);color:var(--amber)}
+.pill.lock{background:#ECE9DD;color:#6F6A55}
+.cta{margin-top:22px;display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+.note{margin-top:14px;padding:12px 16px;border-radius:14px;font-size:14.5px;background:var(--teal-soft);color:var(--teal-deep)}
+.note.bad{background:var(--bad-soft);color:var(--bad)}
+.note.info{background:var(--amber-soft);color:#6A3F00}
 
-/* 관리자 시험 칸 */
-#adminbox{display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:12px 14px;margin-top:6px;
-  border:1px dashed var(--rule);border-radius:6px;background:var(--ground);font-size:14px;color:var(--ink-2)}
-#adminbox input{padding:8px 10px;border:1px solid var(--rule);border-radius:4px;width:140px}
+/* 이후 순서 */
+.steps{list-style:none;margin:0;padding:0;display:grid;gap:12px;counter-reset:s}
+.steps li{counter-increment:s;display:grid;grid-template-columns:34px 1fr;gap:12px;align-items:start;font-size:15.5px;color:var(--ink-2)}
+.steps li::before{content:counter(s);width:30px;height:30px;border-radius:10px;background:var(--teal);color:#fff;font-weight:800;
+  display:flex;align-items:center;justify-content:center;font-size:14px}
+.steps code{background:var(--teal-soft);color:var(--teal-deep);padding:1px 7px;border-radius:6px;font-size:14px}
 
-.spin{display:inline-block;width:1.1em;height:1.1em;border:2px solid currentColor;border-right-color:transparent;
+#adminbox{display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:12px 16px;border:2px dashed var(--line);border-radius:16px;
+  font-size:14px;color:var(--ink-2);background:transparent}
+#adminbox input{padding:8px 12px;border:1.5px solid var(--line);border-radius:999px;width:150px;background:#fff}
+
+.spin{display:inline-block;width:1.1em;height:1.1em;border:2.5px solid currentColor;border-right-color:transparent;
   border-radius:50%;animation:sp .8s linear infinite;vertical-align:-2px}
 @keyframes sp{to{transform:rotate(360deg)}}
 @media (prefers-reduced-motion:reduce){.spin{animation:none}}
-
-@media (max-width:900px){
-  #login{grid-template-columns:1fr;position:static;min-height:100vh}
-  #login .intro{padding:40px 24px}
-  #login .side{padding:36px 24px}
-  #bar{padding:0 16px;gap:12px;height:auto;min-height:60px;flex-wrap:wrap;padding-top:8px;padding-bottom:8px}
-  #stage{grid-template-columns:1fr}
-  #stage .left{border-right:0;border-bottom:1px solid var(--rule);padding:28px 20px}
-  #stage .right{padding:24px 16px}
-  #stage h2{font-size:28px}
-  .sheet{padding:30px 18px 24px}
-  .stamp{right:14px;top:12px;width:76px;height:76px}
-  .stamp b{font-size:21px}
-  table.form th{white-space:normal;width:32%}
+@media (max-width:560px){
+  #wrap h2{font-size:27px}
+  .card{padding:20px 18px;border-radius:18px}
+  .file{grid-template-columns:1fr;justify-items:start}
+  .track .dot span{display:none}
+  .topic{font-size:18px}
+  #bar .brand span{display:none}
+  #bar{gap:8px;padding-left:14px;padding-right:14px}
+  #ubar{font-size:13px;padding:4px 10px}
+  #login .box{padding:32px 22px 26px}
 }
 </style>
 </head>
@@ -150,36 +141,29 @@ table.form .sec th{background:var(--frame);color:#fff;font-size:15px;letter-spac
 
 <!-- ════════ 로그인 ════════ -->
 <div id="login">
-  <section class="intro">
-    <div class="kicker">인공지능 기초 · 수행평가</div>
+  <div class="box">
+    <div class="badge"><svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="m7 11 5 5 5-5"/><path d="M5 20h14"/></svg></div>
     <h1>내 데이터 받기</h1>
-    <p class="lede">계획서에서 정한 주제에 맞게 선생님이 준비한 나만의 CSV 파일을 내려받습니다.</p>
-    <ol>
-      <li><b>1</b>계획서 확정</li><li><b>2</b>데이터 받기</li><li><b>3</b>수행평가 하기</li>
-    </ol>
-  </section>
-  <section class="side">
-    <h2>학교 계정으로 로그인</h2>
+    <p>계획서에서 정한 주제로 만든<br>나만의 CSV 파일을 내려받아요.</p>
     <div id="gbtn"></div>
     <div id="loginmsg"></div>
-  </section>
+    <div class="kick">인공지능 기초 · 학교 계정(@sdhs.gwe.hs.kr)으로 로그인</div>
+  </div>
 </div>
 
 <!-- ════════ 본 화면 ════════ -->
 <div id="app" class="hide">
   <header id="bar">
-    <div class="brand"><b>수행평가 데이터 받기</b><span>인공지능 기초</span></div>
+    <div class="brand"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="m7 11 5 5 5-5"/><path d="M5 20h14"/></svg>내 데이터 받기<span style="font-weight:500;opacity:.7;font-size:14px">· 인공지능 기초</span></div>
     <span class="sp"></span>
     <span id="ubar"></span>
     <button class="btn sm" onclick="로그아웃()">로그아웃</button>
   </header>
-  <div id="stage">
-    <section class="left" id="leftpane"></section>
-    <section class="right" id="rightpane"></section>
-  </div>
+  <main id="wrap"></main>
 </div>
 
 <script>
+
 /* ══════════════════════════════════════════════════════
    설정 — index.html 과 같은 값
    ══════════════════════════════════════════════════════ */
@@ -277,17 +261,19 @@ async function 상태가져오기(학번){
 }
 
 /* ── 화면 ── */
-function 단계칸(확정, 받음){
-  return '<div id="steps">' +
-    '<div class="st '+(확정?'done':'on')+'"><i>'+(확정?'✓':'1')+'</i>계획서 확정</div>' +
-    '<div class="st '+(받음?'done':(확정?'on':''))+'"><i>'+(받음?'✓':'2')+'</i>데이터 받기</div></div>';
+function 흐름(확정, 받음){
+  const a = 확정 ? 'done' : 'on', b = 받음 ? 'done' : (확정 ? 'on' : '');
+  return '<div class="track">' +
+    '<div class="dot '+a+'"><i>'+(확정?'✓':'1')+'</i><span>계획서 확정</span></div><div class="bar '+(확정?'done':'')+'"></div>' +
+    '<div class="dot '+b+'"><i>'+(받음?'✓':'2')+'</i><span>데이터 받기</span></div><div class="bar '+(받음?'done':'')+'"></div>' +
+    '<div class="dot"><i>3</i><span>수행평가 하기</span></div></div>';
 }
 function 관리자칸(){
   if(!(나 && 나.관리자)) return '';
   return '<div id="adminbox">관리자 시험 — 학번으로 보기 ' +
     '<input id="adno" inputmode="numeric" maxlength="10" placeholder="예) 20262609" value="'+esc(지정학번)+'" onkeydown="if(event.key===\'Enter\')학번보기()">' +
     '<button class="btn sm" onclick="학번보기()">보기</button>' +
-    (지정학번 ? '<button class="btn sm ghost" onclick="지정학번=\'\';학번보기(true)">내 계정으로</button>' : '') + '</div>';
+    (지정학번 ? '<button class="btn sm ghost" onclick="학번보기(true)">내 계정으로</button>' : '') + '</div>';
 }
 async function 학번보기(내것){
   const v = 내것 ? '' : ($('adno').value || '').trim();
@@ -296,68 +282,53 @@ async function 학번보기(내것){
   if(r.오류){ alert(r.오류); return; }
   상태 = r; 그리기();
 }
-
-function 양식(s, 도장){
-  const 파일 = s.파일;
-  return '<div class="sheet">' +
-    (도장 ? '<div class="stamp"><b>확정</b><small>계획서</small></div>' : '') +
-    '<div class="kick">인공지능 기초 · 수행평가</div><h3>내 데이터</h3>' +
-    '<table class="form">' +
-      '<tr><th>학번 · 이름</th><td><span class="num">'+esc(s.학번||'')+'</span> &nbsp;'+esc((!s.지정 && s.이름) || (파일 ? 파일.이름.replace(/^\d+_/,'').replace(/\.csv$/i,'') : ''))+'</td></tr>' +
-      '<tr class="sec"><th colspan="2">내가 정한 주제</th></tr>' +
-      '<tr><td colspan="2">' + (s.확정
-          ? '<span class="mine">'+esc(s.주제 || '')+'</span>' + (s.트랙 ? '<span style="color:var(--muted);font-size:14px;margin-left:8px">'+esc(s.트랙)+'</span>' : '')
-          : '<span class="blank"></span>') + '</td></tr>' +
-      '<tr class="sec"><th colspan="2">데이터 파일</th></tr>' +
-      '<tr><th>파일</th><td>' + (파일 ? '<span class="num">'+esc(파일.이름)+'</span>' : '<span class="blank"></span>') + '</td></tr>' +
-      '<tr><th>상태</th><td>' + (!s.확정 ? '<span class="chk no">계획서를 먼저 확정</span>'
-          : 파일 ? '<span class="chk ok">받을 수 있음</span>' + (파일.크기 ? '<span style="color:var(--muted);font-size:14px;margin-left:8px" class="num">'+크기글(파일.크기)+'</span>' : '')
-          : '<span class="chk no">선생님이 준비하는 중</span>') + '</td></tr>' +
-    '</table></div>';
-}
 function 크기글(n){ return n < 1024 ? n+' B' : n < 1048576 ? (n/1024).toFixed(0)+' KB' : (n/1048576).toFixed(1)+' MB'; }
 
 function 그리기(){
-  const s = 상태, L = $('leftpane'), R = $('rightpane');
-  const 파일 = s.파일;
-  const 시험 = s.지정 ? '<div class="note">지금 '+esc(s.학번)+' 학생의 화면을 시험으로 보고 있습니다. 파일을 받으면 다운로드 기록에 남습니다.</div>' : '';
+  const s = 상태, 파일 = s.파일, W = $('wrap');
+  const 이름 = (!s.지정 && s.이름) || (파일 ? 파일.이름.replace(/^\d+_/,'').replace(/\.csv$/i,'') : '');
+  const 시험 = s.지정 ? '<div class="note info">지금 '+esc(s.학번)+' 학생의 화면을 시험으로 보고 있습니다. 받으면 다운로드 기록에 남습니다.</div>' : '';
+  const 주제카드 = '<div class="card"><h3>내가 정한 주제</h3><div class="topic">'+esc(s.주제||'')+(s.트랙?'<small>'+esc(s.트랙)+'</small>':'')+'</div></div>';
+  let h = '';
 
   if(!s.확정){
-    // ① 아직 계획서를 안 냄 → 계획서 주소를 안내
-    L.innerHTML = 단계칸(false, false) +
-      '<h2>먼저 수행평가 계획서를<br>써야 해요</h2>' +
-      '<p>데이터는 계획서에서 정한 <b>주제</b>에 맞춰 만들어집니다.<br>아래 버튼으로 계획서 화면에 가서 주제를 정하고 <b>「주제 확정하기」</b>까지 누르면, 여기서 내 데이터를 받을 수 있어요.</p>' +
-      '<div class="acts"><a class="btn primary big" href="'+계획서주소+'">계획서 쓰러 가기 →</a></div>' +
-      '<p style="font-size:14.5px;color:var(--muted)">주소: <a href="'+계획서주소+'">'+계획서주소+'</a><br>확정한 뒤에 이 화면을 새로고침하면 받을 수 있게 열립니다.</p>' + 시험 + 관리자칸();
+    h = '<p class="hello">'+esc(이름 ? 이름+' 님' : '안녕하세요')+'</p><h2>먼저 계획서를 써야 해요</h2>' +
+      '<p class="lead">데이터는 계획서에서 정한 주제에 맞춰 만들어집니다.<br>주제를 정하고 「주제 확정하기」까지 누르면 여기서 받을 수 있어요.</p>' +
+      흐름(false,false) +
+      '<div class="card"><div class="file lock"><div class="ficon">CSV</div><div>' +
+        '<span class="pill lock">잠겨 있어요</span><div class="fname" style="margin-top:6px">계획서를 확정하면 열립니다</div>' +
+        '<div class="fmeta">내 주제 · 내 데이터 파일</div></div></div>' +
+      '<div class="cta"><a class="btn main big" href="'+계획서주소+'">계획서 쓰러 가기 →</a></div>' +
+      '<div class="note info">계획서 주소 <a href="'+계획서주소+'">'+계획서주소+'</a><br>확정한 뒤 이 화면을 새로고침하세요.</div></div>';
   } else if(!파일){
-    // ② 확정은 했지만 선생님이 아직 파일을 안 만듦
-    L.innerHTML = 단계칸(true, false) +
-      '<h2>데이터를 준비하고 있어요</h2>' +
-      '<p>계획서는 잘 제출되었습니다. 선생님이 주제에 맞는 데이터를 만들고 있어서, 아직 받을 파일이 없어요.<br>준비되면 이 화면에서 바로 받을 수 있습니다. 잠시 뒤 다시 확인해 보세요.</p>' +
-      '<div class="acts"><button class="btn primary big" onclick="새로고침()">다시 확인하기</button></div>' + 시험 + 관리자칸();
+    h = '<p class="hello">'+esc(이름)+' 님</p><h2>데이터를 만들고 있어요</h2>' +
+      '<p class="lead">계획서는 잘 제출되었어요. 선생님이 주제에 맞는 데이터를 준비 중이라 아직 받을 파일이 없습니다.</p>' +
+      흐름(true,false) + 주제카드 +
+      '<div class="card"><div class="file off"><div class="ficon">CSV</div><div>' +
+        '<span class="pill wait">준비 중</span><div class="fname" style="margin-top:6px">선생님이 만드는 중이에요</div>' +
+        '<div class="fmeta">준비되면 여기에 받기 버튼이 나타납니다</div></div></div>' +
+      '<div class="cta"><button class="btn main" id="refbtn" onclick="새로고침()">다시 확인하기</button></div></div>';
   } else {
-    // ③ 받을 수 있음
-    L.innerHTML = 단계칸(true, 받았음) +
-      '<h2>' + (받았음 ? '데이터를 받았어요' : '내 데이터가 준비되었어요') + '</h2>' +
-      '<p>' + (받았음 ? '컴퓨터의 「다운로드」 폴더에 저장됩니다. 못 찾겠으면 아래 버튼으로 다시 받을 수 있어요.'
-                     : '계획서에서 정한 주제에 맞춘 CSV 파일입니다. 버튼을 누르면 바로 내려받아요.') + '</p>' +
-      '<div class="acts"><button class="btn primary big" id="dlbtn" onclick="받기()">' +
-        (받았음 ? '↓ 다시 받기' : '↓ CSV 파일 받기') + '</button></div>' +
-      '<div id="dlmsg"></div>' + 시험 + 관리자칸();
+    h = '<p class="hello">'+esc(이름)+' 님</p><h2>'+(받았음?'데이터를 받았어요':'내 데이터가 준비됐어요')+'</h2>' +
+      '<p class="lead">'+(받았음?'「다운로드」 폴더에 저장됩니다. 못 찾겠으면 다시 받을 수 있어요.':'계획서에서 정한 주제에 맞춘 CSV 파일이에요.')+'</p>' +
+      흐름(true,받았음) + 주제카드 +
+      '<div class="card"><div class="file"><div class="ficon">CSV</div><div>' +
+        '<span class="pill ok">받을 수 있어요</span><div class="fname" style="margin-top:6px">'+esc(파일.이름)+'</div>' +
+        '<div class="fmeta num">'+(파일.크기?크기글(파일.크기):'')+'</div></div></div>' +
+      '<div class="cta"><button class="btn main big" id="dlbtn" onclick="받기()">'+(받았음?'↓ 다시 받기':'↓ CSV 파일 받기')+'</button></div>' +
+      '<div id="dlmsg"></div></div>' +
+      '<div class="card"><h3>받은 다음에는</h3><ol class="steps">' +
+        '<li><span>파일을 구글 코랩(또는 쓰는 파이썬 환경)에 올려요.</span></li>' +
+        '<li><span><code>pd.read_csv("'+esc(파일.이름)+'")</code> 로 읽어요. 파일 이름은 바꾸지 마세요.</span></li>' +
+        '<li><span>수행평가지 순서(결측치 → 이상치 → 상관 → 모델)대로 진행해요.</span></li></ol></div>';
   }
-
-  R.innerHTML = 양식(s, s.확정) +
-    (s.확정 && 파일 ? '<div class="tips"><b>받은 뒤에는</b><ol>' +
-      '<li>파일을 구글 코랩(또는 쓰는 파이썬 환경)에 올립니다.</li>' +
-      '<li><code>pd.read_csv("'+esc(파일.이름)+'")</code> 처럼 읽습니다. 파일 이름은 바꾸지 마세요.</li>' +
-      '<li>이제 수행평가지의 순서(결측치 → 이상치 → 상관 → 모델)대로 진행합니다.</li></ol></div>' : '');
+  W.innerHTML = h + 시험 + 관리자칸();
 }
 async function 새로고침(){
-  const 쪽 = $('leftpane').querySelector('.btn.big');
-  if(쪽){ 쪽.disabled = true; 쪽.innerHTML = '<span class="spin"></span> 확인하는 중'; }
+  const b = $('refbtn');
+  if(b){ b.disabled = true; b.innerHTML = '<span class="spin"></span> 확인하는 중'; }
   const r = await 상태가져오기(지정학번);
-  if(r.오류){ alert(r.오류); }
-  else 상태 = r;
+  if(r.오류) alert(r.오류); else 상태 = r;
   그리기();
 }
 
@@ -365,8 +336,8 @@ async function 새로고침(){
 async function 받기(){
   if(받는중) return;
   받는중 = true;
-  const b = $('dlbtn'), m = $('dlmsg');
-  b.disabled = true; b.innerHTML = '<span class="spin"></span> 준비하는 중…'; m.innerHTML = '';
+  const b = $('dlbtn');
+  b.disabled = true; b.innerHTML = '<span class="spin"></span> 준비하는 중…'; $('dlmsg').innerHTML = '';
   const r = await api({action:'csvget', 학번: 지정학번});
   받는중 = false;
   if(r.오류 || !r.ok){
@@ -382,7 +353,7 @@ async function 받기(){
   setTimeout(() => URL.revokeObjectURL(a.href), 4000);
   받았음 = true;
   그리기();
-  $('dlmsg').innerHTML = '<div class="note ok">「'+esc(r.파일명)+'」 파일을 내려받았습니다.</div>';
+  $('dlmsg').innerHTML = '<div class="note">「'+esc(r.파일명)+'」 파일을 내려받았습니다.</div>';
 }
 </script>
 </body>
