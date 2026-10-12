@@ -616,6 +616,20 @@ window.onload = () => {
       { theme:'outline', size:'large', text:'signin_with', shape:'pill', locale:'ko', width:320 });
   }, 120);
 };
+/* 화면에서 오류가 나면 조용히 멈추지 않고 알려 준다 (콘솔을 못 보는 학생도 무엇을 해야 하는지 알게) */
+function 화면오류알림(글){
+  let b = document.getElementById('errbar');
+  if(!b){
+    b = document.createElement('div'); b.id = 'errbar';
+    b.style.cssText = 'position:fixed;left:0;right:0;top:0;z-index:10000;background:#B3361F;color:#fff;padding:10px 16px;font-size:14px;text-align:center';
+    document.body.appendChild(b);
+  }
+  b.textContent = 글 + ' (새로고침(F5)을 눌러 주세요)';
+}
+if(window.addEventListener){
+  window.addEventListener('error', e => { console.error(e.error || e.message); 화면오류알림('화면에 오류가 생겼어요: ' + (e.message || '')); });
+  window.addEventListener('unhandledrejection', e => { console.error(e.reason); });
+}
 let 로딩수 = 0;
 function 로딩(켜기, 글){
   const el = document.getElementById('loading'); if(!el) return;
@@ -785,7 +799,13 @@ async function restart(){
   const xp = document.getElementById('xpick'); if(xp){ xp.innerHTML = ''; xp.classList.add('hide'); }
   document.getElementById('send').disabled = false;
   document.getElementById('q').value = '';
-  들어가기(반정보);                              // 새 대화번호로 첫 인사부터 다시
+  try{ 들어가기(반정보); }                       // 새 대화번호로 첫 인사부터 다시
+  catch(e){ console.error('처음부터 다시 실패', e); 화면오류알림('처음부터 다시를 하다가 오류가 났어요: ' + (e && e.message || e)); setTimeout(() => location.reload(), 600); return; }
+  // 그래도 화면이 비어 있으면(예상 밖의 오류) 새로고침으로 되돌린다 — 로그인은 이 탭에 남아 있어 다시 로그인하지 않는다
+  setTimeout(() => {
+    const 로그 = document.getElementById('log');
+    if(!히스토리.length || (로그 && 로그.children && !로그.children.length)) location.reload();
+  }, 900);
 }
 function again(){ restart(); }
 
