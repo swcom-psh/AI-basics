@@ -1,15 +1,17 @@
 """학생 CSV 검사 — CSV제작_원칙.md 의 규칙을 코드로 옮긴 것.
 
-사용:  python -I csv_tools/check_csv.py csv_out/학번_이름.csv csv_work/specs/학번.json
+사용:  python -I csv_tools/check_csv.py csv_out/.../학번_data.csv csv_work/specs/학번.json
 spec(JSON) 항목
   track        "예측" | "분류"
   id_cols      날짜·식별 열(문자열 허용, 결측 금지, 맨 앞에 둔다)
-  x_cols       x 후보 열(순서 그대로. 분류의 이상치 열 = 첫 번째)
+  x_cols       x 후보 열 5개(순서 그대로. 분류의 이상치 열 = 첫 번째)
   y            y 열(맨 뒤)
   binary_cols  0/1 열          int_cols  정수 열
   hard_range   {열: [최소, 최대]}  현실에서 있을 수 없는 값의 경계 (이상치도 이 안에 있어야 함)
   classes      분류의 두 범주
 반환: {"fail": [...], "warn": [...], "metrics": {...}}  (fail 이 비어야 통과)
+
+수행평가지 흐름을 그대로 실행해 본다 — dropna → 첫 x(또는 y) IQR 제거 → corr/직선 쌍 → 하나 빼고 x 4개 → train_test_split(0.3, 42) → 모델.
 """
 import json, re, sys
 import numpy as np
@@ -18,7 +20,7 @@ import pandas as pd
 NUM = re.compile(r"^-?\d+(\.\d+)?$")
 INT = re.compile(r"^-?\d+$")
 
-# ── 원칙 4·5 수치 (CSV제작_원칙.md 와 같이 고칠 것) ──
+# ── 원칙 수치 (CSV제작_원칙.md 와 같이 고칠 것) ──
 MISS_ROW_RATE = (0.03, 0.06)      # 결측이 있는 행 / 전체
 MISS_COL_RATE = (0.004, 0.022)    # 결측이 있는 열의 열당 비율 (0.5~2% 에 반올림 여유)
 MISS_MIN_COLS = 3
@@ -26,12 +28,17 @@ OUT_RATE = (0.01, 0.03)           # 의도한 이상치 비율
 OTHER_OUT_MAX = 0.02              # 다른 열의 IQR 밖 비율
 OUT_MARGIN = 0.25                 # 이상치가 울타리에서 떨어져야 하는 거리(IQR 배수)
 KEEP_MIN = 0.70                   # 결측·이상치 처리 뒤 남는 행
-ROWS = (200, 1500)           # 월별 실제 자료(약 20년=240행)도 허용 — 수업의 벚꽃 56행보다는 훨씬 많다
+ROWS = (200, 1500)
 R2_RANGE = (0.4, 0.9)
-MAE_MAX_RATIO = 0.20               # 일별 건수처럼 변동이 큰 자료(변동계수 0.4)는 R² 0.8 이상이 아니면 15%를 못 넘긴다 → 20%
+MAE_MAX_RATIO = 0.20
 MINORITY_MIN = 0.20
 ACC_MARGIN = 0.10
-XCAND = (6, 8)
+N_X = 5                           # x 후보는 정확히 5개 (하나를 빼고 4개를 쓴다)
+WEAK_MAX = 0.12                   # 예측: 가장 약한 열의 |r|
+WEAK_GAP = 0.05                   # 예측: 두 번째로 약한 열과의 차이
+PAIR_MIN = 0.85                   # 분류: 직선 쌍의 |r|
+PAIR_OTHER_MAX = 0.60             # 분류: 나머지 쌍의 |r|
+PAIR_NOT_COPY = 0.995             # 같은 값을 복사한 열은 안 된다
 
 
 def fence(s):
@@ -59,8 +66,8 @@ def check(path, spec):
         fail(f"열 순서가 [식별→x→y] 가 아님: {cols}")
     if any(c != c.strip() for c in cols) or len(set(cols)) != len(cols):
         fail("열 이름에 공백이 있거나 중복됨")
-    if not (XCAND[0] <= len(xs) <= XCAND[1]):
-        warn(f"x 후보 열 {len(xs)}개 (기준 {XCAND[0]}~{XCAND[1]})")
+    if len(xs) != N_X:
+        fail(f"x 후보 열 {len(xs)}개 (기준 정확히 {N_X}개)")
 
     numcols = xs + ([y] if track == "예측" else [])
     for c in numcols:
@@ -151,18 +158,22 @@ def check(path, spec):
     if resid > 0.01:
         warn(f"[{ocol}] 제거 뒤에도 IQR 밖이 {resid:.1%} 남음 (연쇄 이상치)")
 
-    # ── 4. 난이도 (원칙 1-4) ──
+    # ── 4. x 구조 (원칙 1-3) 와 난이도 (원칙 1-4) ──
     if track == "예측":
-        corr = clean[xs].corrwith(clean[y]).abs().sort_values(ascending=False)
+        corr = clean[xs].corrwith(clean[y]).abs().sort_values()
         M["상관(|r|)"] = corr.round(3).to_dict()
-        if (corr >= 0.3).sum() < 4:
-            warn(f"y와 |상관| 0.3 이상인 x가 {(corr >= 0.3).sum()}개 (4개 이상 권장)")
-        if not (corr < 0.1).any():
-            warn("관계가 약한 열(|r|<0.1)이 없음 — 핵심속성 고르기가 너무 쉬움")
-        pick = list(corr.index[:4])
-        r2, mae = _ols(clean, pick, y)
+        weak, gap = float(corr.iloc[0]), float(corr.iloc[1] - corr.iloc[0])
+        M["최약열"] = corr.index[0]
+        if weak > WEAK_MAX:
+            fail(f"가장 약한 열 [{corr.index[0]}] |r|={weak:.2f} (기준 {WEAK_MAX} 이하)")
+        if gap < WEAK_GAP:
+            fail(f"가장 약한 열과 두 번째 열의 차이 {gap:.2f} (기준 {WEAK_GAP} 이상 — 평가지 ④ 「가장 낮은 1가지」가 분명해야 함)")
+        if (corr.iloc[1:] >= 0.2).sum() < 4:
+            warn(f"y와 |상관| 0.2 이상인 x가 {(corr.iloc[1:] >= 0.2).sum()}개 (4개 권장)")
+        pick = [c for c in xs if c != corr.index[0]]
+        M["선택x"] = pick
+        r2, mae = _linreg(clean, pick, y)
         M["R2"], M["MAE"], M["MAE/평균"] = round(r2, 3), round(mae, 3), round(mae / clean[y].mean(), 3)
-        M["선택x(상관상위4)"] = pick
         if not (R2_RANGE[0] <= r2 <= R2_RANGE[1]):
             fail(f"다중 선형 회귀 R² {r2:.2f} (기준 {R2_RANGE[0]}~{R2_RANGE[1]})")
         if mae / clean[y].mean() > MAE_MAX_RATIO:
@@ -173,64 +184,78 @@ def check(path, spec):
         if share.min() < MINORITY_MIN:
             fail(f"소수 범주 {share.idxmin()} = {share.min():.1%} (기준 {MINORITY_MIN:.0%} 이상)")
         y01 = (clean[y] == spec["classes"][0]).astype(int)
-        corr = clean[xs].corrwith(y01).abs().sort_values(ascending=False)
-        M["상관(|r|)"] = corr.round(3).to_dict()
-        if corr.get(ocol, 0) < 0.1:
-            warn(f"첫 번째 x [{ocol}] 와 y 의 |상관| {corr.get(ocol,0):.2f} — 지울 이유가 약함")
-        rngs = (clean[xs].max() - clean[xs].min()).replace(0, np.nan).dropna()
+        ycorr = clean[xs].corrwith(y01).abs()
+        M["상관(|r|)"] = ycorr.round(3).sort_values(ascending=False).to_dict()
+        if ycorr.get(ocol, 0) < 0.1:
+            warn(f"첫 번째 x [{ocol}] 와 y 의 |상관| {ycorr.get(ocol,0):.2f} — 지울 이유가 약함")
+        xc = clean[xs].corr().abs()
+        pairs = sorted(((float(xc.loc[a, b]), a, b) for i, a in enumerate(xs) for b in xs[i + 1:]), reverse=True)
+        M["x쌍상관(상위3)"] = [(round(r, 2), a, b) for r, a, b in pairs[:3]]
+        strong = [p for p in pairs if p[0] >= PAIR_MIN]
+        if len(strong) != 1:
+            fail(f"직선 쌍(|r|≥{PAIR_MIN})이 {len(strong)}개 (기준 정확히 1개). 상위: {M['x쌍상관(상위3)']}")
+        else:
+            r_, a_, b_ = strong[0]
+            M["직선쌍"] = (a_, b_, round(r_, 2))
+            if r_ >= PAIR_NOT_COPY:
+                fail(f"직선 쌍 {a_}·{b_} 가 사실상 같은 값 (|r|={r_:.3f})")
+        rest = [p for p in pairs if p[0] < PAIR_MIN and p[0] >= PAIR_OTHER_MAX]
+        if rest:
+            fail(f"직선 쌍 말고 |r|≥{PAIR_OTHER_MAX} 인 쌍이 있음: {[(round(r, 2), a, b) for r, a, b in rest[:3]]}")
+        if len(strong) == 1:
+            drop = a_ if ycorr[a_] < ycorr[b_] else b_
+            pick = [c for c in xs if c != drop]
+            M["뺄열(쌍 중 y와 약한 쪽)"] = drop
+            if abs(ycorr[a_] - ycorr[b_]) < 0.015:
+                warn(f"직선 쌍의 두 열이 y와 비슷한 정도 ({ycorr[a_]:.2f}, {ycorr[b_]:.2f}) — 뺄 근거가 약함")
+        else:
+            pick = list(ycorr.sort_values(ascending=False).index[:4])
+        M["선택x"] = pick
+        rngs = (clean[pick].max() - clean[pick].min()).replace(0, np.nan).dropna()
         ratio = float(rngs.max() / rngs.min())
         M["x값폭비"] = round(ratio, 1)
         if ratio < 10:
             warn(f"x 열 값의 폭 차이 {ratio:.1f}배 (10배 이상 권장 — 정규화 질문)")
-        pick = list(corr.index[:4])
-        M["선택x(상관상위4)"] = pick
         base = float(clean[y].value_counts(normalize=True).max())
         accs = _classify(clean, pick, y)
         M["다수범주기준"], M["정확도"] = round(base, 3), {k: round(v, 3) for k, v in accs.items()}
-        for k, v in accs.items():
-            if v < base + ACC_MARGIN:
-                fail(f"{k} 정확도 {v:.1%} < 다수 범주 {base:.1%} + {ACC_MARGIN:.0%}p")
+        for k in ("결정트리(최적깊이)", "로지스틱", "kNN(정규화,k=3)"):
+            if accs[k] < base + ACC_MARGIN:
+                fail(f"{k} 정확도 {accs[k]:.1%} < 다수 범주 {base:.1%} + {ACC_MARGIN:.0%}p")
     return {"fail": F, "warn": W, "metrics": M}
 
 
-def _split(clean, cols, y, seed=42):
-    idx = np.random.RandomState(seed).permutation(len(clean))
-    k = int(round(len(clean) * 0.7))
-    tr, te = clean.iloc[idx[:k]], clean.iloc[idx[k:]]
-    return tr[cols].to_numpy(float), te[cols].to_numpy(float), tr[y], te[y]
+def _split(clean, cols, y):
+    from sklearn.model_selection import train_test_split
+    return train_test_split(clean[cols], clean[y], test_size=0.3, random_state=42)
 
 
-def _ols(clean, cols, y):
+def _linreg(clean, cols, y):
+    from sklearn.linear_model import LinearRegression
+    from sklearn.metrics import mean_absolute_error
     xt, xe, yt, ye = _split(clean, cols, y)
-    A = np.c_[np.ones(len(xt)), xt]
-    w = np.linalg.lstsq(A, yt.to_numpy(float), rcond=None)[0]
-    p = np.c_[np.ones(len(xe)), xe] @ w
-    ye = ye.to_numpy(float)
-    r2 = 1 - ((ye - p) ** 2).sum() / ((ye - ye.mean()) ** 2).sum()
-    return float(r2), float(np.abs(ye - p).mean())
+    m = LinearRegression().fit(xt, yt)
+    return float(m.score(xe, ye)), float(mean_absolute_error(ye, m.predict(xe)))
 
 
 def _classify(clean, cols, y):
+    from sklearn.tree import DecisionTreeClassifier
+    from sklearn.linear_model import LogisticRegression
+    from sklearn.neighbors import KNeighborsClassifier
+    from sklearn.preprocessing import MinMaxScaler
+    from sklearn.metrics import confusion_matrix
     xt, xe, yt, ye = _split(clean, cols, y)
     out = {}
-    try:   # sklearn 이 있으면 수업과 같은 세 알고리즘
-        from sklearn.tree import DecisionTreeClassifier
-        from sklearn.linear_model import LogisticRegression
-        from sklearn.neighbors import KNeighborsClassifier
-        from sklearn.preprocessing import MinMaxScaler
-        out["결정트리(깊이4)"] = DecisionTreeClassifier(max_depth=4, random_state=42).fit(xt, yt).score(xe, ye)
-        out["로지스틱"] = LogisticRegression(max_iter=5000).fit(xt, yt).score(xe, ye)
-        sc = MinMaxScaler().fit(xt)
-        out["kNN(정규화,k=3)"] = KNeighborsClassifier(3).fit(sc.transform(xt), yt).score(sc.transform(xe), ye)
-    except ImportError:   # 없으면 kNN 만 직접 계산해 최소한의 신호 확인
-        lo, hi = xt.min(0), xt.max(0)
-        sc = lambda a: (a - lo) / np.where(hi - lo == 0, 1, hi - lo)
-        a, b = sc(xt), sc(xe)
-        d = ((b[:, None, :] - a[None, :, :]) ** 2).sum(2)
-        nn = np.argsort(d, 1)[:, :3]
-        yt_arr = yt.to_numpy()
-        pred = [pd.Series(yt_arr[r]).mode()[0] for r in nn]
-        out["kNN(정규화,k=3; sklearn 없어 직접 계산)"] = float((np.array(pred) == ye.to_numpy()).mean())
+    dt = DecisionTreeClassifier(random_state=42).fit(xt, yt)
+    out["결정트리(기본)"] = dt.score(xe, ye)
+    best = max(DecisionTreeClassifier(max_depth=d, random_state=42).fit(xt, yt).score(xe, ye) for d in [2, 3, 4, 5, 6, 7, None])
+    out["결정트리(최적깊이)"] = best
+    out["로지스틱"] = LogisticRegression(max_iter=5000).fit(xt, yt).score(xe, ye)
+    out["kNN(정규화 전)"] = KNeighborsClassifier(3).fit(xt, yt).score(xe, ye)
+    sc = MinMaxScaler().fit(xt)
+    knn = KNeighborsClassifier(3).fit(sc.transform(xt), yt)
+    out["kNN(정규화,k=3)"] = knn.score(sc.transform(xe), ye)
+    confusion_matrix(ye, knn.predict(sc.transform(xe)))      # 평가지 ⑨ 가 오류 없이 도는지
     return out
 
 

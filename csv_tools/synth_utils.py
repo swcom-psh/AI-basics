@@ -56,3 +56,17 @@ def add_missing(df, cols, n_rows, seed, protect=()):
         df.loc[r, cols[k]] = np.nan
         cells.append((r, cols[k]))
     return cells
+
+
+def zs(a):
+    """표준화(평균 0, 표준편차 1)."""
+    a = np.asarray(a, float)
+    return (a - a.mean()) / a.std()
+
+
+def twin(a, r, rng, e=None):
+    """a 와 상관이 r 인 표준화 값을 돌려준다(평균 0, 표준편차 1). 잡음 e 를 주면 그것을 쓴다(a 와 독립이어야 한다)."""
+    e = rng.normal(0, 1, len(a)) if e is None else np.asarray(e, float)
+    za, ze = zs(a), zs(e)
+    ze = zs(ze - (ze * za).mean() * za)          # a 와 상관 0 이 되도록 a 성분을 걷어 낸다
+    return r * za + np.sqrt(1 - r * r) * ze
