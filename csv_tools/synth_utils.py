@@ -70,3 +70,29 @@ def twin(a, r, rng, e=None):
     za, ze = zs(a), zs(e)
     ze = zs(ze - (ze * za).mean() * za)          # a 와 상관 0 이 되도록 a 성분을 걷어 낸다
     return r * za + np.sqrt(1 - r * r) * ze
+
+
+# ── 분류 정답 만들기(예전 build_synth1.py 에서 옮김) ──
+def sig(z):
+    return 1 / (1 + np.exp(-z))
+
+
+def calib(z, target):
+    """절편을 옮겨 sig(z) 의 평균이 target 이 되게 한다."""
+    lo, hi = -30.0, 30.0
+    for _ in range(80):
+        m = (lo + hi) / 2
+        if sig(z + m).mean() > target:
+            hi = m
+        else:
+            lo = m
+    return z + m
+
+
+def draw(rng, z, target, pos, neg, k=1.0, flip=0.03):
+    """z 가 큰 쪽 target 비율을 pos 로 정하고(경계는 분명하되 z 에 이미 들어 있는 잡음으로 흐려짐), 일부(flip)만 무작위로 뒤집는다.
+    확률을 뽑는 방식보다 분류기가 배울 만한 규칙이 뚜렷하다(수업 규칙: 다수 범주보다 정확도 10%p 이상)."""
+    thr = np.quantile(z, 1 - target)
+    isp = z >= thr
+    isp = np.where(rng.rand(len(z)) < flip, ~isp, isp)
+    return np.where(isp, pos, neg)

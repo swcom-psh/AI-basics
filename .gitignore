@@ -9,3 +9,8 @@ csv_tools/build_*.py
 CSV제작_원칙.md
 학생수행평가지/
 CSV제작_계획.md
+
+# 쓰지 않게 된 예전 생성 스크립트·작업 파일 보관 (학번이 들어 있음)
+csv_tools/_보관/
+작업_인계메모.md
+CLAUDE.md

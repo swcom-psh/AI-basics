@@ -415,6 +415,29 @@ table.ad th{font-size:13.5px}
 #loading .spin{width:42px;height:42px;border:4px solid #d5d9e0;border-top-color:#1f3d8f;border-radius:50%;animation:loadspin .9s linear infinite}
 #loading small{color:#6b7280;font-size:12.5px}
 @keyframes loadspin{to{transform:rotate(360deg)}}
+
+/* ════════ 화면 다듬기 (2026-10-13) — 칸이 잘리거나 밀리지 않게 ════════ */
+/* 고르기 화면이 열려도 대화가 한두 줄은 보이게 */
+#log{min-height:120px}
+#xpick{min-height:180px;max-height:58vh}
+@media (max-height:760px){#xpick{max-height:52vh}}
+/* 계획서의 학번이 두 줄로 쪼개지지 않게 */
+table.form td.num{white-space:nowrap;letter-spacing:-.02em}
+#xpick .xn{overflow-wrap:anywhere}
+/* 좁은 화면(태블릿·휴대폰): 상단 줄이 넘치지 않게 단계 표시를 둘째 줄로 */
+@media (max-width:900px){
+  #bar{grid-template-columns:minmax(0,1fr) auto;height:auto;padding:8px 12px;gap:6px 10px}
+  #bar .brand span{display:none}
+  #steps{grid-column:1 / -1;grid-row:2;max-width:none}
+  #steps .st{font-size:11.5px;padding:5px 2px;gap:3px}
+  #bar .right{flex-wrap:wrap;justify-content:flex-end}
+  #log{padding:16px 14px 10px}
+  #xpick{padding:10px 12px;max-height:none}
+  #xpick .xtxt{min-width:0;width:100%;box-sizing:border-box}
+  #xpick .xrad{flex-wrap:wrap}
+  #xpick .xrel{margin-left:4px}
+  .sheet{padding:18px 12px}
+}
 </style>
 </head>
 <body>
@@ -1143,7 +1166,7 @@ function 계획서HTML(s, 도장){
   h += '<h2>수행평가 계획서</h2>';
 
   // 인적 사항
-  h += '<table class="form"><colgroup><col style="width:13%"><col style="width:20%"><col style="width:11%"><col style="width:22%"><col style="width:11%"><col></colgroup><tr>'+
+  h += '<table class="form"><colgroup><col style="width:12%"><col style="width:23%"><col style="width:11%"><col style="width:20%"><col style="width:11%"><col></colgroup><tr>'+
        '<th>학번</th><td class="c num">'+esc(/^\d+$/.test(학번)? 학번 : '—')+'</td>'+
        '<th>성명</th><td class="c">'+esc(나 ? 나.이름 : '')+'</td>'+
        '<th>방식</th><td class="c">'+(s.트랙 ? esc(s.트랙) : '<span class="blank" style="min-width:3em"></span>')+'</td></tr></table>';
@@ -1298,8 +1321,10 @@ function 보기그리기(){
   }
   if(!모드){ box.classList.add('hide'); if(!보내는중){ box.innerHTML = ''; 폼표식 = ''; } return; }
   const 표식 = 모드 + '|' + (s.대상후보 || []).join(',') + '|' + (s.x보기 || []).map(x => x.이름).join('|');
-  if(표식 !== 폼표식 || !box.innerHTML){ 폼표식 = 표식; box.innerHTML = 모드 === '요인' ? 요인HTML(s) : 마무리HTML(); }
+  const 새폼 = 표식 !== 폼표식 || !box.innerHTML;
+  if(새폼){ 폼표식 = 표식; box.innerHTML = 모드 === '요인' ? 요인HTML(s) : 마무리HTML(); }
   box.classList.remove('hide');
+  if(새폼){ const lg = document.getElementById('log'); if(lg) lg.scrollTop = lg.scrollHeight; }   // 화면이 열려 대화 칸이 줄어도 마지막 말이 보이게
   if(모드 === '요인') 요인갱신(); else 마무리갱신();
 }
 

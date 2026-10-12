@@ -1343,7 +1343,7 @@ function CSV상태_(req) {
   if (!기록.있음) return out;
   const f = CSV찾기_(대상.학번);
   if (f) {
-    out.파일 = { 이름: f.getName(), 크기: f.getSize() };
+    out.파일 = { 이름: f.getName(), 크기: f.getSize(), 수정: f.getLastUpdated().getTime() };
     try { out.열 = CSV열_(f); } catch (e) { console.error('열 읽기 실패: ' + e); }
     try { out.안내 = CSV안내_(f, 대상.학번); } catch (e) { console.error('안내 읽기 실패: ' + e); }
   }
@@ -1379,15 +1379,15 @@ function 요청시트_(ss) {
 /* 한 학생의 가장 최근 요청과 확인 기록 */
 function 요청내역_(학번) {
   const sh = 스프레드시트_().getSheetByName(요청시트이름);
-  if (!sh || sh.getLastRow() < 2) return { 확인: false, 변경: null };
+  if (!sh || sh.getLastRow() < 2) return { 확인: false, 확인시각: 0, 변경: null };
   const v = sh.getRange(2, 1, sh.getLastRow() - 1, 8).getValues();
-  let 확인 = false, 변경 = null;
+  let 확인 = false, 확인시각 = 0, 변경 = null;
   v.forEach(r => {
     if (String(r[1]) !== String(학번)) return;
-    if (r[3] === '확인') 확인 = true;
+    if (r[3] === '확인') { 확인 = true; 확인시각 = Math.max(확인시각, new Date(r[0]).getTime() || 0); }
     if (r[3] === '바꾸고싶어요') 변경 = { 시각: Utilities.formatDate(new Date(r[0]), 'Asia/Seoul', 'M/d HH:mm'), 이유: String(r[4]), 내용: String(r[5]), 상태: String(r[6]), 메모: String(r[7] || '') };
   });
-  return { 확인: 확인, 변경: 변경 };
+  return { 확인: 확인, 확인시각: 확인시각, 변경: 변경 };   // 확인시각: 데이터가 그 뒤에 바뀌었는지 화면이 비교한다
 }
 
 function CSV요청_(req) {

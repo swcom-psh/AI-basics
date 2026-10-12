@@ -179,6 +179,8 @@ textarea{width:100%;min-height:78px;resize:vertical;padding:12px 14px;border:1.5
   .swap{grid-template-columns:1fr}
   .swap .arrow{transform:rotate(90deg);justify-self:center}
   .fb .two{grid-template-columns:1fr}
+  .stat{flex-direction:column;gap:4px}             /* 좁은 화면에서 제목 옆에 글이 한 단어씩 세로로 쌓이지 않게 */
+  .stat b{white-space:normal}
 }
 
 /* ════════ 관리자: 학생 화면 미리보기 ════════ */
@@ -498,11 +500,10 @@ const 자료설명 = {
 };
 function 열그리기(열){
   if(!열 || !열.length) return '';
-  const 식별 = /^(날짜|기준일|영화|영상|참가자|실험번호|환자번호|환자|기록|경기|과제|측정|웨이퍼|실험|어르신|도서_월)$/;
   const 칩 = 열.map((c, i) => {
     const 이름 = c.replace(/_/g, ' ');
     if(i === 열.length - 1) return '<span class="col y" title="맞힐 값">'+esc(이름)+'</span>';
-    if(i <= 1 && 식별.test(c)) return '<span class="col id" title="행을 구분하는 열">'+esc(이름)+'</span>';
+    if(i === 0) return '<span class="col id" title="행을 구분하는 열">'+esc(이름)+'</span>';
     return '<span class="col">'+esc(이름)+'</span>';
   }).join('');
   return '<div class="cols">'+칩+'</div><div class="colkey">초록색은 맞힐 값(y), 점선은 행을 구분하는 열이에요. 나머지 5개는 맞히는 데 쓸 수 있는 정보(x 후보)예요. 수행평가에서는 평가지가 안내하는 대로 이 중 1개를 빼고 4개를 골라요.</div>';
@@ -522,6 +523,7 @@ function 바뀜카드(s){
 }
 function 응답카드(s){
   const q = s.요청 || {확인:false, 변경:null}, 변경 = q.변경;
+  const 바뀐뒤 = q.확인 && q.확인시각 && s.파일 && s.파일.수정 && s.파일.수정 > q.확인시각;   // 「확인」을 누른 뒤에 데이터가 새로 바뀌었다
   let h = '<div class="card" id="fbcard"><h3>이 데이터로 해도 될까요?</h3>';
   if(변경 && 변경.상태 === '대기'){
     h += '<div class="stat wait"><b>바꾸고 싶어요 접수됨</b><span>'+esc(변경.시각)+' · '+esc(변경.이유)+'<br>'+esc(변경.내용)+'<br><span class="hint">선생님이 확인한 뒤 이 화면에 메모를 남겨요. 기다리는 동안 지금 데이터로 수행평가를 계속 연습해도 돼요.</span></span></div>' +
@@ -529,6 +531,10 @@ function 응답카드(s){
   } else if(변경 && 변경.상태 === '처리됨'){
     h += '<div class="stat done"><b>선생님 답</b><span>'+esc(변경.메모 || '확인했어요.')+'<br><span class="hint">'+esc(변경.시각)+' 요청 · '+esc(변경.이유)+'</span></span></div>' +
       '<div class="cta"><button class="btn sm" onclick="요청열기()">다시 요청하기</button></div>';
+  } else if(바뀐뒤){
+    h += '<div class="stat wait"><b>데이터가 새로 바뀌었어요</b><span>「확인했어요」를 누른 뒤에 선생님이 데이터를 고쳤어요. 위의 「내 주제와 데이터」를 다시 읽고 알려 주세요.</span></div>' +
+      '<div class="fb"><div class="two"><button class="btn main" onclick="확인하기()">좋아요, 바뀐 데이터로 할게요</button>' +
+      '<button class="btn" onclick="요청열기()">바꾸고 싶어요</button></div></div>';
   } else if(q.확인){
     h += '<div class="stat done"><b>확인했어요</b><span>이 데이터로 하기로 했어요. 마음이 바뀌면 아래에서 언제든 바꾸고 싶다고 알려 주세요.</span></div>' +
       '<div class="cta"><button class="btn sm" onclick="요청열기()">바꾸고 싶어졌어요</button></div>';
