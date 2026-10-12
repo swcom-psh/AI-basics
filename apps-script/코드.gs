@@ -1362,7 +1362,8 @@ function CSV안내_(f, 학번) {
   const it = f.getParents().hasNext() ? f.getParents().next().getFilesByName(학번 + '_안내.json') : null;
   if (!it || !it.hasNext()) return null;
   const j = JSON.parse(it.next().getBlob().getDataAsString('UTF-8'));
-  return { 데이터주제: String(j.데이터주제 || ''), 자료: String(j.자료 || ''), 바뀐점: (j.바뀐점 || []).map(String) };
+  return { 데이터주제: String(j.데이터주제 || ''), 자료: String(j.자료 || ''), 바뀐점: (j.바뀐점 || []).map(String),
+           갱신: String(j.갱신 || '') };   // 갱신: 선생님이 데이터 내용을 바꾼 때 — 그 전에 「확인」한 학생에게 다시 묻는다
 }
 
 /* ── 주제 변경 요청 / 확인 ── */
