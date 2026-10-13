@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>선택 자료실 · 인공지능 기초</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<style>
+/* 이 파일은 csv_tools/make_datasets_page.py 가 만든다 — 직접 고치지 말고 csv_tools/datasets_page_template.html 을 고칠 것.
+   download.html(청록·크림)과 같은 카드형 구성, 색은 파스텔 베이지 */
+:root{
+  --bg:#F6EFE3; --bg-2:#EFE4D3; --card:#FFFCF6; --ink:#3A2F25; --ink-2:#5C4F42; --muted:#8B7C6C;
+  --line:#E4D6C2; --line-2:#EEE4D5;
+  --accent:#86603D; --accent-2:#6F4F31; --accent-soft:#F2E3CF; --accent-deep:#5B4029;
+  --sage:#E2EAD8; --sage-ink:#4B6440;
+  --peach:#F7E1D5; --peach-ink:#94503B;
+  --sand:#F4E7C9; --sand-ink:#7A5A23;
+  --rose:#F8E3E0; --rose-ink:#9C3D30;
+  --sans:"Pretendard Variable",Pretendard,-apple-system,"Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif;
+}
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%}
+body{background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:16px;line-height:1.7;
+  -webkit-font-smoothing:antialiased;word-break:keep-all;overflow-wrap:anywhere}
+button{font-family:inherit;cursor:pointer}
+input{font-family:inherit;font-size:15px;color:var(--ink)}
+a{color:var(--accent)}
+:focus-visible{outline:3px solid #D9B48C;outline-offset:2px}
+.hide{display:none !important}
+.num{font-variant-numeric:tabular-nums}
+
+.btn{border:1.5px solid var(--line);background:var(--card);color:var(--ink);padding:9px 16px;border-radius:999px;
+  font-size:14px;font-weight:600;line-height:1.3;text-decoration:none;display:inline-flex;align-items:center;justify-content:center;gap:8px}
+.btn:hover{border-color:var(--accent)}
+.btn.main{background:var(--accent);border-color:var(--accent);color:#fff}
+.btn.main:hover{background:var(--accent-2);border-color:var(--accent-2)}
+.btn.big{padding:15px 30px;font-size:18px;font-weight:800;box-shadow:0 8px 20px -10px rgba(134,96,61,.7)}
+.btn.ghost{border-color:transparent;background:transparent;color:var(--ink-2);padding-left:4px}
+.btn.ghost:hover{color:var(--accent)}
+
+/* ── 위 막대 ── */
+#bar{display:flex;align-items:center;gap:14px;padding:14px max(20px,calc((100% - 1080px)/2));
+  background:var(--bg-2);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:10}
+#bar .brand{white-space:nowrap;font-weight:800;font-size:17px;letter-spacing:-.02em;display:flex;align-items:center;gap:10px;color:var(--accent-deep);text-decoration:none}
+#bar .sp{flex:1}
+#bar .btn{white-space:nowrap;background:transparent}
+
+#wrap{max-width:1080px;margin:0 auto;padding:34px 20px 80px}
+.hello{font-size:15px;color:var(--accent);font-weight:700;margin:0 0 4px}
+h1.title{font-size:34px;font-weight:800;line-height:1.3;margin:0 0 8px;letter-spacing:-.035em;text-wrap:balance}
+.lead{font-size:17px;color:var(--ink-2);margin:0 0 22px;max-width:760px}
+
+.card{background:var(--card);border:1px solid var(--line);border-radius:22px;padding:24px 26px;margin-bottom:16px;
+  box-shadow:0 14px 30px -26px rgba(58,47,37,.55)}
+.card h3{margin:0 0 10px;font-size:13.5px;font-weight:800;color:var(--muted);letter-spacing:.04em}
+
+/* 사용법 */
+.how{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin:0 0 6px;padding:0;list-style:none;counter-reset:s}
+.how li{counter-increment:s;display:grid;grid-template-columns:32px 1fr;gap:10px;font-size:15px;color:var(--ink-2)}
+.how li::before{content:counter(s);width:30px;height:30px;border-radius:10px;background:var(--accent);color:#fff;font-weight:800;
+  display:flex;align-items:center;justify-content:center;font-size:14px}
+.how b{color:var(--ink)}
+.rules{margin:14px 0 0;padding:14px 18px;border-radius:16px;background:var(--accent-soft);color:var(--accent-deep);font-size:14.5px}
+.rules ul{margin:6px 0 0;padding-left:20px}
+.rules li{margin:3px 0}
+
+/* 고르기 */
+.tools{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:26px 0 14px}
+.tools input[type=search]{flex:1 1 240px;min-width:0;padding:11px 16px;border:1.5px solid var(--line);border-radius:999px;background:var(--card)}
+.chips{display:flex;flex-wrap:wrap;gap:7px}
+.chip{font-size:13.5px;font-weight:700;padding:6px 14px;border-radius:999px;border:1.5px solid var(--line);background:var(--card);color:var(--ink-2)}
+.chip[aria-pressed=true]{background:var(--accent);border-color:var(--accent);color:#fff}
+.count{font-size:14px;color:var(--muted);margin:0 0 12px}
+
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px}
+.ds{display:flex;flex-direction:column;gap:8px;text-align:left;background:var(--card);border:1.5px solid var(--line);border-radius:20px;padding:18px 20px;
+  color:var(--ink);font:inherit;transition:border-color .15s, transform .15s, box-shadow .15s}
+.ds:hover{border-color:#CDAF8B;transform:translateY(-2px);box-shadow:0 14px 26px -20px rgba(58,47,37,.6)}
+.ds .grp{font-size:12.5px;font-weight:700;color:var(--muted)}
+.ds .nm{font-size:19px;font-weight:800;letter-spacing:-.02em;line-height:1.35}
+.ds .gl{font-size:14.5px;color:var(--ink-2);line-height:1.6;flex:1}
+.ds .yy{font-size:13.5px;color:var(--ink-2)}
+.ds .yy b{color:var(--accent-deep)}
+.tags{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.tag{display:inline-flex;align-items:center;font-size:12.5px;font-weight:800;padding:2px 11px;border-radius:999px;white-space:nowrap}
+.tag.pred{background:var(--sage);color:var(--sage-ink)}
+.tag.cls{background:var(--peach);color:var(--peach-ink)}
+.tag.real{background:var(--accent-soft);color:var(--accent-deep)}
+.tag.mix{background:var(--sand);color:var(--sand-ink)}
+.tag.plain{background:transparent;border:1px solid var(--line);color:var(--muted);font-weight:700}
+.empty{padding:40px 0;text-align:center;color:var(--muted)}
+
+/* 자세히 */
+#detail .top{display:flex;flex-wrap:wrap;gap:18px;align-items:flex-end;justify-content:space-between;margin:10px 0 20px}
+#detail h1{font-size:32px;font-weight:800;line-height:1.3;margin:6px 0 10px;letter-spacing:-.035em}
+.dl{display:flex;flex-direction:column;align-items:flex-end;gap:6px}
+.dl small{font-size:13px;color:var(--muted)}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.two .card{margin-bottom:0}
+.goal{font-size:19px;font-weight:700;line-height:1.55;letter-spacing:-.02em;border-left:5px solid var(--accent);padding:2px 0 2px 16px;margin:0}
+p.body{margin:0;color:var(--ink-2);font-size:15.5px}
+.src{margin-top:10px;font-size:13.5px;color:var(--muted)}
+.notes{list-style:none;margin:14px 0 0;padding:0;display:grid;gap:8px}
+.notes li{display:grid;grid-template-columns:22px 1fr;gap:8px;font-size:14.5px;padding:10px 14px;border-radius:14px;background:var(--sand);color:#5E4416}
+.notes li::before{content:"!";width:20px;height:20px;border-radius:50%;background:#C79A4A;color:#fff;font-weight:800;font-size:13px;display:flex;align-items:center;justify-content:center;margin-top:2px}
+.notes li.no{background:var(--rose);color:#6E2A20}
+.notes li.no::before{content:"✕";background:#C4685A}
+
+/* y·x 상자 */
+.target{display:grid;grid-template-columns:auto 1fr;gap:16px;align-items:start}
+.ybadge{background:var(--accent);color:#fff;font-weight:800;font-size:14px;padding:6px 14px;border-radius:12px;white-space:nowrap}
+.yname{font-size:20px;font-weight:800;letter-spacing:-.02em}
+.ydesc{font-size:15px;color:var(--ink-2);margin-top:2px}
+.classes{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+.classes span{font-size:14px;font-weight:700;padding:3px 12px;border-radius:999px;background:var(--peach);color:var(--peach-ink)}
+.xlist{list-style:none;margin:12px 0 0;padding:0;display:grid;gap:8px;counter-reset:x}
+.xlist li{counter-increment:x;display:grid;grid-template-columns:30px 1fr;gap:10px;align-items:start;padding:10px 14px;border-radius:14px;background:#FBF4E8;border:1px solid var(--line-2)}
+.xlist li::before{content:"x" counter(x);font-size:12.5px;font-weight:800;color:var(--sand-ink);background:var(--sand);border-radius:8px;padding:2px 0;text-align:center}
+.xlist b{font-size:16px}
+.xlist small{display:block;font-size:13.5px;color:var(--ink-2)}
+.xlist .first{margin-left:6px;font-size:11.5px;font-weight:800;color:var(--peach-ink);background:var(--peach);padding:1px 8px;border-radius:999px;vertical-align:2px}
+.flow{margin-top:14px;font-size:14px;color:var(--ink-2);background:var(--accent-soft);border-radius:14px;padding:12px 16px}
+.flow b{color:var(--accent-deep)}
+
+/* 열 표 */
+.sec{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 10px;margin:30px 0 10px;scroll-margin-top:80px}
+.sec h2{font-size:22px;font-weight:800;margin:0;letter-spacing:-.02em;white-space:nowrap}
+.sec span{font-size:14px;color:var(--muted)}
+.legend{display:flex;flex-wrap:wrap;gap:12px;font-size:13.5px;color:var(--ink-2);margin:0 0 12px}
+.legend i{display:inline-block;width:12px;height:12px;border-radius:4px;margin-right:5px;vertical-align:-1px}
+table.cols{width:100%;border-collapse:separate;border-spacing:0;background:var(--card);border:1px solid var(--line);border-radius:18px;overflow:hidden;font-size:14.5px}
+.cols th{text-align:left;font-size:12.5px;font-weight:800;color:var(--muted);letter-spacing:.03em;padding:12px 14px;background:#F8F0E4;border-bottom:1px solid var(--line)}
+.cols td{padding:12px 14px;border-bottom:1px solid var(--line-2);vertical-align:top;color:var(--ink-2)}
+.cols tr:last-child td{border-bottom:0}
+.cols tr.gh td{background:#F3E9DA;font-size:13px;font-weight:800;color:var(--accent-deep);padding:8px 14px;letter-spacing:.03em}
+.cols td.cn{font-weight:800;color:var(--ink);min-width:150px}
+.cols td.cn .r{display:inline-block;font-size:11px;font-weight:800;padding:1px 8px;border-radius:999px;margin:0 0 3px;letter-spacing:.02em}
+.r.y{background:var(--accent);color:#fff}
+.r.x{background:var(--sand);color:var(--sand-ink)}
+.r.ref{background:#EEE7DC;color:var(--muted)}
+.cols td.u{white-space:nowrap;color:var(--ink)}
+.cols td.rg{min-width:150px}
+.rg .main{color:var(--ink);font-weight:600}
+.rg small{display:block;color:var(--muted);font-size:12.5px;line-height:1.5}
+.cols td.ds2{min-width:220px}
+.cols td.hw{font-size:13.5px;color:var(--muted);min-width:140px}
+.avoid{display:block;margin-top:4px;font-size:12.5px;font-weight:700;color:var(--rose-ink)}
+.morebtn{margin:10px auto 0;display:flex}
+
+footer{max-width:1080px;margin:0 auto;padding:0 20px 40px;font-size:13px;color:var(--muted)}
+
+@media (max-width:820px){
+  .how{grid-template-columns:1fr}
+  .two{grid-template-columns:1fr}
+  /* 좁은 화면: 열 표를 카드로 */
+  table.cols,table.cols tbody,table.cols tr,table.cols td{display:block;width:100%}
+  table.cols thead{display:none}
+  table.cols{border:0;background:transparent;border-radius:0}
+  .cols tr{background:var(--card);border:1px solid var(--line);border-radius:16px;margin-bottom:10px;padding:12px 14px}
+  .cols tr.gh{background:transparent;border:0;padding:6px 2px 0;margin-bottom:6px}
+  .cols tr.gh td{background:transparent;padding:0}
+  .cols td{border:0;padding:3px 0;min-width:0 !important}
+  .cols td.u::before,.cols td.rg::before,.cols td.hw::before{content:attr(data-k);display:inline-block;min-width:62px;font-size:12px;font-weight:800;color:var(--muted)}
+  .cols td.u{white-space:normal}
+  .rg small{display:inline;margin-left:6px}
+}
+@media (max-width:560px){
+  h1.title,#detail h1{font-size:26px}
+  .card{padding:20px 18px;border-radius:18px}
+  #bar .brand span{display:none}
+  .dl{align-items:stretch;width:100%}
+  .dl .btn{width:100%}
+  .target{grid-template-columns:1fr}
+  .ybadge{justify-self:start}
+}
+@media (prefers-reduced-motion:reduce){.ds{transition:none}.ds:hover{transform:none}}
+</style>
+</head>
+<body>
+<header id="bar">
+  <a class="brand" href="#" aria-label="선택 자료실 처음으로">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v6c0 1.7 3.6 3 8 3s8-1.3 8-3V5"/><path d="M4 11v6c0 1.7 3.6 3 8 3s8-1.3 8-3v-6"/></svg>
+    <span>인공지능 기초 · </span>선택 자료실
+  </a>
+  <div class="sp"></div>
+  <a class="btn" href="download.html">내 데이터 받기</a>
+</header>
+
+<main id="wrap">
+  <!-- 목록 -->
+  <section id="list">
+    <p class="hello">실제 공개 데이터</p>
+    <h1 class="title">수행평가에 쓸 수 있는 데이터 <span id="nAll"></span>개</h1>
+    <p class="lead">전 세계 연구 기관·공공 기관·회사가 공개한 진짜 데이터를 수행평가에 맞게 정리했습니다. 관심 있는 자료를 눌러 무엇을 맞히는 자료인지, 열마다 무슨 뜻인지 읽어 보고 내려받으세요.</p>
+
+    <div class="card">
+      <h3>이렇게 쓰세요</h3>
+      <ol class="how">
+        <li><span><b>자료 고르기</b><br>예측(숫자 맞히기)과 분류(둘 중 하나 맞히기) 중 내 과제에 맞는 자료를 고릅니다.</span></li>
+        <li><span><b>설명 읽기</b><br>맞힐 값(y) 1개와 x 후보 5개, 각 열의 단위·범위·뜻을 확인합니다.</span></li>
+        <li><span><b>내려받기</b><br>「CSV 내려받기」를 눌러 받은 파일을 구글 드라이브에 올리고 수행평가지에서 불러옵니다.</span></li>
+      </ol>
+      <div class="rules">
+        <b>꼭 알아 둘 것</b>
+        <ul>
+          <li>분석에는 <b>x 후보 5개와 y 1개</b>만 씁니다. 이름·소속·날짜 같은 <b>참고 열</b>은 자료를 이해하라고 남겨 둔 원본 열이에요.</li>
+          <li>빈칸(결측치)과 튀는 값(이상치)은 <b>x 후보·y 열에 일부러</b> 넣어 두었습니다. 수행평가지 ③에서 직접 찾아 지우세요.</li>
+          <li>표의 「값의 범위」는 <b>가운데 90%</b>의 값입니다. 가장 작은 값·큰 값은 <code>describe()</code>로 직접 확인하세요.</li>
+          <li>결과를 쓸 때는 「이 자료에서는 …」처럼 말하세요. 몇몇 자료는 연습용으로 조금 고친 부분이 있어 자세히 보기에 적어 두었습니다.</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="tools" role="search">
+      <input type="search" id="q" placeholder="자료 이름·열 이름으로 찾기 (예: 축구, 혈압, 집값)" aria-label="자료 찾기">
+      <div class="chips" id="trackChips" role="group" aria-label="과제 유형"></div>
+    </div>
+    <div class="chips" id="groupChips" role="group" aria-label="분야" style="margin-bottom:14px"></div>
+    <p class="count" id="count" aria-live="polite"></p>
+    <div class="grid" id="grid"></div>
+  </section>
+
+  <!-- 자세히 -->
+  <section id="detail" class="hide" aria-live="polite"></section>
+</main>
+<footer>
+  자료마다 출처와 라이선스를 「자세히 보기」에 적었습니다. 열 설명은 원 자료의 공식 설명을 바탕으로 우리말로 옮겼습니다.
+</footer>
+
+<script>
+const DATA = /*__DATA__*/null;
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const state = { track: "전체", group: "전체", q: "" };
+
+function chip(label, key, cur){ return `<button class="chip" type="button" data-k="${key}" data-v="${esc(label)}" aria-pressed="${label===cur}">${esc(label)}</button>`; }
+function drawChips(){
+  $("#trackChips").innerHTML = ["전체","예측","분류"].map(t => chip(t,"track",state.track)).join("");
+  $("#groupChips").innerHTML = ["전체", ...DATA.groups].map(g => chip(g,"group",state.group)).join("");
+}
+function tags(d){
+  return `<span class="tag ${d.track==="예측"?"pred":"cls"}">${d.track}</span>`
+    + `<span class="tag ${d.real==="실제"?"real":"mix"}">${d.real==="실제"?"실제 자료":"실제 자료 + 연습용 열"}</span>`
+    + `<span class="tag plain num">${d.rows.toLocaleString()}행</span>`;
+}
+function match(d){
+  if (state.track!=="전체" && d.track!==state.track) return false;
+  if (state.group!=="전체" && d.group!==state.group) return false;
+  if (!state.q) return true;
+  const hay = [d.name,d.goal,d.what,d.group,d.y,...d.cols.map(c=>c.name+" "+c.desc)].join(" ").toLowerCase();
+  return state.q.toLowerCase().split(/\s+/).every(w => hay.includes(w));
+}
+function drawList(){
+  const list = DATA.sets.filter(match);
+  $("#count").textContent = list.length===DATA.sets.length ? `전체 ${list.length}개` : `${list.length}개 찾음`;
+  $("#grid").innerHTML = list.length ? list.map(d => `
+    <button class="ds" type="button" data-id="${esc(d.id)}">
+      <span class="grp">${esc(d.group)}</span>
+      <span class="nm">${esc(d.name)}</span>
+      <span class="gl">${esc(d.goal)}</span>
+      <span class="yy">맞힐 값 <b>${esc(d.y==="결과" ? d.classes.join(" / ") : d.y)}</b></span>
+      <span class="tags">${tags(d)}</span>
+    </button>`).join("") : `<p class="empty">조건에 맞는 자료가 없어요. 찾는 말을 바꿔 보세요.</p>`;
+}
+
+function rangeHtml(c){
+  const s = c.stat;
+  if (s.kind==="num") return `<span class="main num">${esc(s.lo)} ~ ${esc(s.hi)}</span><small class="num">평균 ${esc(s.mean)}${s.int?" · 정수":""}</small>`;
+  if (s.kind==="bin") return `<span class="main">0 또는 1</span><small class="num">1인 행 ${s.p1}%</small>`;
+  const top = s.top.map(([k,v]) => esc(k)).join(", ");
+  return `<span class="main num">${s.n.toLocaleString()}가지</span><small>예: ${top}${s.n>s.top.length?" …":""}</small>`;
+}
+function rowHtml(c){
+  const lab = {y:"맞힐 값 y", x:"x 후보", ref:"참고 열"}[c.role];
+  return `<tr>
+    <td class="cn"><span class="r ${c.role}">${lab}</span><br>${esc(c.name)}${c.avoid?`<span class="avoid">x 로 쓰지 마세요 — ${esc(c.avoid)}</span>`:""}</td>
+    <td class="u" data-k="단위">${esc(c.unit)}</td>
+    <td class="rg" data-k="값의 범위">${rangeHtml(c)}</td>
+    <td class="ds2">${esc(c.desc)}</td>
+    <td class="hw" data-k="측정 방법">${esc(c.how)}</td>
+  </tr>`;
+}
+function href(f){ return encodeURI(f); }
+
+function drawDetail(d){
+  const byName = Object.fromEntries(d.cols.map(c => [c.name,c]));
+  const yc = byName[d.y];
+  const refs = d.cols.filter(c => c.role==="ref");
+  const xs = d.x.map(n => byName[n]);
+  const notes = [...d.note.map(n => `<li>${esc(n)}</li>`),
+    ...(d.avoid_note ? [`<li class="no">${esc(d.avoid_note)}</li>`] : []),
+    ...d.cols.filter(c => c.avoid).map(c => `<li class="no"><span><b>${esc(c.name)}</b> 열은 x 로 쓰지 마세요 — ${esc(c.avoid)}.</span></li>`)];
+  const flow = d.track==="예측"
+    ? `<b>수행평가지 흐름</b> · ③ 이상치는 <b>y 열(${esc(d.y)})</b>에서 찾습니다. ④ 상관계수를 보고 x 후보 5개 중 y와 상관이 가장 약한 1개를 빼고 4개를 씁니다. (상관표에 참고 열도 나오지만 x 후보 5개만 보세요.)`
+    : `<b>수행평가지 흐름</b> · ③ 이상치는 <b>x 후보의 첫 번째 열(${esc(d.x[0])})</b>에서 찾습니다. ④ pairplot 에서 x 후보 중 가장 폭이 좁은 직선 모양을 보이는 두 열을 찾아 그중 하나를 빼고 4개를 씁니다.`;
+  $("#detail").innerHTML = `
+    <button class="btn ghost" type="button" id="back">← 자료 목록</button>
+    <div class="top">
+      <div>
+        <p class="hello" style="margin:0">${esc(d.group)}</p>
+        <h1>${esc(d.name)}</h1>
+        <div class="tags">${tags(d)}<span class="tag plain">열 ${d.ncol}개</span></div>
+      </div>
+      <div class="dl">
+        <a class="btn main big" href="${href(d.file)}" download="${esc(d.id)}.csv">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/></svg>
+          CSV 내려받기</a>
+        <small>파일 이름 ${esc(d.id)}.csv</small>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>무엇을 맞히나요?</h3>
+      <p class="goal">${esc(d.goal)}</p>
+    </div>
+
+    <div class="two">
+      <div class="card">
+        <h3>맞힐 값 (y) — 1개</h3>
+        <div class="target">
+          <span class="ybadge">y</span>
+          <div>
+            <div class="yname">${esc(d.y)}</div>
+            <div class="ydesc">${esc(yc.desc)}</div>
+            ${d.classes ? `<div class="classes">${d.classes.map(k=>`<span>${esc(k)}</span>`).join("")}</div>` : `<div class="ydesc">단위 ${esc(yc.unit)} · 가운데 90% ${esc(yc.stat.lo)} ~ ${esc(yc.stat.hi)}</div>`}
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <h3>x 후보 — 5개 (이 순서 그대로)</h3>
+        <ol class="xlist">${xs.map((c,i)=>`<li><span><b>${esc(c.name)}</b>${i===0&&d.track==="분류"?`<span class="first">이상치 확인 열</span>`:""}<small>${esc(c.desc)}</small></span></li>`).join("")}</ol>
+      </div>
+    </div>
+    <div class="flow">${flow}</div>
+
+    <div class="two" style="margin-top:16px">
+      <div class="card">
+        <h3>무슨 데이터인가요?</h3>
+        <p class="body">${esc(d.what)}</p>
+      </div>
+      <div class="card">
+        <h3>어떻게 모은 자료인가요?</h3>
+        <p class="body">${esc(d.how)}</p>
+        <p class="src">출처: ${esc(d.src)}</p>
+      </div>
+    </div>
+    ${notes.length ? `<ul class="notes">${notes.join("")}</ul>` : ""}
+
+    <div class="sec"><h2>열 설명</h2><span>모두 ${d.cols.length + 1}열 (맨 앞 「번호」는 행 번호라 분석에 쓰지 않음)</span></div>
+    <div class="legend"><span><i style="background:var(--accent)"></i>맞힐 값 y</span><span><i style="background:var(--sand)"></i>x 후보</span><span><i style="background:#EEE7DC"></i>참고 열(원본 그대로, 분석에 쓰지 않음)</span></div>
+    <table class="cols">
+      <thead><tr><th>열 이름</th><th>단위</th><th>값의 범위 (가운데 90%)</th><th>무엇을 나타내나요</th><th>어떻게 쟀나요</th></tr></thead>
+      <tbody>
+        <tr class="gh"><td colspan="5">맞힐 값과 x 후보</td></tr>
+        ${rowHtml(yc)}${xs.map(rowHtml).join("")}
+        ${refs.length ? `<tr class="gh"><td colspan="5">참고 열 ${refs.length}개</td></tr>` + refs.map(rowHtml).join("") : ""}
+      </tbody>
+    </table>`;
+  $("#back").addEventListener("click", () => { location.hash = ""; });
+}
+
+function route(){
+  const id = decodeURIComponent(location.hash.slice(1));
+  const d = DATA.sets.find(s => s.id===id);
+  $("#list").classList.toggle("hide", !!d);
+  $("#detail").classList.toggle("hide", !d);
+  if (d){ drawDetail(d); document.title = d.name + " · 선택 자료실"; window.scrollTo(0,0); }
+  else { document.title = "선택 자료실 · 인공지능 기초"; }
+}
+
+$("#nAll").textContent = DATA.sets.length;
+drawChips(); drawList();
+document.addEventListener("click", e => {
+  const c = e.target.closest(".chip");
+  if (c){ state[c.dataset.k] = c.dataset.v; drawChips(); drawList(); return; }
+  const b = e.target.closest(".ds");
+  if (b){ location.hash = encodeURIComponent(b.dataset.id); }
+});
+$("#q").addEventListener("input", e => { state.q = e.target.value.trim(); drawList(); });
+window.addEventListener("hashchange", route);
+route();
+</script>
+</body>
+</html>

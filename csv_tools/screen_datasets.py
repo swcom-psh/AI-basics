@@ -100,8 +100,9 @@ TASKS = [
       [N("age", "나이(세)"), B("sex", "성별코드(0/1)", lambda s: s.astype(int)), N("trestbps", "안정시혈압(mmHg)"), N("thalach", "최대심박수(회/분)"), N("oldpeak", "운동후ST하강(mm)"),
        B("fbs", "공복혈당120초과(0/1)", lambda s: s.astype(int)), B("exang", "운동유발협심증(0/1)", lambda s: s.astype(int)), N("ca", "주요혈관수(개)")], 출처="OpenML cholesterol / UCI Cleveland"),
     T("전복나이_예측", "전복_나이", "전복의 크기·무게로 껍질 고리 수(나이) 예측", "생명·동물·수산", "예측", Ynum("Class_number_of_rings", "껍질고리수(개)"),
-      [N("Length", "길이(mm)"), N("Diameter", "지름(mm)"), N("Height", "높이(mm)"), N("Whole_weight", "전체무게(g)"), N("Shucked_weight", "살무게(g)"), N("Viscera_weight", "내장무게(g)"),
-       N("Shell_weight", "껍질무게(g)"), B("Sex", "수컷(0/1)", lambda s: (s == "M").astype(int)), B("Sex", "새끼(0/1)", lambda s: (s == "I").astype(int))], 출처="UCI Abalone"),
+      [N("Length", "길이(mm)", mul=200), N("Diameter", "지름(mm)", mul=200), N("Height", "높이(mm)", mul=200), N("Whole_weight", "전체무게(g)", mul=200),
+       N("Shucked_weight", "살무게(g)", mul=200), N("Viscera_weight", "내장무게(g)", mul=200),
+       N("Shell_weight", "껍질무게(g)", mul=200), B("Sex", "수컷(0/1)", lambda s: (s == "M").astype(int)), B("Sex", "새끼(0/1)", lambda s: (s == "I").astype(int))], 출처="UCI Abalone"),
     T("자동차연비_예측", "자동차_연비", "자동차의 제원으로 연비(mpg) 예측", "기계·자동차·공학", "예측", Ynum("mpg", "연비(mpg)"),
       [N("cylinders", "실린더수(개)"), N("displacement", "배기량(cc급)"), N("horsepower", "마력"), N("weight", "차무게(lb)"), N("acceleration", "가속시간(초)"), N("model_year", "생산연도(년)"),
        B("origin", "미국산(0/1)", lambda s: (s == "usa").astype(int))], 출처="UCI Auto MPG / seaborn-data"),
@@ -190,7 +191,7 @@ TASKS = [
       [N(" n_tokens_title", "제목단어수(개)"), N(" n_tokens_content", "본문단어수(개)", log=True), N(" num_imgs", "이미지수(개)"), N(" num_videos", "영상수(개)"), N(" num_hrefs", "링크수(개)"),
        N(" average_token_length", "평균단어길이"), N(" kw_avg_avg", "키워드평균공유수", log=True), N(" num_keywords", "키워드수(개)")], nmax=1200, 출처="UCI Online News Popularity (Fernandes 외 2015)"),
     T("행성질량_예측", "천문_행성", "외계행성의 궤도 정보로 질량 예측(로그)", "천문·물리", "예측", Ynum("mass", "질량(상용로그,지구=1)", log=True, add=2.502),
-      [N("orbital_period", "공전주기(일,로그)", log=True), N("distance", "지구까지거리(광년,로그)", log=True), N("year", "발견연도(년)"), N("number", "항성계행성수(개)"),
+      [N("orbital_period", "공전주기(일,로그)", log=True), N("distance", "지구까지거리(광년,로그)", log=True, add=0.5134), N("year", "발견연도(년)"), N("number", "항성계행성수(개)"),
        N("orbital_period", "공전주기제곱근", sqrt=True)], 출처="NASA Exoplanet Archive / seaborn-data", 비고="질량은 목성 질량의 상용로그에 2.502(=log10 317.8)를 더해 지구 질량 기준으로 바꿈"),
     T("춘천아파트_예측", "아파트_춘천_실거래가", "춘천 아파트의 면적·층·연식으로 실거래가 예측", "건축·부동산·경제·도시", "예측", Ynum("거래금액", "거래금액(만원)"),
       [N("전용면적", "전용면적(㎡)"), N("층", "층"), N("경과년수", "경과년수(년)"), N("거래연도", "거래연도(년)"), N("단지거래건수", "단지거래건수(건)")],
@@ -325,13 +326,20 @@ def tweak_columns(W, task, yname, rng):
             if any(k in c for k in ("나이", "횟수", "수(", "연도", "시각", "월", "학력", "등급", "코드", "기간")):
                 continue                       # 나이·횟수처럼 다시 잴 수 없는 열의 쌍둥이는 어색하다
             sd = float(W[c].std())
-            extra[c + "§쌍"] = W[c] + pd.Series(rng.normal(0, sd * 0.40, len(W)), index=W.index)
+            # 원래 열의 최솟값~최댓값 안으로 자른다(음수 ST 하강, 10점 넘는 학점 같은 불가능한 값이 생기지 않게)
+            extra[c + "§쌍"] = (W[c] + pd.Series(rng.normal(0, sd * 0.40, len(W)), index=W.index)).clip(W[c].min(), W[c].max())
     return pd.concat([W, pd.DataFrame(extra)], axis=1), list(extra)
 
 
-def extra_note(md, cols):
-    with open(md, "a", encoding="utf-8") as fh:
-        fh.write("\n## 참고 열\n" + ", ".join(k for _, k in cols) + " — 원본에 있는 열(분석 x 후보 밖).\n")
+def extra_note(md, cols, xs, y):
+    NL = chr(10)
+    L = [NL + '## x 후보 5개(규칙 검사를 통과한 조합)', ', '.join(xs), '', '맞힐 값: ' + y]
+    if cols:
+        L += ['', '## 참고 열(원본 값 그대로, 결측·이상치 넣지 않음)', ', '.join(k for _, k in cols),
+              '- 이름·소속 같은 열은 x 로 쓰지 않는다. 숫자 열을 x 로 바꿔 쓰면 규칙 검사를 통과한 조합이 아니므로 결과가 달라질 수 있다.',
+              '- 맞힐 값과 거의 같은 뜻의 열(주급·냉방부하·2학기성적 등)은 x 로 쓰면 안 된다.']
+    with open(md, 'a', encoding='utf-8') as fh:
+        fh.write(NL.join(L) + NL)
 
 
 def run_task(task, mode="순수", tries=12, seed=2026):
@@ -423,7 +431,7 @@ def run_task(task, mode="순수", tries=12, seed=2026):
         ints, bins, hard, dec, skip = [], [], {}, {}, []
         for c in comb2 + [yname]:
             s_ = sub[c]
-            if s_.dtype == object:
+            if not pd.api.types.is_numeric_dtype(s_):
                 continue
             lo, hi = float(s_.min()), float(s_.max())
             span = max(hi - lo, 1e-9)
@@ -457,15 +465,28 @@ def run_task(task, mode="순수", tries=12, seed=2026):
             fol = "학생용"
             (ROOT / fol).mkdir(exist_ok=True)
             (ROOT / "교사용_데이터사전").mkdir(exist_ok=True)
-            idcols = [(c, k) for c, k in IDS.get(task["id"], []) if c in task["_idf"].columns]
-            if idcols:
-                o = pd.read_csv(out, encoding="utf-8-sig")
-                for j, (c, k) in enumerate(idcols):
-                    o.insert(1 + j, k, [task["_idf"][c].iloc[idmap[i]] for i in o["번호"]])
-                o.to_csv(ROOT / fol / f"{task['id']}.csv", index=False, encoding="utf-8-sig")
-                extra_note(md, idcols)
-            else:
-                shutil.copy(out, ROOT / fol / f"{task['id']}.csv")
+            from extra_cols import EXTRA
+            o = pd.read_csv(out, encoding="utf-8-sig")
+            idf = task["_idf"]
+            have = set(o.columns)
+            idcols = []
+            for c, k in EXTRA.get(task["id"], []):
+                if c not in idf.columns or k in have:
+                    continue
+                v = idf[c].iloc[[idmap[i] for i in o["번호"]]].reset_index(drop=True)
+                if v.nunique() <= 1:                       # 모든 행이 같은 값인 열은 참고가 안 된다
+                    continue
+                # 수행평가지는 df.dropna() 를 df 전체에 쓰므로 참고 열에 빈칸이 있으면 행이 지워진다
+                # → 글자 열의 빈칸은 「기록없음」, 빈칸이 있는 숫자 열은 값을 지어내지 않고 뺀다
+                if v.isna().any():
+                    if pd.api.types.is_numeric_dtype(v) or v.isna().all():
+                        continue
+                    v = v.astype(object).where(v.notna(), "기록없음")
+                idcols.append((c, k))
+                have.add(k)
+                o.insert(len(idcols), k, v.values)
+            o.to_csv(ROOT / fol / f"{task['id']}.csv", index=False, encoding="utf-8-sig")
+            extra_note(md, idcols, comb2, yname)
             shutil.copy(md, ROOT / "교사용_데이터사전" / f"{task['id']}{'' if mode == '순수' else '_' + mode}.md")
             M = r["metrics"]
             res.update(결과="통과", x=" | ".join(c.replace(' ', '') for c in comb2), 행수=M.get("처리후행수"), y=yname if track == "예측" else f"{classes[0]} / {classes[1]}",

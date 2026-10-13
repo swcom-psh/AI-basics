@@ -87,7 +87,7 @@ EXTRA = {
                  ("P.Undergrad", "시간제재학생수(명)"), ("Room.Board", "기숙사식비(달러)"), ("Books", "교재비(달러)"), ("Personal", "개인지출(달러)"),
                  ("Terminal", "최고학위교수비율(%)"), ("perc.alumni", "기부동문비율(%)"), ("Expend", "학생당지출(달러)")],
     "야구타율_예측": [("name", "선수이름"), ("team", "소속팀"), ("position", "포지션"), ("AB", "타수(회)"), ("R", "득점(점)"), ("H", "안타(개)"),
-                 ("triples", "3루타(개)"), ("caught_stealing_base", "도루실패(회)"), ("AVG", "타율"), ("OBP", "출루율"), ("SLG", "장타율")],
+                 ("triples", "3루타(개)"), ("caught_stealing_base", "도루실패(회)"), ("AVG", "타율")],   # OBP·SLG 는 뺌(OPS = 출루율 + 장타율)
     "체형_예측": [("sex", "성별코드(0여/1남)"), ("bia_di", "어깨너비(cm)"), ("bii_di", "골반너비(cm)"), ("bit_di", "엉덩이뼈너비(cm)"), ("che_de", "가슴깊이(cm)"),
                ("che_di", "가슴너비(cm)"), ("elb_di", "팔꿈치너비(cm)"), ("wri_di", "손목너비(cm)"), ("kne_di", "무릎너비(cm)"), ("ank_di", "발목너비(cm)"),
                ("sho_gi", "어깨둘레(cm)"), ("nav_gi", "배꼽둘레(cm)"), ("for_gi", "아래팔둘레(cm)"), ("kne_gi", "무릎둘레(cm)"), ("cal_gi", "종아리둘레(cm)"),
