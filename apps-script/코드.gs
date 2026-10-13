@@ -1490,7 +1490,7 @@ function 요청표_(ss) {
 function 분반표_(ss) {
   const sh = ss.getSheetByName(분반시트이름);
   const 표 = {};
-  if (!sh || sh.getLastRow() < 1) return 표;
+  if (!sh || sh.getLastRow() < 1) return 분반명단파일_();
   const v = sh.getDataRange().getValues();
   const 머리 = v[0].map(x => String(x).trim());
   let 학 = 머리.indexOf('학번'), 반 = 머리.indexOf('분반');
@@ -1501,6 +1501,24 @@ function 분반표_(ss) {
     const 분 = String(v[r][반]).trim().toUpperCase().replace(/반$/, '');
     if (번호 && /^[A-Z]$/.test(분)) 표[번호] = 분;
   }
+  return 표;
+}
+
+/* 「분반」 시트가 비어 있으면 csv_out 폴더의 「분반_명단.csv」(학번,이름,분반) 를 대신 읽는다. 없거나 못 읽으면 빈 표. */
+function 분반명단파일_() {
+  const 표 = {};
+  try {
+    const 뿌리 = CSV뿌리_();
+    if (!뿌리) return 표;
+    const it = 뿌리.getFilesByName('분반_명단.csv');
+    if (!it.hasNext()) return 표;
+    const 줄 = it.next().getBlob().getDataAsString('UTF-8').replace(/^﻿/, '').split(/\r?\n/);
+    for (let i = 1; i < 줄.length; i++) {
+      const c = 줄[i].split(',').map(x => x.trim());
+      const 분 = String(c[2] || '').toUpperCase().replace(/반$/, '');
+      if (/^\d{8}$/.test(c[0]) && /^[A-Z]$/.test(분)) 표[c[0]] = 분;
+    }
+  } catch (e) { console.error('분반_명단.csv 를 읽지 못함: ' + e); }
   return 표;
 }
 
