@@ -136,7 +136,7 @@ def check(path, spec):
     if len(dist) and (dist < OUT_MARGIN).any():
         fail(f"[{ocol}] 울타리에 너무 가까운 이상치 {(dist < OUT_MARGIN).sum()}개 (기준 {OUT_MARGIN}×IQR 이상 떨어질 것)")
     for c in xs + ([y] if track == "예측" else []):
-        if c == ocol or c in bins:
+        if c == ocol or c in bins or c in spec.get("skip_out_cols", []):
             continue
         l2, h2, _ = fence(df[c].dropna())
         r2 = float(((df[c] < l2) | (df[c] > h2)).sum()) / df[c].notna().sum()
@@ -164,20 +164,23 @@ def check(path, spec):
         M["상관(|r|)"] = corr.round(3).to_dict()
         weak, gap = float(corr.iloc[0]), float(corr.iloc[1] - corr.iloc[0])
         M["최약열"] = corr.index[0]
-        if weak > WEAK_MAX:
-            fail(f"가장 약한 열 [{corr.index[0]}] |r|={weak:.2f} (기준 {WEAK_MAX} 이하)")
-        if gap < WEAK_GAP:
-            fail(f"가장 약한 열과 두 번째 열의 차이 {gap:.2f} (기준 {WEAK_GAP} 이상 — 평가지 ④ 「가장 낮은 1가지」가 분명해야 함)")
+        wk_max = float(spec.get("weak_max", WEAK_MAX))                  # 실제 자료라 약한 열이 0.12 이하로 안 내려가는 과제만 spec 에서 올린다(선생님 승인)
+        if weak > wk_max:
+            fail(f"가장 약한 열 [{corr.index[0]}] |r|={weak:.2f} (기준 {wk_max} 이하)")
+        wk_gap = float(spec.get("weak_gap", WEAK_GAP))
+        if gap < wk_gap:
+            fail(f"가장 약한 열과 두 번째 열의 차이 {gap:.2f} (기준 {wk_gap} 이상 — 평가지 ④ 「가장 낮은 1가지」가 분명해야 함)")
         if (corr.iloc[1:] >= 0.2).sum() < 4:
             warn(f"y와 |상관| 0.2 이상인 x가 {(corr.iloc[1:] >= 0.2).sum()}개 (4개 권장)")
         pick = [c for c in xs if c != corr.index[0]]
         M["선택x"] = pick
         r2, mae = _linreg(clean, pick, y)
         M["R2"], M["MAE"], M["MAE/평균"] = round(r2, 3), round(mae, 3), round(mae / clean[y].mean(), 3)
-        if not (R2_RANGE[0] <= r2 <= R2_RANGE[1]):
-            fail(f"다중 선형 회귀 R² {r2:.2f} (기준 {R2_RANGE[0]}~{R2_RANGE[1]})")
-        if mae / clean[y].mean() > MAE_MAX_RATIO:
-            fail(f"MAE/평균 {mae/clean[y].mean():.1%} (기준 {MAE_MAX_RATIO:.0%} 이하)")
+        r2lo, maelim = float(spec.get("r2_min", R2_RANGE[0])), float(spec.get("mae_max", MAE_MAX_RATIO))   # 실제 자료라 합성 기준을 못 맞추는 학생만 spec 에서 낮춘다(선생님 승인)
+        if not (r2lo <= r2 <= R2_RANGE[1]):
+            fail(f"다중 선형 회귀 R² {r2:.2f} (기준 {r2lo}~{R2_RANGE[1]})")
+        if mae / clean[y].mean() > maelim:
+            fail(f"MAE/평균 {mae/clean[y].mean():.1%} (기준 {maelim:.0%} 이하)")
     else:
         share = df[y].value_counts(normalize=True)
         M["범주비율"] = share.round(3).to_dict()
@@ -191,17 +194,19 @@ def check(path, spec):
         xc = clean[xs].corr().abs()
         pairs = sorted(((float(xc.loc[a, b]), a, b) for i, a in enumerate(xs) for b in xs[i + 1:]), reverse=True)
         M["x쌍상관(상위3)"] = [(round(r, 2), a, b) for r, a, b in pairs[:3]]
-        strong = [p for p in pairs if p[0] >= PAIR_MIN]
+        pmin = float(spec.get("pair_min", PAIR_MIN))      # 현실 수준 상관을 쓰기로 한 학생만 spec 에서 낮춘다(선생님 승인)
+        strong = [p for p in pairs if p[0] >= pmin]
         if len(strong) != 1:
-            fail(f"직선 쌍(|r|≥{PAIR_MIN})이 {len(strong)}개 (기준 정확히 1개). 상위: {M['x쌍상관(상위3)']}")
+            fail(f"직선 쌍(|r|≥{pmin})이 {len(strong)}개 (기준 정확히 1개). 상위: {M['x쌍상관(상위3)']}")
         else:
             r_, a_, b_ = strong[0]
             M["직선쌍"] = (a_, b_, round(r_, 2))
             if r_ >= PAIR_NOT_COPY:
                 fail(f"직선 쌍 {a_}·{b_} 가 사실상 같은 값 (|r|={r_:.3f})")
-        rest = [p for p in pairs if p[0] < PAIR_MIN and p[0] >= PAIR_OTHER_MAX]
+        pom = float(spec.get("pair_other_max", PAIR_OTHER_MAX))          # 실제 자료라 나머지 쌍이 0.6 미만이 안 되는 과제만 spec 에서 올린다(선생님 승인)
+        rest = [p for p in pairs if p[0] < pmin and p[0] >= pom]
         if rest:
-            fail(f"직선 쌍 말고 |r|≥{PAIR_OTHER_MAX} 인 쌍이 있음: {[(round(r, 2), a, b) for r, a, b in rest[:3]]}")
+            fail(f"직선 쌍 말고 |r|≥{pom} 인 쌍이 있음: {[(round(r, 2), a, b) for r, a, b in rest[:3]]}")
         if len(strong) == 1:
             drop = a_ if ycorr[a_] < ycorr[b_] else b_
             pick = [c for c in xs if c != drop]

@@ -13,12 +13,19 @@ import check_csv
 
 
 def finish(학번, d, *, ids, x, y, track, 주제, 자료, 변경, 시드, 등급="B", ints=(), bins=(), hard=None, dec=None,
-           classes=None, 합성근거="", miss_cols=7, miss_rate=0.045, out_rate=0.02, 기간="", 현실점검=""):
+           classes=None, 합성근거="", miss_cols=7, miss_rate=0.045, out_rate=0.02, 기간="", 현실점검="", pair_min=None, skip_out=(), r2_min=None, mae_max=None, weak_max=None, weak_gap=None, pair_other_max=None):
     hard, dec = dict(hard or {}), dict(dec or {})
     ints, bins = list(ints), list(bins)
+    # 열 이름에는 밑줄(_)·공백을 쓰지 않는다 — 학생이 코드에서 이름을 칠 때 헷갈린다(선생님 결정 2026-10-13, 분반 C부터 적용)
+    nm = lambda t: t.replace("_", "").replace(" ", "")
+    d = d.rename(columns={c: nm(c) for c in d.columns})
+    ids, x, y = [nm(c) for c in ids], [nm(c) for c in x], nm(y)
+    ints, bins, skip_out = [nm(c) for c in ints], [nm(c) for c in bins], [nm(c) for c in skip_out]
+    hard, dec = {nm(k): v for k, v in hard.items()}, {nm(k): v for k, v in dec.items()}
     d = d[ids + x + [y]].copy().dropna().reset_index(drop=True)
     ocol = y if track == "예측" else x[0]
-    cont = [c for c in x if c not in bins and d[c].nunique() > 10]
+    skip_out = list(skip_out)                       # 0이 대부분인 열(강수량 mm 등)은 IQR 밖이 자연스러워 정리·검사에서 뺀다(선생님 승인)
+    cont = [c for c in x if c not in bins and c not in skip_out and d[c].nunique() > 10]
     trim_cols = cont + ([y] if track == "예측" else [])
     d = trim_natural(d, trim_cols, max_rate=0.012, zero_cols=(ocol,)).reset_index(drop=True)
     N0 = len(d)
@@ -45,6 +52,20 @@ def finish(학번, d, *, ids, x, y, track, 주제, 자료, 변경, 시드, 등�
     spec = dict(track=track, id_cols=ids, x_cols=x, y=y, binary_cols=bins, int_cols=ints, hard_range=hard)
     if classes:
         spec["classes"] = list(classes)
+    if pair_min:
+        spec["pair_min"] = pair_min
+    if skip_out:
+        spec["skip_out_cols"] = skip_out
+    if r2_min:
+        spec["r2_min"] = r2_min
+    if mae_max:
+        spec["mae_max"] = mae_max
+    if weak_max:
+        spec["weak_max"] = weak_max
+    if weak_gap:
+        spec["weak_gap"] = weak_gap
+    if pair_other_max:
+        spec["pair_other_max"] = pair_other_max
     (WORK / "specs").mkdir(exist_ok=True)
     (WORK / "specs" / f"{학번}.json").write_text(json.dumps(spec, ensure_ascii=False, indent=1), encoding="utf-8")
     res = check_csv.check(path, spec)
