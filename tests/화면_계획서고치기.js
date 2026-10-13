@@ -1,0 +1,96 @@
+// 화면: 챗봇이 옮겨 적다 틀린 정보를 학생이 낸 그대로 바로잡는지, 정보·가설 다시 고르기, 확정한 계획서 불러와 고치기, 관리자 명단 학번순
+const fs=require('fs'), vm=require('vm');
+let src=fs.readFileSync('html_script.js','utf8');
+const els={}; const hidden={};
+const mk=id=>els[id]||(els[id]={id,_html:'',get innerHTML(){return this._html},set innerHTML(v){this._html=v},textContent:'',value:'',disabled:false,style:{},dataset:{},href:'',
+  classList:{add(c){if(c==='hide')hidden[id]=true},remove(c){if(c==='hide')hidden[id]=false},toggle(){},contains(c){return c==='hide'&&!!hidden[id]}},
+  appendChild(){},remove(){},querySelector(){return null},focus(){},addEventListener(){},scrollTop:0,scrollHeight:0,children:[1]});
+const calls=[]; const store={};
+const sandbox={console,setTimeout,clearInterval,setInterval,Promise,JSON,Math,Date,Object,Array,String,Number,Set,
+  document:{getElementById:mk,createElement:()=>mk('t'+Math.random()),addEventListener(){}},window:{},
+  localStorage:{store,getItem(k){return this.store[k]||null},setItem(k,v){this.store[k]=v},removeItem(k){delete this.store[k]}},
+  sessionStorage:{s:{},getItem(k){return this.s[k]||null},setItem(k,v){this.s[k]=v},removeItem(k){delete this.s[k]}},
+  location:{reload(){}},confirm:()=>true,alert(){},fetch:async()=>({json:async()=>({})}),__calls:calls};
+vm.createContext(sandbox);
+src+=`
+var __plan=null;
+api = async function(body){
+  __calls.push(JSON.parse(JSON.stringify(body)));
+  if(body.action==='myplan') return __plan;
+  if(body.action==='chat') return {답변:'봇',단계:'마무리',확정가능:false,도움요청:false,주제점검:null,정리:{특성:[],x보기:[],대상후보:[]}};
+  return {ok:true};
+};`;
+vm.runInContext(src,sandbox);
+const run=c=>vm.runInContext(c,sandbox);
+(async()=>{
+  const ok=(c,m)=>console.log(c?'PASS':'FAIL',m);
+  run("나={학번:'20262111',이름:'테스트',메일:'a@b',관리자:false,이전확정:{있음:false}}; 반정보={학년:'2',반:'1',번호:'1'}; 대화ID='D1'; 히스토리=[]; 순번=0;");
+  const 기본 = "정리={주제:'이용 예측',트랙:'예측',타깃:{이름:'이용',단위:'명'},대상:'A역',대상확인:true,대상후보:['A역'],특성:[],제외한정보:[],x보기:['A(명)','B','C인가','D','E'].map(n=>({이름:n,형태:/인가$/.test(n)?'예아니오':'숫자',설명:'',종류:'과거 기록',실자료:'없음'}))};";
+  const 줄 = [{이름:'A(명)',관계:'늘어날 것 같다',한줄:'',직접:false},{이름:'B',관계:'줄어들 것 같다',한줄:'비가 와서',직접:false},{이름:'C인가',관계:'관계없을 것 같다',한줄:'',직접:false},{이름:'D',관계:'늘어날 것 같다',한줄:'',직접:false},{이름:'우리 학교 행사',관계:'줄어들 것 같다',한줄:'',직접:true}];
+  const 선택 = "확정입력=[{순서:4,종류:'요인',값:{대상:'A역',정보:"+JSON.stringify(줄)+"}}]; 히스토리=[{role:'user',content:'[정보 선택]',보일말:'',숨김:false,순서:4}];";
+
+  // 1) 챗봇이 이름을 줄이고(A(명)→A) 다듬은 직접 추가와 다른 정보를 더 남겨 6개 → 학생이 낸 5개로
+  run(기본+선택+"정리.특성=[{이름:'A',형태:'숫자',떠올린사람:'학생'},{이름:'B',형태:'숫자',떠올린사람:'보기'},{이름:'C인가',형태:'예아니오',떠올린사람:'보기'},{이름:'D',형태:'숫자',떠올린사람:'보기'},{이름:'학교 행사 일정',형태:'예아니오',떠올린사람:'학생'},{이름:'E',형태:'숫자',떠올린사람:'보기'}]; 정리보정();");
+  ok(run("정리.특성.map(x=>x.이름).join('|')")==='A(명)|B|C인가|D|학교 행사 일정', '6개로 남긴 정보를 학생이 낸 5개로 맞춤(직접 추가는 다듬은 이름)');
+  ok(run("검사(정리).filter(x=>/정보|가설/.test(x)).length")===0, '바로잡은 뒤 정보·가설 칸이 다 참');
+
+  // 2) 챗봇이 직접 추가를 빠뜨림 → 학생이 쓴 이름으로 넣어 5개
+  run(기본+선택+"정리.특성=[{이름:'A(명)',형태:'숫자',떠올린사람:'학생'},{이름:'B',형태:'숫자',떠올린사람:'보기'},{이름:'C인가',형태:'예아니오',떠올린사람:'보기'},{이름:'D',형태:'숫자',떠올린사람:'보기'}]; 정리보정();");
+  ok(run("정리.특성.length")===5 && run("정리.특성[4].이름")==='우리 학교 행사' && run("정리.특성[4].떠올린사람")==='학생', '빠뜨린 직접 추가를 넣어 5개가 됨');
+
+  // 3) 상식 판정에 걸린 직접 추가(다듬은 이름 + 원래이름)는 특성에서 빠지고 화면의 직접 추가 줄도 지워진다
+  run(기본+선택+"요인.추가=[{이름:'우리 학교 행사',관계:'줄어들 것 같다',한줄:''}]; 폼표식='x'; 정리.특성=[]; 정리.제외한정보=[{이름:'학교 행사 일정',이유:'챗봇 판정',원래이름:'우리 학교 행사'}]; 정리보정();");
+  ok(run("정리.특성.length")===4 && run("요인.추가.length")===0 && run("폼표식")==='', '걸린 직접 추가는 화면에서도 지워짐(화면 다시 그림)');
+
+  // 4) 정보·가설 다시 고르기 — 지금 계획서가 체크된 채로 요인 화면이 열리고, 그만두기로 닫힘
+  run(기본+선택+"요인={대상선택:'',직접대상:'',고름:{},추가:[]}; 정리.제외한정보=[]; 정리.특성=[]; 정리보정(); 현재단계='마무리'; 보내는중=false; 정리.확인문장='이용을 예측하는 내 주제 문장'; 정리.활용방안='역무원이 인력을 배치하는 데 쓴다';");
+  ok(run("다시고르기가능()")===true, '정보가 다 정해진 뒤에는 다시 고르기 버튼이 보임');
+  run("다시고르기열기();");
+  ok(run("Object.keys(요인.고름).length")===4 && run("요인.고름['B'].관계")==='줄어들 것 같다' && run("요인.고름['B'].한줄")==='비가 와서' && run("요인.추가[0].이름")==='우리 학교 행사' && run("요인.대상선택")==='A역', '고른 정보·관계·한 줄·직접 추가·대상이 채워진 채로 열림');
+  ok(hidden.xpick===false && /그만두기/.test(els.xpick.innerHTML) && /이대로 정했어요/.test(els.xpick.innerHTML), '요인 화면이 열리고 그만두기 버튼이 있음');
+  run("요인갱신();");
+  ok(els.xgo.disabled===false, '다시 연 화면에서 바로 낼 수 있음(5개·관계·대상이 다 참)');
+  run("다시고르기닫기();");
+  ok(hidden.xpick===true && run("다시고르기")===false, '그만두기로 닫힘');
+
+  // 5) 대상을 안 고르면 남은 것에 대상이 먼저 보인다
+  run("다시고르기열기(); 요인.대상선택=''; 요인갱신();");
+  ok(/대상 고르기/.test(els.xcnt.textContent) && els.xgo.disabled===true, '대상이 비면 「① 대상 고르기」로 알리고 버튼이 잠김');
+  run("다시고르기닫기();");
+
+  // 6) 확정한 학생이 저장된 대화 없이 들어오면 계획서를 불러와 고칠 수 있다
+  run(`__plan={ok:true,주제점검:{통과:true,걸린기준:[],메모:''},정리:{트랙:'예측',주제:'이용 예측',연계학과:'',대상:'A역',대상확인:true,자료등급:'B',
+    타깃:{이름:'이용',단위:'명',실자료:''},범주A:'',범주B:'',분류기준:'',대상후보:['A역'],
+    x보기:['A(명)','B','C인가','D','E'].map(n=>({이름:n,형태:/인가$/.test(n)?'예아니오':'숫자',설명:'',종류:'',실자료:'없음'})),
+    특성:[{이름:'A(명)',형태:'숫자',떠올린사람:'보기',실자료:'없음',가설:'늘어날 것 같다'},{이름:'B',형태:'숫자',떠올린사람:'보기',실자료:'없음',가설:'줄어들 것 같다 (비가 와서)'},
+          {이름:'C인가',형태:'예아니오',떠올린사람:'보기',실자료:'없음',가설:'관계없을 것 같다'},{이름:'D',형태:'숫자',떠올린사람:'보기',실자료:'없음',가설:'늘어날 것 같다'},
+          {이름:'우리 학교 행사',형태:'예아니오',떠올린사람:'학생',실자료:'없음',가설:'줄어들 것 같다'}],
+    제외한정보:[],확인문장:'역 이용 인원을 날씨와 행사로 예측하는 것이 내 주제다',활용방안:'역무원이 붐비는 날 인력을 미리 배치하는 데 쓴다'}};
+    localStorage.removeItem(KEY); 나.이전확정={있음:true,주제:'이용 예측'}; 나.이어서=null; 정리=null; 히스토리=[]; 대화ID='';`);
+  calls.length=0;
+  run("들어가기({학년:'2',반:'1',번호:'1'})");
+  await new Promise(r=>setTimeout(r,50));
+  ok(calls.some(c=>c.action==='myplan'), '확정한 학생이 저장된 대화 없이 들어오면 계획서를 불러옴');
+  ok(run("정리 && 정리.특성.length")===5 && run("현재단계")==='마무리' && run("확정가능")===true, '불러온 계획서가 오른쪽에 채워지고 마무리 단계');
+  ok(run("검사(정리).length")===0, '불러온 계획서는 그대로 확정할 수 있음(내가 쓴 말 검사 통과)');
+  ok(run("히스토리.some(m=>!m.숨김&&/^\\[정보 선택\\]/.test(m.content))") && run("히스토리.some(m=>/^\\[마무리 서술\\]/.test(m.content))"), '이전에 낸 정보 선택·마무리 서술이 대화에 다시 놓임');
+  ok(run("요인.고름 && Object.keys(요인.고름).length")===0 && run("다시고르기가능()")===true, '불러온 뒤 다시 고르기를 쓸 수 있음');
+  ok(/직접 추가: 우리 학교 행사 \| 줄어들 것 같다/.test(run("히스토리.find(m=>/^\\[정보 선택\\]/.test(m.content)).content")), '보기에 없는 정보는 직접 추가 줄로 되살림');
+
+  // 7) 「처음부터 다시」는 계획서를 불러오지 않고 새로 시작
+  calls.length=0;
+  run("localStorage.removeItem(KEY); 들어가기({학년:'2',반:'1',번호:'1'}, {새로:true});");
+  await new Promise(r=>setTimeout(r,50));
+  ok(!calls.some(c=>c.action==='myplan') && run("히스토리.length")===2, '처음부터 다시는 첫 인사로 새로 시작');
+
+  // 8) 관리자 명단은 분반을 골라도 항상 학번 오름차순
+  run(`관리응답={행:[],분반있음:true,시트주소:''};
+    관리행=['20262303','20262114','20262520','20262109'].map((h,i)=>({학번:h,이름:'학생'+i,메일:h+'@x',학년:'2',반:'1',번호:String(i),분반:i%2?'A':'B',트랙:'예측',주제:'주제'+h,타깃:{이름:'y'},특성:[],_비슷:[]}));
+    관리분반=''; 관리그리기();`);
+  const 순서=t=>['20262109','20262114','20262303','20262520'].map(h=>t.indexOf('>'+h)).filter(i=>i>=0);
+  const 전체=순서(els.adbody.innerHTML);
+  ok(전체.length===4 && 전체.every((v,i,a)=>!i||a[i-1]<v), '전체 명단이 학번 오름차순');
+  run("관리분반='A'; 관리그리기();");
+  const a=['20262114','20262109'].map(h=>els.adbody.innerHTML.indexOf('>'+h));
+  ok(a[1]>=0 && a[0]>a[1], '분반을 골라도 학번 오름차순');
+})();

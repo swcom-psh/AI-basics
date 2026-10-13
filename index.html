@@ -176,6 +176,8 @@ a{color:var(--accent)}
 #xpick .xaddname{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
 #xpick .xgo{margin-top:10px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
 #xpick .xcnt{font-size:12.5px;color:#6b7280}
+#xpick .xcnt.warn{color:var(--bad);font-weight:600}
+#xpick .xtg.need{outline:2px solid var(--bad-line);outline-offset:4px;border-radius:6px}
 #xpick .ftx{margin-bottom:8px}
 #xpick .ftx label{display:block;font-size:13.5px;font-weight:600;margin-bottom:4px}
 #xpick .ftx small{font-weight:400;color:#6b7280;margin-left:6px;font-size:12px}
@@ -192,6 +194,7 @@ a{color:var(--accent)}
 #right .notes{display:flex;flex-direction:column;gap:8px;margin-bottom:14px}
 .helpbar,.prevbar{padding:10px 13px;font-size:13px;border-radius:3px;border:1px solid var(--warn-line);
   background:var(--warn-soft);color:var(--warn);line-height:1.55}
+.redobar{margin:8px 0}
 
 .sheet{position:relative;background:var(--paper);border:1px solid var(--rule);
   box-shadow:0 1px 0 var(--rule-2),0 10px 26px -18px rgba(23,32,43,.35);padding:34px 38px 30px}
@@ -534,6 +537,7 @@ table.form td.num{white-space:nowrap;letter-spacing:-.02em}
     <p style="color:var(--bad);font-weight:600">공용 컴퓨터라면 마치고 꼭 로그아웃하세요.</p>
     <p id="donemsg"></p>
     <div class="acts">
+      <button class="btn" onclick="고치러가기()">계획서 고치기</button>
       <button class="btn" onclick="restart()">주제 다시 정하기</button>
       <button class="btn primary" onclick="로그아웃()">로그아웃</button>
       <button class="btn hide" id="doneAdmin" onclick="openAdmin()">관리자 화면</button>
@@ -715,7 +719,7 @@ function openWho(){
     const p = document.getElementById('prev');
     p.classList.remove('hide');
     p.textContent = '이미 확정한 주제가 있습니다 — ' + (나.이전확정.주제 || '') +
-                    '\n다시 정하면 이전 것은 지워지고 새 내용으로 바뀝니다.';
+                    '\n들어가면 확정한 계획서를 불러와 고칠 수 있어요. 고쳐서 다시 확정하면 새 내용으로 바뀝니다.';
   }
   const saved = load();
   if(saved && saved.메일 === 나.메일 && saved.반정보){
@@ -739,7 +743,8 @@ function startChat(){
   }
   들어가기({학년:v('g'), 반:v('c'), 번호:v('n'), 이름:나.이름});
 }
-function 들어가기(정보){
+function 들어가기(정보, 옵션){
+  옵션 = 옵션 || {};
   반정보 = 정보;
   const saved = load();
   const 로컬이어감 = saved && saved.메일 === 나.메일 && (saved.히스토리||[]).length > 0;
@@ -776,7 +781,11 @@ function 들어가기(정보){
   단계표시(현재단계);
   draw(); paintSpec();
   if(서버이어감) 이어서핑();
-  else if(!로컬이어감) 첫말();
+  else if(!로컬이어감){
+    // 이미 확정한 학생이 이 컴퓨터에 하던 대화가 없으면 확정한 계획서를 불러와 고칠 수 있게 한다 (「처음부터 다시」는 새로 시작)
+    if(!옵션.새로 && 나.이전확정 && 나.이전확정.있음) 계획서불러오기();
+    else 첫말();
+  }
 }
 /* 다른 컴퓨터에서 이어받았을 때 — 계획서(정리·주제점검·확정가능)는 채팅기록에 안 남아 있으므로,
    화면에 안 보이는 말 한 마디를 보내 AI가 지금까지 내용을 다시 정리해 돌려주게 한다 */
@@ -829,7 +838,8 @@ async function restart(){
   const xp = document.getElementById('xpick'); if(xp){ xp.innerHTML = ''; xp.classList.add('hide'); }
   document.getElementById('send').disabled = false;
   document.getElementById('q').value = '';
-  try{ 들어가기(반정보); }                       // 새 대화번호로 첫 인사부터 다시
+  다시고르기 = false;
+  try{ 들어가기(반정보, {새로:true}); }                       // 새 대화번호로 첫 인사부터 다시
   catch(e){ console.error('처음부터 다시 실패', e); 화면오류알림('처음부터 다시를 하다가 오류가 났어요: ' + (e && e.message || e)); setTimeout(() => location.reload(), 600); return; }
   // 그래도 화면이 비어 있으면(예상 밖의 오류) 새로고침으로 되돌린다 — 로그인은 이 탭에 남아 있어 다시 로그인하지 않는다
   setTimeout(() => {
@@ -1241,7 +1251,8 @@ function paintSpec(){
   let n = '';
   if(나 && 나.이전확정 && 나.이전확정.있음)
     n += '<div class="prevbar">이미 낸 계획서가 있습니다 — <b>'+esc(나.이전확정.주제||'')+'</b><br>'+
-         '다시 확정하면 이전 것은 지워지고 이 계획서로 바뀝니다.</div>';
+         '다시 확정하면 이전 것은 지워지고 이 계획서로 바뀝니다. (데이터를 이미 받았다면 선생님이 새 계획서에 맞게 다시 만들어 줍니다)</div>';
+  if(다시고르기가능()) n += '<div class="redobar"><button class="btn sm" onclick="다시고르기열기()">정보·가설 다시 고르기</button></div>';
   if(도움요청) n += '<div class="helpbar">선생님께 이 화면을 보여 주세요. 같이 고르면 됩니다.</div>';
   document.getElementById('notes').innerHTML = n;
 
@@ -1269,6 +1280,7 @@ let 확정입력 = [];                      // [{순서, 종류:'요인'|'마무
 let 요인 = {대상선택:'', 직접대상:'', 고름:{}, 추가:[]};   // 요인 화면의 입력 상태(다시 그려도 유지)
 let 마무리값 = {주제:'', 활용:''};
 let 폼표식 = '';
+let 다시고르기 = false;                // 정보가 다 정해진 뒤 「정보·가설 다시 고르기」로 요인 화면을 다시 연 상태
 const 관계목록 = ['늘어날 것 같다', '줄어들 것 같다', '관계없을 것 같다'];
 
 function 한줄정리(t){ return String(t || '').replace(/\s+/g, ' ').trim(); }
@@ -1284,26 +1296,41 @@ function 정리보정(){
     const 뒤말 = 히스토리.filter(m => m.role === 'user' && !m.숨김 && m.순서 > 요.순서 && !/^\[/.test(m.content)).map(m => m.content).join(' ');
     if(새대상 && 새대상 !== 요.값.대상 && 새대상.split(/\s+/).every(w => 뒤말.indexOf(w) >= 0)) 요.값.대상 = 새대상;
     정리.대상 = 요.값.대상; 정리.대상확인 = true;
-    정리.특성 = 정리.특성 || [];
+    // 정보 = 학생이 마지막으로 화면에서 낸 줄 그대로. 챗봇이 옮겨 적다 이름을 바꾸거나 빠뜨리거나 더 남겨도
+    // 개수가 어긋나 같은 화면이 되풀이되지 않게 한다(챗봇·상식 판정이 이유를 말하고 뺀 정보만 빠진다).
+    const 처음 = (정리.특성 || []).filter(x => x && x.이름);
     const 보기 = 정리.x보기 || [];
-    const 뺀이름 = (정리.제외한정보 || []).map(z => z && z.이름).filter(Boolean);
-    const 직접못찾음 = [];
-    (요.값.정보 || []).forEach(r => {
-      if(뺀이름.indexOf(r.이름) >= 0){ delete 요인.고름[r.이름]; return; }   // 챗봇이 이유를 말하고 뺀 정보는 다시 넣지 않는다
+    const 뺀 = {};
+    (정리.제외한정보 || []).forEach(z => { if(z && z.이름){ 뺀[z.이름] = 1; if(z.원래이름) 뺀[z.원래이름] = 1; } });
+    const 행 = 요.값.정보 || [];
+    const 줄이름 = {}; 행.forEach(r => { 줄이름[r.이름] = 1; });
+    // 직접 추가한 정보는 챗봇이 이름을 다듬을 수 있다 — 이름이 안 맞으면 짝이 없는 「학생」 정보를 차례로 쓴다
+    // (보기 이름을 줄여 적은 것 「A(명)」→「A」은 보기이므로 짝 후보에서 빼고, 이름이 가장 닮은 것을 고른다)
+    const 열쇠 = n => String(n || '').replace(/\([^)]*\)/g, '').replace(/\s+/g, '');
+    const 보기열쇠 = {}; 보기.forEach(x => { if(x && x.이름) 보기열쇠[열쇠(x.이름)] = 1; });
+    const 남은학생 = 처음.filter(x => !줄이름[x.이름] && !뺀[x.이름] && x.떠올린사람 === '학생' && !보기열쇠[열쇠(x.이름)]);
+    const 조각 = t => { const s = String(t || '').replace(/\s+/g, ''); const o = {}; for(let i = 0; i < s.length - 1; i++) o[s.slice(i, i + 2)] = 1; return o; };
+    const 닮은것꺼내기 = 이름 => {
+      if(!남은학생.length) return null;
+      const 기준 = 조각(이름); let 고른 = 0, 최고 = -1;
+      남은학생.forEach((x, i) => { const 수 = Object.keys(조각(x.이름)).filter(k => 기준[k]).length; if(수 > 최고){ 최고 = 수; 고른 = i; } });
+      return 남은학생.splice(고른, 1)[0];
+    };
+    const 쓴 = [], 새특성 = [];
+    행.forEach(r => {
+      if(뺀[r.이름]){ delete 요인.고름[r.이름]; return; }   // 챗봇이 이유를 말하고 뺀 정보는 다시 넣지 않는다
       const 가설 = 가설글(r.관계, r.한줄);
-      let t = 정리.특성.find(x => x.이름 === r.이름);
-      if(!r.직접){
-        const b = 보기.find(x => x.이름 === r.이름) || {};
-        const 사람 = b.종류 === '학생이 말한 정보' ? '학생' : '보기';        // 학생이 채팅으로 말한 정보는 학생이 떠올린 것
-        if(!t){ t = {이름:r.이름, 형태:b.형태 || '숫자', 떠올린사람:사람, 실자료:b.실자료 || '없음', 가설:가설}; 정리.특성.push(t); }
-        t.떠올린사람 = 사람; t.가설 = 가설;
-      } else if(t){ t.가설 = 가설; }
-      else 직접못찾음.push({r, 가설});
+      const b = 보기.find(x => x.이름 === r.이름) || {};
+      const 사람 = (r.직접 || b.종류 === '학생이 말한 정보') ? '학생' : '보기';   // 학생이 채팅으로 말한 정보도 학생이 떠올린 것
+      let t = 처음.find(x => x.이름 === r.이름 && 쓴.indexOf(x) < 0);
+      if(!t && r.직접) t = 닮은것꺼내기(r.이름);
+      if(!t) t = {이름:r.이름, 형태:b.형태 || (/(인가|여부)$/.test(r.이름) ? '예아니오' : '숫자'), 실자료:b.실자료 || '없음'};
+      쓴.push(t); t.떠올린사람 = 사람; t.가설 = 가설; 새특성.push(t);
     });
-    // 직접 추가한 정보는 챗봇이 이름을 다듬을 수 있다 — 이름이 안 맞으면 짝이 없는 「학생」 정보에 차례로 붙인다(가설을 잃지 않게)
-    const 짝있음 = (요.값.정보 || []).map(r => 정리.특성.find(x => x.이름 === r.이름)).filter(Boolean);
-    const 남은학생 = 정리.특성.filter(x => x.떠올린사람 === '학생' && 짝있음.indexOf(x) < 0);
-    직접못찾음.forEach(p => { const t = 남은학생.shift(); if(t) t.가설 = p.가설; });
+    정리.특성 = 새특성;
+    // 상식 판정에 걸린 직접 추가 줄은 화면에서도 지운다 (안 지우면 같은 줄을 다시 내서 또 걸린다)
+    const 남길것 = 요인.추가.filter(a => !뺀[한줄정리(a.이름)]);
+    if(남길것.length !== 요인.추가.length){ 요인.추가 = 남길것; 폼표식 = ''; }   // 화면을 새로 그리게
   }
   const 마 = [...확정입력].reverse().find(e => e.종류 === '마무리');
   if(마){
@@ -1323,11 +1350,11 @@ function 보기그리기(){
   let 모드 = '';
   const 화면단계 = 현재단계 === '요인정하기' || 현재단계 === '마무리';        // 맞힐 것·정보를 말하는 동안에는 체크 화면을 열지 않는다
   if(!보내는중 && 화면단계){
-    if(!요인끝 && ((s.x보기 || []).length || (s.대상후보 || []).length)) 모드 = '요인';
+    if(다시고르기 || (!요인끝 && ((s.x보기 || []).length || (s.대상후보 || []).length))) 모드 = '요인';
     else if(가설끝 && (!s.확인문장 || !s.활용방안)) 모드 = '마무리';
   }
   if(!모드){ box.classList.add('hide'); if(!보내는중){ box.innerHTML = ''; 폼표식 = ''; } return; }
-  const 표식 = 모드 + '|' + (s.대상후보 || []).join(',') + '|' + (s.x보기 || []).map(x => x.이름).join('|');
+  const 표식 = 모드 + (다시고르기 ? '+' : '') + '|' + (s.대상후보 || []).join(',') + '|' + (s.x보기 || []).map(x => x.이름).join('|');
   const 새폼 = 표식 !== 폼표식 || !box.innerHTML;
   if(새폼){ 폼표식 = 표식; box.innerHTML = 모드 === '요인' ? 요인HTML(s) : 마무리HTML(); }
   box.classList.remove('hide');
@@ -1364,12 +1391,13 @@ function 요인HTML(s){
       '<span class="xd">' + esc(x.설명 || '') + ' · ' + (x.형태 === '예아니오' ? '예/아니오' : '숫자') + '</span></span></label>' +
       '<div class="xrel' + (on ? '' : ' hide') + '" id="xrel' + i + '">' + 관계HTML('b:' + i, x.이름, x.형태, st, 앞) + '</div></div>';
   }).join('');
-  return '<div class="xph"><b>① 대상 정하기</b><span>어느 것의 자료로 할지 골라 주세요.</span></div><div class="xtg">' + 대상 + '</div>' +
+  return '<div class="xph"><b>① 대상 정하기</b><span>어느 것의 자료로 할지 골라 주세요.</span></div><div class="xtg" id="xtgbox">' + 대상 + '</div>' +
     '<div class="xph"><b>② 쓸 정보 고르기와 ③ 가설</b><span>' + esc((s.타깃 && s.타깃.이름) || '맞힐 것') + '을(를) 맞히는 데 쓸 정보를 5개 고르고, 고른 정보마다 어떤 관계가 있을 것 같은지 골라 주세요.</span></div>' +
     '<div class="xlist2">' + 행 + '</div>' +
     '<div class="xmore"><button class="btn sm" data-act="more">보기 10개 더 보기</button><button class="btn sm" data-act="addrow">+ 직접 추가 (최대 2개)</button></div>' +
     '<div id="xadds">' + 추가행HTML(s) + '</div>' +
-    '<div class="xgo"><button class="btn primary" id="xgo" data-act="go1" disabled>이대로 정했어요</button><span class="xcnt" id="xcnt"></span></div>';
+    '<div class="xgo"><button class="btn primary" id="xgo" data-act="go1" disabled>이대로 정했어요</button>' +
+    (다시고르기 ? '<button class="btn sm" data-act="cancel1">그만두기</button>' : '') + '<span class="xcnt" id="xcnt"></span></div>';
 }
 function 마무리HTML(){
   return '<div class="xph"><b>마무리 서술</b><span>두 칸을 내 말로 직접 써 주세요. (각 15자 이상)</span></div>' +
@@ -1391,11 +1419,13 @@ function 요인갱신(){
   const rows = 요인선택목록(), 대상 = 요인대상();
   const 빠짐 = rows.filter(r => !r.관계).length;
   const 문제 = [];
-  if(!대상) 문제.push('대상');
+  if(!대상) 문제.push(요인.대상선택 === '__직접' ? '① 대상 이름 쓰기' : '① 대상 고르기 (맨 위)');
   if(rows.length !== 5) 문제.push('정보 5개(지금 ' + rows.length + '개)');
   if(빠짐) 문제.push('관계를 고르지 않은 정보 ' + 빠짐 + '개');
   const b = document.getElementById('xgo'), c = document.getElementById('xcnt');
-  if(c) c.textContent = 문제.length ? '남은 것: ' + 문제.join(' · ') : '모두 정했어요. 아래 버튼을 눌러 주세요.';
+  if(c){ c.textContent = 문제.length ? '남은 것: ' + 문제.join(' · ') : '모두 정했어요. 버튼을 눌러 주세요.'; c.classList.toggle('warn', 문제.length > 0); }
+  const tg = document.getElementById('xtgbox');
+  if(tg) tg.classList.toggle('need', !대상 && rows.length === 5);     // 정보 5개를 다 골랐는데 대상이 비어 있으면 대상 칸을 표시한다
   if(b) b.disabled = 문제.length > 0 || 보내는중;
 }
 function 마무리갱신(){
@@ -1437,6 +1467,7 @@ function 폼클릭(e){
   else if(act === 'addrow') 추가행();
   else if(act === 'delrow') 삭제행(Number(el.dataset.k));
   else if(act === 'go1') 요인제출();
+  else if(act === 'cancel1') 다시고르기닫기();
   else if(act === 'go2') 마무리제출();
 }
 function 추가행(){
@@ -1461,6 +1492,7 @@ function 요인제출(){
   const 줄 = r => (r.직접 ? '직접 추가: ' : '정보: ') + r.이름 + ' | ' + r.관계 + ' | ' + 한줄정리(r.한줄);
   const t = '[정보 선택]\n대상: ' + 대상 + '\n' + rows.map(줄).join('\n');
   확정입력.push({순서:순번, 종류:'요인', 값:{대상:대상, 정보:rows.map(r => ({이름:r.이름, 관계:r.관계, 한줄:한줄정리(r.한줄), 직접:!!r.직접}))}});
+  다시고르기 = false;
   const b = document.getElementById('xgo'); if(b) b.disabled = true;
   보내기(t, {});
 }
@@ -1473,6 +1505,85 @@ function 마무리제출(){
   보내기('[마무리 서술]\n내 주제: ' + a + '\n문제 해결 활용: ' + c, {});
 }
 
+/* ── 정보·가설 다시 고르기, 확정한 계획서 고치기 ── */
+/* 「늘어날 것 같다 (이유)」 → {관계, 한줄}. 예전처럼 자유롭게 쓴 가설이면 관계는 비우고 글을 한 줄에 둔다 */
+function 가설풀기(t){
+  t = 한줄정리(t);
+  const 관계 = 관계목록.find(r => t.indexOf(r) === 0) || '';
+  if(!관계) return {관계:'', 한줄:t};
+  const m = t.slice(관계.length).match(/^\s*\((.*)\)\s*$/);
+  return {관계:관계, 한줄:m ? m[1] : ''};
+}
+function 다시고르기가능(){
+  const s = 정리 || {};
+  return !다시고르기 && (현재단계 === '요인정하기' || 현재단계 === '마무리') &&
+         (s.특성 || []).length === 5 && !!s.대상확인 && (s.x보기 || []).length > 0;
+}
+/* 지금 계획서의 대상·정보·가설을 체크한 채로 요인 화면을 연다 */
+function 다시고르기열기(){
+  if(보내는중 || !정리) return;
+  const 보기 = 정리.x보기 || [];
+  요인 = {대상선택:'', 직접대상:'', 고름:{}, 추가:[]};
+  const 대상 = 정리.대상 || '';
+  if((정리.대상후보 || []).indexOf(대상) >= 0) 요인.대상선택 = 대상;
+  else if(대상){ 요인.대상선택 = '__직접'; 요인.직접대상 = 대상; }
+  (정리.특성 || []).forEach(f => {
+    const p = 가설풀기(f.가설);
+    if(보기.some(x => x.이름 === f.이름)) 요인.고름[f.이름] = p;
+    else 요인.추가.push({이름:f.이름, 관계:p.관계, 한줄:p.한줄});
+  });
+  다시고르기 = true; 폼표식 = '';
+  paintSpec();
+}
+function 다시고르기닫기(){ 다시고르기 = false; 폼표식 = ''; paintSpec(); }
+
+/* 다른 컴퓨터이거나 저장된 대화가 없을 때 — 시트1에 확정된 계획서를 불러와 새 대화로 이어 고친다.
+   학생이 냈던 [정보 선택]·[마무리 서술]을 그대로 다시 놓아 두므로, 화면 보정·「내가 쓴 말인가」 검사가 처음 낼 때와 똑같이 동작한다. */
+async function 계획서불러오기(){
+  로딩(true, '확정한 계획서를 불러오는 중…');
+  let r;
+  try{ r = await api({action:'myplan', 기록:{대화ID}}); }catch(e){ r = {오류:String(e && e.message || e)}; }
+  로딩(false);
+  if(!r || r.오류 || !r.정리){
+    첫말();
+    알림('확정한 계획서를 불러오지 못해 새로 시작했어요. ' + ((r && r.오류) || ''), true);
+    return;
+  }
+  const s = r.정리;
+  s.대상후보 = s.대상후보 || []; s.x보기 = s.x보기 || []; s.특성 = s.특성 || [];
+  const 보기이름 = s.x보기.map(x => x.이름);
+  const 선택말 = '[정보 선택]\n대상: ' + (s.대상 || '') + '\n' + s.특성.map(f => {
+    const p = 가설풀기(f.가설);
+    return (보기이름.indexOf(f.이름) >= 0 ? '정보: ' : '직접 추가: ') + f.이름 + ' | ' + (p.관계 || p.한줄) + ' | ' + (p.관계 ? p.한줄 : '');
+  }).join('\n');
+  const 답 = {답변:'확정했던 계획서를 불러왔어요. 고치고 싶은 것을 채팅으로 말하거나, 오른쪽 계획서 위의 「정보·가설 다시 고르기」를 눌러 주세요. ' +
+                 '다 고쳤으면 「주제 확정하기」를 다시 누르면 돼요.',
+              단계:'마무리', 정리:s, 주제점검:r.주제점검 || null, 도움요청:false, 확정가능:true};
+  히스토리 = [
+    {role:'user', content:'[계획서 불러오기] 확정했던 계획서를 고치려고 불러왔어요.', 보일말:'', 숨김:true, 순서:0},
+    {role:'user', content:선택말, 보일말:선택말, 숨김:false, 순서:2}];
+  if(s.확인문장 || s.활용방안){
+    const 마무리말 = '[마무리 서술]\n내 주제: ' + (s.확인문장 || '') + '\n문제 해결 활용: ' + (s.활용방안 || '');
+    히스토리.push({role:'user', content:마무리말, 보일말:마무리말, 숨김:false, 순서:4});
+  }
+  히스토리.push({role:'assistant', content:JSON.stringify(답), 보일말:답.답변, 순서:5});
+  순번 = 6;
+  확정입력 = 확정입력복원(히스토리);
+  요인 = {대상선택:'', 직접대상:'', 고름:{}, 추가:[]}; 폼표식 = ''; 다시고르기 = false;
+  마무리값 = {주제:s.확인문장 || '', 활용:s.활용방안 || ''};
+  정리 = s; 주제점검 = 답.주제점검; 확정가능 = true; 도움요청 = false;
+  정리보정();
+  단계표시('마무리');
+  draw(); paintSpec(); save();
+}
+/* 확정 화면의 「계획서 고치기」 — 방금 낸 대화로 돌아간다 */
+function 고치러가기(){
+  document.getElementById('done').classList.add('hide');
+  document.getElementById('donesheet').innerHTML = '';
+  draw(); paintSpec();
+  알림('고치고 싶은 것을 채팅으로 말하거나 「정보·가설 다시 고르기」를 눌러 주세요. 다 고쳤으면 「주제 확정하기」를 다시 누르면 돼요.');
+}
+
 /* ── 확정 ── */
 async function finish(){
   const b = document.getElementById('finbtn');
@@ -1482,6 +1593,7 @@ async function finish(){
   b.textContent = '주제 확정하기';
   if(r.오류){ b.disabled = false; 알림(r.오류, true); return; }
   if(r.통과){
+    if(나) 나.이전확정 = {있음:true, 주제:정리.주제 || ''};
     const d = new Date();
     const 날짜 = d.getFullYear()+'.'+(d.getMonth()+1)+'.'+d.getDate();
     document.getElementById('donemsg').textContent =
@@ -1535,7 +1647,8 @@ function 관리그리기(){
     칩('', '전체 ' + 전체.length) + 분반들.map(b => 칩(b, b + '반 ' + 수(b))).join('') +
     (수('미지정') && r.분반있음 ? 칩('미지정', '분반 미지정 ' + 수('미지정')) : '') + 안내;
   if(관리분반 && !r.분반있음) 관리분반 = '';
-  const 행 = !관리분반 ? 전체 : 전체.filter(x => 관리분반 === '미지정' ? !x.분반 : x.분반 === 관리분반);
+  const 행 = (!관리분반 ? 전체 : 전체.filter(x => 관리분반 === '미지정' ? !x.분반 : x.분반 === 관리분반))
+    .slice().sort((a, b) => String(a.학번 || '').localeCompare(String(b.학번 || ''), 'ko', {numeric:true}));   // 항상 학번 오름차순
   const 경고HTML = r.경고
     ? '<div class="adwarn">'+esc(r.경고)+'</div>' : '';
   const 예측 = 행.filter(x=>x.트랙==='예측').length;
@@ -1584,6 +1697,7 @@ function 관리그리기(){
                (x.타깃 && x.타깃.실자료 && x.타깃.실자료!=='없음'
                  ? ' · 타깃 '+esc(x.타깃.실자료) : '')+'</div>'+
                (x.변경요청 ? '<div class="reqchip"><b>주제 변경 요청</b> '+esc(x.변경요청.시각)+' · '+esc(x.변경요청.이유)+'<br>'+esc(x.변경요청.내용)+'<br><button class="btn sm" onclick="요청처리(\''+esc(x.학번)+'\')">처리했어요</button></div>' : '')+
+               (x.수정 ? '<div class="reqchip"><b>계획서 고침</b> '+esc(x.수정)+'<br>데이터를 다시 만들어야 할 수 있어요.</div>' : '')+
                (x.점검메모? '<div class="mini">'+esc(x.점검메모)+'</div>':'')+
                (x.확인문장? '<div class="mini"><b>내 말:</b> '+esc(x.확인문장)+'</div>':'')+
                (x.활용방안? '<div class="mini"><b>문제 해결 활용:</b> '+esc(x.활용방안)+'</div>':'')+
