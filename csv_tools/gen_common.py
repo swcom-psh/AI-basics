@@ -69,8 +69,11 @@ def finish(학번, d, *, ids, x, y, track, 주제, 자료, 변경, 시드, 등�
     (WORK / "specs").mkdir(exist_ok=True)
     (WORK / "specs" / f"{학번}.json").write_text(json.dumps(spec, ensure_ascii=False, indent=1), encoding="utf-8")
     res = check_csv.check(path, spec)
-    check_csv.report(res, path.name)
     M = res["metrics"]
+    miss_out = sorted(set(out_rows) - set(M.get("이상치행", [])))
+    if miss_out:                                      # 교사용 정답에 적을 이상치가 실제로 IQR 밖에 있는지
+        res["fail"].append(f"[{ocol}] 의도한 이상치 {len(miss_out)}개가 울타리 안에 있음(IQR 로 안 지워짐) — 줄 {[int(i)+2 for i in miss_out]}")
+    check_csv.report(res, path.name)
     kind = "예측" if track == "예측" else f"분류({classes[0]} / {classes[1]})"
     clean = d.dropna(subset=x + [y])
     if track == "예측":

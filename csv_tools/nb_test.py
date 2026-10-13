@@ -2,7 +2,7 @@
 대상: csv_out 학생 자료(학번_data.csv, x·y 는 csv_work/specs/학번.json) + 선택자료 csv/학생용(x 후보는 교사용_데이터사전의 「x 후보 5개」).
 각 자료마다 칸별로 오류·이상(행이 너무 줄어듦, 한 범주만 남음, pairplot 이 너무 느림, R² 음수 등)을 모은다.
 
-사용: python nb_test.py [csv_out|선택|파일이름 일부 …]   결과: csv_work/nb_test_결과.csv
+직접 실행하지 않는다 — 점검.py 가 불러 쓴다.
 """
 import glob, io, json, re, sys, time, warnings, contextlib
 from pathlib import Path
@@ -150,24 +150,3 @@ def run(t):
             if max(best, k2) < maj + 0.05:
                 W.append(f"⑥⑦ 정확도가 다수범주({maj:.2f})와 비슷함")
     return dict(P=P, W=W, info=info)
-
-
-def main():
-    want = sys.argv[1:]
-    rows = []
-    for t in targets(want):
-        t0 = time.time()
-        try:
-            r = run(t)
-        except Exception as e:
-            r = dict(P=[f"오류 {type(e).__name__}: {str(e)[:120]}"], W=[], info={})
-        mark = "문제" if r["P"] else ("경고" if r["W"] else "통과")
-        print(f"{mark} {t['kind']} {t['name']:16s} {r['info']} {' / '.join(r['P'] + r['W'])}  ({time.time()-t0:.0f}초)", flush=True)
-        rows.append(dict(구분=t["kind"], 자료=t["name"], 유형=t["track"], 결과=mark, 문제=" / ".join(r["P"]), 경고=" / ".join(r["W"]), **r["info"]))
-    out = pd.DataFrame(rows)
-    out.to_csv(ROOT / "csv_work" / "nb_test_결과.csv", index=False, encoding="utf-8-sig")
-    print("\n", out["결과"].value_counts().to_dict())
-
-
-if __name__ == "__main__":
-    main()

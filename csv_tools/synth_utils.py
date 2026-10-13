@@ -33,6 +33,11 @@ def add_outliers(df, col, n, seed, hard_range, decimals=0, upper_share=0.75):
     rng = np.random.RandomState(seed)
     lo, hi, iqr = fence(df[col].dropna())
     idx = rng.choice(df.index[df[col].notna()], n, replace=False)
+    # 울타리 밖이면서 현실 범위(hard_range) 안인 구간. 양쪽 다 범위 밖으로 뽑힌 경우에만 여기서 다시 뽑는다.
+    # (2026-10-14 고침: 예전에는 그 값을 경계로 잘라 0 처럼 울타리 안쪽 값이 「이상치」로 기록되어 IQR 로 안 지워졌다.
+    #  그 밖의 경우는 예전과 난수 순서가 같아서 이미 만든 학생 자료를 다시 만들어도 같은 값이 나온다.)
+    band = {True: (hi + 0.5 * iqr, min(hi + 3.0 * iqr, hard_range[1])),
+            False: (max(lo - 2.0 * iqr, hard_range[0]), lo - 0.5 * iqr)}
     vals = []
     for _ in idx:
         up = rng.rand() < upper_share
@@ -40,6 +45,12 @@ def add_outliers(df, col, n, seed, hard_range, decimals=0, upper_share=0.75):
         if not (hard_range[0] <= v <= hard_range[1]):      # 불가능한 값이면 반대쪽
             v = hi + rng.uniform(0.5, 3.0) * iqr if not up else lo - rng.uniform(0.5, 2.0) * iqr
         v = min(max(v, hard_range[0]), hard_range[1])
+        if lo - 0.3 * iqr < v < hi + 0.3 * iqr:            # 경계로 잘려 울타리 안(또는 바로 옆)에 들어옴 → 자리가 있는 구간에서 다시 뽑는다
+            sides = [k for k in (True, False) if band[k][0] <= band[k][1]]
+            if not sides:
+                raise ValueError(f"[{col}] 현실 범위 안에 울타리 밖 값을 넣을 자리가 없음")
+            a, b = band[sides[0] if len(sides) == 1 else (rng.rand() < upper_share)]
+            v = rng.uniform(a, b)
         vals.append(round(v, decimals) if decimals else int(round(v)))
     df.loc[idx, col] = vals
     return list(idx)

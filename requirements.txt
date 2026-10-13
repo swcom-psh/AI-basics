@@ -1,0 +1,11 @@
+# csv_tools 의 Python 도구용(학생 CSV 생성·선택자료·점검). 2026-10-14 이 버전들로 53명 CSV 가 바이트 단위로 다시 만들어지는 것을 확인함.
+# 설치: python -m pip install -r requirements.txt   (Python 3.14)
+numpy==2.4.6
+pandas==3.0.3
+scikit-learn==1.9.1
+matplotlib==3.11.2
+seaborn==0.13.2
+requests==2.34.2
+openpyxl==3.1.5
+nba_api==1.11.4
+korean-lunar-calendar==0.4.0

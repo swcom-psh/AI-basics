@@ -205,12 +205,6 @@ def _apt(d):
     return d
 
 
-def _apt(d):
-    d = d.drop_duplicates().dropna().reset_index(drop=True)
-    d["단지거래건수"] = d.groupby("단지명")["단지명"].transform("size")
-    return d
-
-
 # ───────────────────────── 계산 ─────────────────────────
 def col_series(d, spec):
     s = d[spec["col"]]
