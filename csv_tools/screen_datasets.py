@@ -57,6 +57,23 @@ def Ynum(col, ko, log=False, zn=False, mul=1.0, dec=None, add=0.0):
 
 yes = lambda s: (s.astype(str).str.lower().isin(["yes", "y", "1", "true", "present", "male", "m", "tested_positive"])).astype(int)
 
+# 분석에 쓰지 않는 참고(식별) 열: 과제 id → [(원본 열, 학생용 열 이름)]. 원본에 있을 때만 붙인다.
+IDS = {
+    "NBA득점_예측": [("player_name", "선수이름"), ("team_abbreviation", "소속팀"), ("country", "국적"), ("season", "시즌")],
+    "FIFA능력치_예측": [("short_name", "선수이름"), ("club", "소속팀"), ("nationality", "국적"), ("player_positions", "포지션")],
+    "FIFA몸값_예측": [("short_name", "선수이름"), ("club", "소속팀"), ("nationality", "국적"), ("player_positions", "포지션")],
+    "야구타율_예측": [("name", "선수이름"), ("team", "소속팀"), ("position", "포지션")],
+    "영화흥행_예측": [("name", "영화제목"), ("genre", "장르"), ("country", "국가"), ("director", "감독"), ("company", "제작사")],
+    "음악에너지_예측": [("track_name", "곡명"), ("artists", "가수"), ("track_genre", "장르")],
+    "음악조회수_예측": [("Track", "곡명"), ("Artist", "가수")],
+    "패스트푸드열량_예측": [("회사", "회사"), ("메뉴", "메뉴")],
+    "대학졸업률_예측": [("rownames", "대학이름")],
+    "대학지원자_예측": [("rownames", "대학이름")],
+    "자동차연비_예측": [("name", "자동차이름"), ("origin", "생산국")],
+    "자동차연비_분류": [("name", "자동차이름"), ("origin", "생산국")],
+    "월세_예측": [("City", "도시"), ("Area Locality", "지역")],
+}
+
 TASKS = [
     T("유방암_세포_분류", "유방암_세포측정", "유방 종양 세포핵의 측정값으로 양성/악성 분류", "의료·생명·간호·약학", "분류",
       Ycls("target", lambda s: pd.Series(np.where(s == 1, "양성", "악성"), index=s.index), ("양성", "악성")),
@@ -274,7 +291,7 @@ def quick(df, xs, y, track, classes):
 
 
 def prepare(task):
-    d = task["loader"]() if task.get("loader") else pd.read_csv(ROOT / f"{task['file']}.csv", encoding="utf-8-sig")
+    d = task["loader"]() if task.get("loader") else pd.read_csv(WORK / "선택자료_원본" / f"{task['file']}.csv", encoding="utf-8-sig")
     if task["prep"]:
         d = task["prep"](d)
     d = d.reset_index(drop=True)
@@ -287,6 +304,8 @@ def prepare(task):
         W[yname] = ys["fn"](d[ys["col"]])
     else:
         W[yname] = col_series(d, ys)
+    W["§원행"] = d.index
+    task["_idf"] = d
     return W, yname
 
 
@@ -308,6 +327,11 @@ def tweak_columns(W, task, yname, rng):
             sd = float(W[c].std())
             extra[c + "§쌍"] = W[c] + pd.Series(rng.normal(0, sd * 0.40, len(W)), index=W.index)
     return pd.concat([W, pd.DataFrame(extra)], axis=1), list(extra)
+
+
+def extra_note(md, cols):
+    with open(md, "a", encoding="utf-8") as fh:
+        fh.write("\n## 참고 열\n" + ", ".join(k for _, k in cols) + " — 원본에 있는 열(분석 x 후보 밖).\n")
 
 
 def run_task(task, mode="순수", tries=12, seed=2026):
@@ -370,9 +394,10 @@ def run_task(task, mode="순수", tries=12, seed=2026):
         return res
     fails = []
     for rank, (sc, comb, q) in enumerate(cands[:tries]):
-        sub = W[comb + [yname]].dropna().reset_index(drop=True)
+        sub = W[comb + [yname, "§원행"]].dropna().reset_index(drop=True)
         if len(sub) > task["nmax"]:
             sub = sub.sample(task["nmax"], random_state=seed).reset_index(drop=True)
+        src = sub.pop("§원행").astype(int).tolist()
         note = []
         if track == "예측" and mode == "보정":
             X = sub[comb].astype(float)
@@ -394,6 +419,7 @@ def run_task(task, mode="순수", tries=12, seed=2026):
         comb2 = [ren.get(c, c) for c in comb]
         ids = [f"{task['id'][:2]}{i+1:04d}" for i in range(len(sub))]
         sub.insert(0, "번호", ids)
+        idmap = dict(zip(ids, src))
         ints, bins, hard, dec, skip = [], [], {}, {}, []
         for c in comb2 + [yname]:
             s_ = sub[c]
@@ -428,10 +454,18 @@ def run_task(task, mode="순수", tries=12, seed=2026):
         if not r["fail"]:
             out = TMP / f"SCR0000{rank}_data.csv"
             md = next(TMP.glob(f"SCR0000{rank}_*_데이터사전.md"))
-            fol = {"순수": "학생용_한글", "예외": "학생용_예외", "보정": "학생용_보정"}[mode]
+            fol = "학생용"
             (ROOT / fol).mkdir(exist_ok=True)
             (ROOT / "교사용_데이터사전").mkdir(exist_ok=True)
-            shutil.copy(out, ROOT / fol / f"{task['id']}.csv")
+            idcols = [(c, k) for c, k in IDS.get(task["id"], []) if c in task["_idf"].columns]
+            if idcols:
+                o = pd.read_csv(out, encoding="utf-8-sig")
+                for j, (c, k) in enumerate(idcols):
+                    o.insert(1 + j, k, [task["_idf"][c].iloc[idmap[i]] for i in o["번호"]])
+                o.to_csv(ROOT / fol / f"{task['id']}.csv", index=False, encoding="utf-8-sig")
+                extra_note(md, idcols)
+            else:
+                shutil.copy(out, ROOT / fol / f"{task['id']}.csv")
             shutil.copy(md, ROOT / "교사용_데이터사전" / f"{task['id']}{'' if mode == '순수' else '_' + mode}.md")
             M = r["metrics"]
             res.update(결과="통과", x=" | ".join(c.replace(' ', '') for c in comb2), 행수=M.get("처리후행수"), y=yname if track == "예측" else f"{classes[0]} / {classes[1]}",
