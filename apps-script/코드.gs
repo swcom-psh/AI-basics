@@ -1496,7 +1496,7 @@ function CSV상태_(req) {
 /* CSV 첫 줄(열 이름)만 돌려준다 — 학생이 받기 전에 어떤 열이 있는지 볼 수 있게 (값은 보내지 않는다) */
 function CSV열_(f) {
   const 첫줄 = f.getBlob().getDataAsString('UTF-8').replace(/^\uFEFF/, '').split('\n')[0].replace(/\r$/, '');
-  return 첫줄.split(',');
+  return Utilities.parseCsv(첫줄)[0] || [];          // 열 이름에 쉼표가 있으면 따옴표로 묶여 있다(예: "연료소비량(시험주행100km,L)")
 }
 
 /* 같은 폴더의 「학번_안내.json」(학생용 변경 안내) 을 읽는다. 없으면 null. 교사용 데이터 사전(.md)은 읽지 않는다. */

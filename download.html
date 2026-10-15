@@ -497,7 +497,20 @@ const 자료설명 = {
   '공개 연구용 시뮬레이션 자료': ['real', 'NASA 같은 연구 기관이 만들어 공개한 연구용 자료예요. 실제 연구에서도 쓰이는 값이에요.'],
   '규칙으로 만든 가상 자료': ['synth', '실제 자료를 구할 수 없어서, 그 분야에서 알려진 관계를 따라 만든 연습용 자료예요. 현실의 실제 값은 아니에요.']
 };
+/* 서버가 첫 줄을 쉼표로만 나눠 보내면 「"연료소비량(시험주행100km」「L)"」처럼 따옴표 안 쉼표에서 잘린다 → 다시 붙이고 따옴표를 벗긴다 */
+function 열다듬기(열){
+  const out = [];
+  let 붙는중 = null;
+  for(const c of 열 || []){
+    if(붙는중 !== null){ 붙는중 += ',' + c; if(/"$/.test(c)){ out.push(붙는중); 붙는중 = null; } continue; }
+    if(/^"/.test(c) && !/^".*"$/.test(c)){ 붙는중 = c; continue; }
+    out.push(c);
+  }
+  if(붙는중 !== null) out.push(붙는중);
+  return out.map(c => c.replace(/^"(.*)"$/, '$1').replace(/""/g, '"'));
+}
 function 열그리기(열){
+  열 = 열다듬기(열);
   if(!열 || !열.length) return '';
   const 칩 = 열.map((c, i) => {
     const 이름 = c.replace(/_/g, ' ');
@@ -587,7 +600,7 @@ function 그리기(){
       (s.안내 ? 바뀜카드(s) : 주제카드) +
       '<div class="card"><div class="file"><div class="ficon">CSV</div><div>' +
         '<span class="pill ok">받을 수 있어요</span><div class="fname" style="margin-top:6px">'+esc(파일.이름)+'</div>' +
-        '<div class="fmeta num">'+(파일.크기?크기글(파일.크기):'')+(s.열 ? ' · 열 '+s.열.length+'개' : '')+'</div></div></div>' +
+        '<div class="fmeta num">'+(파일.크기?크기글(파일.크기):'')+(s.열 ? ' · 열 '+열다듬기(s.열).length+'개' : '')+'</div></div></div>' +
       (s.열 ? '<div style="margin-top:16px">'+열그리기(s.열)+'</div>' : '') +
       '<div class="cta"><button class="btn main big" id="dlbtn" onclick="받기()">'+(받았음?'↓ 다시 받기':'↓ CSV 파일 받기')+'</button></div>' +
       '<div id="dlmsg"></div></div>' +
