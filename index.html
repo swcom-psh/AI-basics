@@ -194,7 +194,9 @@ a{color:var(--accent)}
 #right .notes{display:flex;flex-direction:column;gap:8px;margin-bottom:14px}
 .helpbar,.prevbar{padding:10px 13px;font-size:13px;border-radius:3px;border:1px solid var(--warn-line);
   background:var(--warn-soft);color:var(--warn);line-height:1.55}
-.redobar{margin:8px 0}
+.redobar{margin:8px 0;display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.redobar .redohint{flex-basis:100%;font-size:12px;color:#5b6472}
+#xpick .xmine{display:inline-flex;align-items:center;gap:5px;margin-top:6px;font-size:12.5px;color:#36507a;cursor:pointer}
 
 .sheet{position:relative;background:var(--paper);border:1px solid var(--rule);
   box-shadow:0 1px 0 var(--rule-2),0 10px 26px -18px rgba(23,32,43,.35);padding:34px 38px 30px}
@@ -803,6 +805,11 @@ function 확정입력복원(h){
         const x = l.match(/^(정보|직접 추가): (.*?) \| (.*?) \|(.*)$/);
         if(x) 정보.push({이름:x[2].trim(), 관계:x[3].trim(), 한줄:x[4].trim(), 직접:x[1] === '직접 추가'});
       });
+      const 내줄 = 줄.find(l => l.indexOf('내가 떠올린 정보: ') === 0);
+      if(내줄){
+        const 내것 = 내줄.slice('내가 떠올린 정보: '.length).split(' / ').map(t => t.trim());
+        정보.forEach(r => { r.내가 = r.직접 || 내것.indexOf(r.이름) >= 0; });
+      }
       if(대상 && 정보.length) out.push({순서:m.순서, 종류:'요인', 값:{대상:대상, 정보:정보}});
     } else if(c.indexOf('[마무리 서술]') === 0){
       const a = c.match(/내 주제: ([\s\S]*?)\n문제 해결 활용: ([\s\S]*)$/);
@@ -1252,7 +1259,9 @@ function paintSpec(){
   if(나 && 나.이전확정 && 나.이전확정.있음)
     n += '<div class="prevbar">이미 낸 계획서가 있습니다 — <b>'+esc(나.이전확정.주제||'')+'</b><br>'+
          '다시 확정하면 이전 것은 지워지고 이 계획서로 바뀝니다. (데이터를 이미 받았다면 선생님이 새 계획서에 맞게 다시 만들어 줍니다)</div>';
-  if(다시고르기가능()) n += '<div class="redobar"><button class="btn sm" onclick="다시고르기열기()">정보·가설 다시 고르기</button></div>';
+  const 단추 = (다시고르기가능() ? '<button class="btn sm" onclick="다시고르기열기()">✏ 정보·가설·대상 고치기</button>' : '') +
+              (마무리다시가능() ? '<button class="btn sm" onclick="마무리다시열기()">✏ 내 주제·활용 고치기</button>' : '');
+  if(단추) n += '<div class="redobar">' + 단추 + '<span class="redohint">계획서는 이 단추로 고쳐요. 고친 뒤 「주제 확정하기」를 다시 누르면 선생님께 전달돼요.</span></div>';
   if(도움요청) n += '<div class="helpbar">선생님께 이 화면을 보여 주세요. 같이 고르면 됩니다.</div>';
   document.getElementById('notes').innerHTML = n;
 
@@ -1281,6 +1290,7 @@ let 요인 = {대상선택:'', 직접대상:'', 고름:{}, 추가:[]};   // 요�
 let 마무리값 = {주제:'', 활용:''};
 let 폼표식 = '';
 let 다시고르기 = false;                // 정보가 다 정해진 뒤 「정보·가설 다시 고르기」로 요인 화면을 다시 연 상태
+let 마무리다시 = false;                // 「내 주제·활용 고치기」로 마무리 화면을 다시 연 상태
 const 관계목록 = ['늘어날 것 같다', '줄어들 것 같다', '관계없을 것 같다'];
 
 function 한줄정리(t){ return String(t || '').replace(/\s+/g, ' ').trim(); }
@@ -1321,7 +1331,7 @@ function 정리보정(){
       if(뺀[r.이름]){ delete 요인.고름[r.이름]; return; }   // 챗봇이 이유를 말하고 뺀 정보는 다시 넣지 않는다
       const 가설 = 가설글(r.관계, r.한줄);
       const b = 보기.find(x => x.이름 === r.이름) || {};
-      const 사람 = (r.직접 || b.종류 === '학생이 말한 정보') ? '학생' : '보기';   // 학생이 채팅으로 말한 정보도 학생이 떠올린 것
+      const 사람 = r.직접 ? '학생' : (r.내가 === true ? '학생' : r.내가 === false ? '보기' : (b.종류 === '학생이 말한 정보' ? '학생' : '보기'));   // 「내가 먼저 떠올렸어요」 체크를 따른다(예전 기록은 보기 종류로)
       let t = 처음.find(x => x.이름 === r.이름 && 쓴.indexOf(x) < 0);
       if(!t && r.직접) t = 닮은것꺼내기(r.이름);
       if(!t) t = {이름:r.이름, 형태:b.형태 || (/(인가|여부)$/.test(r.이름) ? '예아니오' : '숫자'), 실자료:b.실자료 || '없음'};
@@ -1351,10 +1361,10 @@ function 보기그리기(){
   const 화면단계 = 현재단계 === '요인정하기' || 현재단계 === '마무리';        // 맞힐 것·정보를 말하는 동안에는 체크 화면을 열지 않는다
   if(!보내는중 && 화면단계){
     if(다시고르기 || (!요인끝 && ((s.x보기 || []).length || (s.대상후보 || []).length))) 모드 = '요인';
-    else if(가설끝 && (!s.확인문장 || !s.활용방안)) 모드 = '마무리';
+    else if(마무리다시 || (가설끝 && (!s.확인문장 || !s.활용방안))) 모드 = '마무리';
   }
   if(!모드){ box.classList.add('hide'); if(!보내는중){ box.innerHTML = ''; 폼표식 = ''; } return; }
-  const 표식 = 모드 + (다시고르기 ? '+' : '') + '|' + (s.대상후보 || []).join(',') + '|' + (s.x보기 || []).map(x => x.이름).join('|');
+  const 표식 = 모드 + (다시고르기 || 마무리다시 ? '+' : '') + '|' + (s.대상후보 || []).join(',') + '|' + (s.x보기 || []).map(x => x.이름).join('|');
   const 새폼 = 표식 !== 폼표식 || !box.innerHTML;
   if(새폼){ 폼표식 = 표식; box.innerHTML = 모드 === '요인' ? 요인HTML(s) : 마무리HTML(); }
   box.classList.remove('hide');
@@ -1362,6 +1372,9 @@ function 보기그리기(){
   if(모드 === '요인') 요인갱신(); else 마무리갱신();
 }
 
+function 내가HTML(키, 상태){
+  return '<label class="xmine"><input type="checkbox" data-t="mine" data-k="' + esc(키) + '"' + (상태.내가 ? ' checked' : '') + '> 이 정보는 내가 먼저 떠올렸어요</label>';
+}
 function 관계HTML(키, 이름, 형태, 상태, 앞말){
   const 문 = '「' + esc(이름) + '」이(가) ' + (형태 === '예아니오' ? '「예」일수록' : '클수록') + ', ' + 앞말 + ' —';
   return '<div class="xq">' + 문 + '</div><div class="xrels">' +
@@ -1385,11 +1398,11 @@ function 요인HTML(s){
     '<label class="xrad"><input type="radio" name="xtg" value="__직접" data-t="tg"' + (요인.대상선택 === '__직접' ? ' checked' : '') + '> 직접 쓰기 ' +
     '<input class="xtxt" id="xtgin" data-t="tgin" value="' + esc(요인.직접대상) + '" placeholder="예: 우리 학교 2학년 3반"></label>';
   const 행 = 보기.map((x, i) => {
-    const on = !!요인.고름[x.이름], st = 요인.고름[x.이름] || {관계:'', 한줄:''};
+    const on = !!요인.고름[x.이름], st = 요인.고름[x.이름] || {관계:'', 한줄:'', 내가:x.종류 === '학생이 말한 정보'};
     return '<div class="xrow' + (on ? ' on' : '') + '" id="xr' + i + '"><label class="xhead"><input type="checkbox" data-t="chk" data-i="' + i + '"' + (on ? ' checked' : '') + '>' +
       '<span><span class="xn">' + esc(x.이름) + '</span><span class="xt">' + esc(x.종류 || '') + '</span>' +
       '<span class="xd">' + esc(x.설명 || '') + ' · ' + (x.형태 === '예아니오' ? '예/아니오' : '숫자') + '</span></span></label>' +
-      '<div class="xrel' + (on ? '' : ' hide') + '" id="xrel' + i + '">' + 관계HTML('b:' + i, x.이름, x.형태, st, 앞) + '</div></div>';
+      '<div class="xrel' + (on ? '' : ' hide') + '" id="xrel' + i + '">' + 관계HTML('b:' + i, x.이름, x.형태, st, 앞) + 내가HTML('b:' + i, st) + '</div></div>';
   }).join('');
   return '<div class="xph"><b>① 대상 정하기</b><span>어느 것의 자료로 할지 골라 주세요.</span></div><div class="xtg" id="xtgbox">' + 대상 + '</div>' +
     '<div class="xph"><b>② 쓸 정보 고르기와 ③ 가설</b><span>' + esc((s.타깃 && s.타깃.이름) || '맞힐 것') + '을(를) 맞히는 데 쓸 정보를 5개 고르고, 고른 정보마다 어떤 관계가 있을 것 같은지 골라 주세요.</span></div>' +
@@ -1405,13 +1418,14 @@ function 마무리HTML(){
     '<textarea id="f1" data-t="f1" rows="2">' + esc(마무리값.주제) + '</textarea></div>' +
     '<div class="ftx"><label>② 이 예측·분류를 어떤 문제 해결에 활용할 수 있을까요? <small>누가, 어떤 문제를, 어떻게 풀 수 있는지</small></label>' +
     '<textarea id="f2" data-t="f2" rows="2">' + esc(마무리값.활용) + '</textarea></div>' +
-    '<div class="xgo"><button class="btn primary" id="fgo" data-act="go2" disabled>이대로 냈어요</button><span class="xcnt" id="fcnt"></span></div>';
+    '<div class="xgo"><button class="btn primary" id="fgo" data-act="go2" disabled>이대로 냈어요</button>' +
+    (마무리다시 ? '<button class="btn sm" data-act="cancel2">그만두기</button>' : '') + '<span class="xcnt" id="fcnt"></span></div>';
 }
 
 function 요인대상(){ return 요인.대상선택 === '__직접' ? 한줄정리(요인.직접대상) : (요인.대상선택 || ''); }
 function 요인선택목록(){
   const 보기 = (정리 && 정리.x보기) || [];
-  const rows = 보기.filter(x => 요인.고름[x.이름]).map(x => ({이름:x.이름, 직접:false, 관계:요인.고름[x.이름].관계, 한줄:요인.고름[x.이름].한줄}));
+  const rows = 보기.filter(x => 요인.고름[x.이름]).map(x => ({이름:x.이름, 직접:false, 관계:요인.고름[x.이름].관계, 한줄:요인.고름[x.이름].한줄, 내가:!!요인.고름[x.이름].내가}));
   요인.추가.forEach(a => { if(한줄정리(a.이름)) rows.push({이름:한줄정리(a.이름), 직접:true, 관계:a.관계, 한줄:a.한줄}); });
   return rows;
 }
@@ -1436,7 +1450,7 @@ function 마무리갱신(){
 }
 function 정보토글(i, on){
   const x = ((정리 && 정리.x보기) || [])[i]; if(!x) return;
-  if(on){ if(!요인.고름[x.이름]) 요인.고름[x.이름] = {관계:'', 한줄:''}; } else delete 요인.고름[x.이름];
+  if(on){ if(!요인.고름[x.이름]) 요인.고름[x.이름] = {관계:'', 한줄:'', 내가:x.종류 === '학생이 말한 정보'}; } else delete 요인.고름[x.이름];
   const r = document.getElementById('xr' + i), l = document.getElementById('xrel' + i);
   if(r) r.classList.toggle('on', !!on);
   if(l) l.classList[on ? 'remove' : 'add']('hide');
@@ -1453,6 +1467,7 @@ function 폼이벤트(e){
   if(d.t === 'chk') 정보토글(Number(d.i), t.checked);
   else if(d.t === 'rel'){ const s = 키상태(d.k); if(s){ s.관계 = t.value; 요인갱신(); } }
   else if(d.t === 'note'){ const s = 키상태(d.k); if(s) s.한줄 = t.value; }
+  else if(d.t === 'mine'){ const s = 키상태(d.k); if(s) s.내가 = !!t.checked; }
   else if(d.t === 'tg'){ 요인.대상선택 = t.value; 요인갱신(); }
   else if(d.t === 'tgin'){ 요인.직접대상 = t.value; 요인.대상선택 = '__직접'; 요인갱신(); }
   else if(d.t === 'addname'){ const a = 요인.추가[Number(d.k)]; if(a){ a.이름 = t.value; 요인갱신(); } }
@@ -1469,6 +1484,7 @@ function 폼클릭(e){
   else if(act === 'go1') 요인제출();
   else if(act === 'cancel1') 다시고르기닫기();
   else if(act === 'go2') 마무리제출();
+  else if(act === 'cancel2') 마무리다시닫기();
 }
 function 추가행(){
   if(요인.추가.length >= 2) return;
@@ -1490,8 +1506,10 @@ function 요인제출(){
   const rows = 요인선택목록(), 대상 = 요인대상();
   if(!대상 || rows.length !== 5 || rows.some(r => !r.관계)) return;
   const 줄 = r => (r.직접 ? '직접 추가: ' : '정보: ') + r.이름 + ' | ' + r.관계 + ' | ' + 한줄정리(r.한줄);
-  const t = '[정보 선택]\n대상: ' + 대상 + '\n' + rows.map(줄).join('\n');
-  확정입력.push({순서:순번, 종류:'요인', 값:{대상:대상, 정보:rows.map(r => ({이름:r.이름, 관계:r.관계, 한줄:한줄정리(r.한줄), 직접:!!r.직접}))}});
+  // 「내가 떠올린 정보」 줄은 서버의 줄 읽기(정보:·직접 추가:)와 겹치지 않게 따로 둔다 — 계획서의 「떠올린 사람」은 이 체크를 따른다
+  const 내것 = rows.filter(r => !r.직접 && r.내가).map(r => r.이름);
+  const t = '[정보 선택]\n대상: ' + 대상 + '\n' + rows.map(줄).join('\n') + '\n내가 떠올린 정보: ' + (내것.length ? 내것.join(' / ') : '없음');
+  확정입력.push({순서:순번, 종류:'요인', 값:{대상:대상, 정보:rows.map(r => ({이름:r.이름, 관계:r.관계, 한줄:한줄정리(r.한줄), 직접:!!r.직접, 내가:r.직접 ? true : !!r.내가}))}});
   다시고르기 = false;
   const b = document.getElementById('xgo'); if(b) b.disabled = true;
   보내기(t, {});
@@ -1501,6 +1519,8 @@ function 마무리제출(){
   const a = 한줄정리(마무리값.주제), c = 한줄정리(마무리값.활용);
   if(a.length < 15 || c.length < 15) return;
   확정입력.push({순서:순번, 종류:'마무리', 값:{주제:a, 활용:c}});
+  마무리다시 = false;
+  if(정리){ 정리.확인문장 = a; 정리.활용방안 = c; }   // 정리보정은 빈 칸을 채우지 않으므로 다시 쓴 글을 바로 넣어 둔다
   const b = document.getElementById('fgo'); if(b) b.disabled = true;
   보내기('[마무리 서술]\n내 주제: ' + a + '\n문제 해결 활용: ' + c, {});
 }
@@ -1516,9 +1536,22 @@ function 가설풀기(t){
 }
 function 다시고르기가능(){
   const s = 정리 || {};
-  return !다시고르기 && (현재단계 === '요인정하기' || 현재단계 === '마무리') &&
-         (s.특성 || []).length === 5 && !!s.대상확인 && (s.x보기 || []).length > 0;
+  // 정보가 몇 개든(5개 규칙 전의 3·4·6개 계획서도), 보기 목록이 비어 있어도(정보를 모두 직접 말한 계획서) 고칠 수 있게 한다
+  return !다시고르기 && !마무리다시 && (현재단계 === '요인정하기' || 현재단계 === '마무리') &&
+         (s.특성 || []).length > 0 && !!s.대상확인;
 }
+/* 「내 주제·활용 고치기」 — 마무리 서술 칸을 지금 글이 채워진 채로 다시 연다 */
+function 마무리다시가능(){
+  const s = 정리 || {};
+  return !다시고르기 && !마무리다시 && (현재단계 === '요인정하기' || 현재단계 === '마무리') && !!(s.확인문장 || s.활용방안);
+}
+function 마무리다시열기(){
+  if(보내는중 || !정리) return;
+  마무리값 = {주제:정리.확인문장 || 마무리값.주제 || '', 활용:정리.활용방안 || 마무리값.활용 || ''};
+  마무리다시 = true; 폼표식 = '';
+  paintSpec();
+}
+function 마무리다시닫기(){ 마무리다시 = false; 폼표식 = ''; paintSpec(); }
 /* 지금 계획서의 대상·정보·가설을 체크한 채로 요인 화면을 연다 */
 function 다시고르기열기(){
   if(보내는중 || !정리) return;
@@ -1529,10 +1562,10 @@ function 다시고르기열기(){
   else if(대상){ 요인.대상선택 = '__직접'; 요인.직접대상 = 대상; }
   (정리.특성 || []).forEach(f => {
     const p = 가설풀기(f.가설);
-    if(보기.some(x => x.이름 === f.이름)) 요인.고름[f.이름] = p;
+    if(보기.some(x => x.이름 === f.이름)) 요인.고름[f.이름] = {관계:p.관계, 한줄:p.한줄, 내가:f.떠올린사람 === '학생'};
     else 요인.추가.push({이름:f.이름, 관계:p.관계, 한줄:p.한줄});
   });
-  다시고르기 = true; 폼표식 = '';
+  다시고르기 = true; 마무리다시 = false; 폼표식 = '';
   paintSpec();
 }
 function 다시고르기닫기(){ 다시고르기 = false; 폼표식 = ''; paintSpec(); }
@@ -1556,8 +1589,8 @@ async function 계획서불러오기(){
     const p = 가설풀기(f.가설);
     return (보기이름.indexOf(f.이름) >= 0 ? '정보: ' : '직접 추가: ') + f.이름 + ' | ' + (p.관계 || p.한줄) + ' | ' + (p.관계 ? p.한줄 : '');
   }).join('\n');
-  const 답 = {답변:'확정했던 계획서를 불러왔어요. 고치고 싶은 것을 채팅으로 말하거나, 오른쪽 계획서 위의 「정보·가설 다시 고르기」를 눌러 주세요. ' +
-                 '다 고쳤으면 「주제 확정하기」를 다시 누르면 돼요.',
+  const 답 = {답변:'확정했던 계획서를 불러왔어요. 정보·가설·대상·「누가 떠올렸나」는 오른쪽 계획서 위의 「✏ 정보·가설·대상 고치기」로, 내 주제와 문제 해결 활용은 「✏ 내 주제·활용 고치기」로 고쳐요. ' +
+                 '주제나 맞힐 것을 바꾸고 싶으면 채팅으로 말해 주세요. 다 고쳤으면 「주제 확정하기」를 다시 누르면 돼요.',
               단계:'마무리', 정리:s, 주제점검:r.주제점검 || null, 도움요청:false, 확정가능:true};
   히스토리 = [
     {role:'user', content:'[계획서 불러오기] 확정했던 계획서를 고치려고 불러왔어요.', 보일말:'', 숨김:true, 순서:0},
@@ -1569,7 +1602,7 @@ async function 계획서불러오기(){
   히스토리.push({role:'assistant', content:JSON.stringify(답), 보일말:답.답변, 순서:5});
   순번 = 6;
   확정입력 = 확정입력복원(히스토리);
-  요인 = {대상선택:'', 직접대상:'', 고름:{}, 추가:[]}; 폼표식 = ''; 다시고르기 = false;
+  요인 = {대상선택:'', 직접대상:'', 고름:{}, 추가:[]}; 폼표식 = ''; 다시고르기 = false; 마무리다시 = false;
   마무리값 = {주제:s.확인문장 || '', 활용:s.활용방안 || ''};
   정리 = s; 주제점검 = 답.주제점검; 확정가능 = true; 도움요청 = false;
   정리보정();
@@ -1581,7 +1614,7 @@ function 고치러가기(){
   document.getElementById('done').classList.add('hide');
   document.getElementById('donesheet').innerHTML = '';
   draw(); paintSpec();
-  알림('고치고 싶은 것을 채팅으로 말하거나 「정보·가설 다시 고르기」를 눌러 주세요. 다 고쳤으면 「주제 확정하기」를 다시 누르면 돼요.');
+  알림('오른쪽 계획서 위의 「✏ 정보·가설·대상 고치기」나 「✏ 내 주제·활용 고치기」로 고쳐요. 다 고쳤으면 「주제 확정하기」를 다시 누르면 돼요.');
 }
 
 /* ── 확정 ── */
