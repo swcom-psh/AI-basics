@@ -84,7 +84,7 @@ def main():
             print(f"   → 반영. 이전 파일: {keep.relative_to(ROOT)}")
     if 바뀜:
         GAL.write_text(json.dumps(갱신, ensure_ascii=False, indent=1), encoding="utf-8")
-        r = subprocess.run([sys.executable, str(TOOLS / "build_guide.py")], capture_output=True, text=True, encoding="utf-8")
+        r = subprocess.run([sys.executable, str(TOOLS / "build_guide.py")], capture_output=True, text=True, encoding="utf-8", errors="replace")
         print("안내 파일:", (r.stdout or r.stderr).strip().splitlines()[-1] if (r.stdout or r.stderr) else "?")
         print("갱신 기록:", ", ".join(바뀜), "— download 화면이 이 학생들에게 「데이터가 바뀌었어요」로 다시 묻습니다.")
 

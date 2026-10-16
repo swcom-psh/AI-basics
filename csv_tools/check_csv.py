@@ -17,6 +17,12 @@ import json, re, sys
 import numpy as np
 import pandas as pd
 
+if hasattr(sys.stdout, "reconfigure"):
+    try:
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+    except Exception:
+        pass
+
 NUM = re.compile(r"^-?\d+(\.\d+)?$")
 INT = re.compile(r"^-?\d+$")
 
